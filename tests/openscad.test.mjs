@@ -310,3 +310,57 @@ for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, column
     console.log(`PASS: bolt, ${params.boltLength} mm length: head, shank, and ${chamfer.toFixed(3)} mm chamfer`)
   }
 }
+
+// The stand: Stand top outline extruded by wall thickness, plus the Stand side outline extruded toward O from outer 1 X.
+{
+  const { standDefinitions } = await import('../src/stand-model.ts')
+  const { standSideGeometry, standTopGeometry } = await import('../src/stand-sketch.ts')
+  const standSource = await fs.readFile(new URL('../src/models/stand.scad', import.meta.url), 'utf8')
+  for (const changes of [{}, { columns: 3, rows: 3, wallThickness: 3 }]) {
+    const params = {...defaultBaseParameters, ...changes}
+    const instance = await OpenSCAD({noInitialRun:true, wasmBinary, print:()=>{}, printErr:()=>{}})
+    instance.FS.writeFile('/stand.scad', standSource)
+    assert.equal(instance.callMain(['/stand.scad', ...standDefinitions(params), '--export-format', 'binstl', '-o', '/stand.stl']), 0)
+    const geometry = new STLLoader().parse(instance.FS.readFile('/stand.stl').slice().buffer)
+    geometry.computeBoundingBox()
+    const { min, max } = geometry.boundingBox
+    const top = standTopGeometry(params)
+    const side = standSideGeometry(params)
+    near(min.x, 0)
+    near(max.x, top.outer1.x)
+    near(min.y, Math.min(-top.standLength, side.outer2.y))
+    near(max.y, Math.max(top.yTop1, side.outer1.y))
+    near(min.z, side.outer3.z - params.wallThickness)
+    near(max.z, side.outerRadius)
+    const material = new MeshBasicMaterial({side:DoubleSide})
+    const mesh = new Mesh(geometry, material)
+    mesh.updateMatrixWorld()
+    const round = values => values.map(x => Math.round(x*1e4)/1e4)
+    // Below the top plate only the side remains: wall thickness thick, ending at outer 1 X (probed beside the red circle).
+    const ringY = (side.innerRadius + side.outerRadius) / 2
+    const sideXs = new Raycaster(new Vector3(-1000, ringY, side.outer3.z / 2), new Vector3(1,0,0)).intersectObject(mesh)
+      .map(hit=>hit.point.x).filter((x,i,all)=>i===0 || Math.abs(x-all[i-1])>1e-5)
+    assert.deepEqual(round(sideXs), round([top.outer1.x - params.wallThickness, top.outer1.x]))
+    // The red circle is cut through the side; between it and the green arc the side stays solid.
+    const holeXs = new Raycaster(new Vector3(-1000, 0, 0), new Vector3(1,0,0)).intersectObject(mesh)
+    assert.equal(holeXs.length, 0, 'The red circle must be cut through the side')
+    const ringXs = new Raycaster(new Vector3(-1000, 0, (side.innerRadius + side.outerRadius) / 2), new Vector3(1,0,0)).intersectObject(mesh)
+      .map(hit=>hit.point.x).filter((x,i,all)=>i===0 || Math.abs(x-all[i-1])>1e-5)
+    assert.deepEqual(round(ringXs), round([top.outer1.x - params.wallThickness, top.outer1.x]))
+    // Inside the frame near outer 2, the top plate spans one wall thickness below outer 3 Z.
+    const plateZs = new Raycaster(new Vector3(top.outer2.x - params.wallThickness * 1.5, top.outer2.y + 1, -1000), new Vector3(0,0,1)).intersectObject(mesh)
+      .map(hit=>hit.point.z).filter((z,i,all)=>i===0 || Math.abs(z-all[i-1])>1e-5)
+    assert.deepEqual(round(plateZs), round([side.outer3.z - params.wallThickness, side.outer3.z]))
+    // Where the side sits on the plate they are fused: a vertical line through both crosses only the outer faces.
+    const fusedZs = new Raycaster(new Vector3(top.outer1.x - params.wallThickness / 2, ringY, -1000), new Vector3(0,0,1)).intersectObject(mesh)
+      .map(hit=>hit.point.z).filter((z,i,all)=>i===0 || Math.abs(z-all[i-1])>1e-5)
+    assert.equal(fusedZs.length, 2, 'Side and plate must fuse')
+    near(fusedZs[0], side.outer3.z - params.wallThickness)
+    // The opening between inner 1–4 is empty.
+    const openZs = new Raycaster(new Vector3(top.inner2.x / 2, (top.inner1.y + top.inner4.y) / 2, -1000), new Vector3(0,0,1)).intersectObject(mesh)
+    assert.equal(openZs.length, 0, 'The inner rectangle must be open')
+    material.dispose()
+    geometry.dispose()
+    console.log(`PASS: stand, ${params.columns} columns × ${params.rows} rows: top plate below outer 3 Z and side, with red circle cut, extruded toward O`)
+  }
+}

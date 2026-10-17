@@ -143,6 +143,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         <button id="base-model" class="active" type="button" aria-pressed="true">Base</button>
         <button id="hinge-model" type="button" aria-pressed="false">Hinge</button>
         <button id="bolt-model" type="button" aria-pressed="false">Bolt</button>
+        <button id="stand-model" type="button" aria-pressed="false">Stand</button>
       </div>
       <button id="fit" class="viewport-action" type="button">Fit model</button>
       <button id="redraw" class="viewport-action" type="button">Redraw</button>
@@ -339,6 +340,7 @@ const modelButtons: Record<ModelName, HTMLButtonElement> = {
   base: document.querySelector<HTMLButtonElement>('#base-model')!,
   hinge: document.querySelector<HTMLButtonElement>('#hinge-model')!,
   bolt: document.querySelector<HTMLButtonElement>('#bolt-model')!,
+  stand: document.querySelector<HTMLButtonElement>('#stand-model')!,
 }
 const modelName = document.querySelector<HTMLElement>('#model-name')!
 const showModel = (name: ModelName) => {
