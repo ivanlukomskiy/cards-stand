@@ -1,6 +1,6 @@
 import './style.css'
 import { BasePreview } from './preview'
-import { rectangleSketch } from './sketch'
+import { cellSketch } from './sketch'
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <aside class="sidebar" aria-label="Model parameters">
@@ -58,7 +58,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   </aside>
   <main class="viewport" aria-label="Constructor preview">
     <section id="sketch-view" class="preview-view" aria-label="2D sketch preview">
-      ${rectangleSketch()}
+      ${cellSketch()}
     </section>
     <section id="model-view" class="preview-view" aria-label="Interactive 3D model preview" hidden>
     <div class="viewport-actions">
@@ -73,6 +73,28 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 `
 
 const sketchView = document.querySelector<HTMLElement>('#sketch-view')!
+const sketchInputs = {
+  cellWidth: document.querySelector<HTMLInputElement>('#cell-width')!,
+  cellLength: document.querySelector<HTMLInputElement>('#cell-length')!,
+  wallThickness: document.querySelector<HTMLInputElement>('#wall-thickness')!,
+  hingeThickness: document.querySelector<HTMLInputElement>('#hinge-thickness')!,
+  hingeTolerance: document.querySelector<HTMLInputElement>('#hinge-tolerance')!,
+}
+const updateSketch = () => {
+  const fields = Object.values(sketchInputs)
+  for (const field of fields) {
+    field.setAttribute('aria-invalid', String(!field.validity.valid || !Number.isFinite(field.valueAsNumber)))
+  }
+  if (fields.some(field => !field.validity.valid || !Number.isFinite(field.valueAsNumber))) return
+  sketchView.innerHTML = cellSketch({
+    cellWidth: sketchInputs.cellWidth.valueAsNumber,
+    cellLength: sketchInputs.cellLength.valueAsNumber,
+    wallThickness: sketchInputs.wallThickness.valueAsNumber,
+    hingeThickness: sketchInputs.hingeThickness.valueAsNumber,
+    hingeTolerance: sketchInputs.hingeTolerance.valueAsNumber,
+  })
+}
+Object.values(sketchInputs).forEach(field => field.addEventListener('input', updateSketch))
 const modelView = document.querySelector<HTMLElement>('#model-view')!
 const sketchMode = document.querySelector<HTMLButtonElement>('#sketch-mode')!
 const modelMode = document.querySelector<HTMLButtonElement>('#model-mode')!
