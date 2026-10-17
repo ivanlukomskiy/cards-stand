@@ -17,6 +17,7 @@
 html, body, #app { height: 100%; margin: 0; }
 #app { display: flex; height: 100dvh; overflow: hidden; }
 .sidebar { width: 320px; flex-shrink: 0; background: var(--panel); border-right: 1px solid var(--border); padding: 12px; overflow-y: auto; }
+.sidebar > .sidebar-section:not(:last-child) { border-bottom: 1px solid var(--border); }
 .sidebar-section > summary { padding: 11px 2px; font-size: 13px; font-weight: 600; cursor: pointer; }
 .sidebar-section > summary::marker { color: var(--text-dim); }
 .sidebar-section > summary:hover { color: var(--accent); }

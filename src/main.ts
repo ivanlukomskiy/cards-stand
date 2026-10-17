@@ -4,6 +4,43 @@ import { BasePreview } from './preview'
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <aside class="sidebar" aria-label="Model parameters">
     <details class="sidebar-section" open>
+      <summary>Parameters</summary>
+      <div class="sidebar-section-content">
+        <div class="transform-field">
+          <label for="cell-width">Cell width (mm)</label>
+          <input id="cell-width" name="cell-width" type="number" min="0.1" step="0.1" value="64" />
+        </div>
+        <div class="transform-field">
+          <label for="cell-length">Cell length (mm)</label>
+          <input id="cell-length" name="cell-length" type="number" min="0.1" step="0.1" value="24" />
+        </div>
+        <div class="transform-field">
+          <label for="base-height">Base height (mm)</label>
+          <input id="base-height" name="base-height" type="number" min="0.1" step="0.1" value="12" />
+        </div>
+        <div class="transform-field">
+          <label for="wall-thickness">Wall thickness (mm)</label>
+          <input id="wall-thickness" name="wall-thickness" type="number" min="0.1" step="0.1" value="2" />
+        </div>
+        <div class="transform-field">
+          <label for="hinge-thickness">Hinge thickness (mm)</label>
+          <input id="hinge-thickness" name="hinge-thickness" type="number" min="0.1" step="0.1" value="3" />
+        </div>
+        <div class="transform-field">
+          <label for="hinge-width-bottom">Hinge width bottom (mm)</label>
+          <input id="hinge-width-bottom" name="hinge-width-bottom" type="number" min="0.1" step="0.1" value="7" />
+        </div>
+        <div class="transform-field">
+          <label for="hinge-tolerance">Hinge tolerance (mm)</label>
+          <input id="hinge-tolerance" name="hinge-tolerance" type="number" min="0" step="0.01" value="0.1" />
+        </div>
+        <div class="transform-field">
+          <label for="base-angle">Base angle (°)</label>
+          <input id="base-angle" name="base-angle" type="number" min="0" step="0.1" value="45" max="90" />
+        </div>
+      </div>
+    </details>
+    <details class="sidebar-section" open>
       <summary>Base</summary>
       <div class="sidebar-section-content">
         <div class="transform-field">
