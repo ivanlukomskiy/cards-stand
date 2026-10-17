@@ -127,7 +127,7 @@ for (const columns of [1, 3]) {
 }
 
 // The base end spans the full model width and is fused to row 0's outer 1–outer 2 face.
-for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, columns: 3, baseAngle: 30 }, { rows: 2, columns: 2, baseAngle: 90 }]) {
+for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, columns: 3, baseAngle: 30, standHingeTolerance: 0.5 }, { rows: 2, columns: 2, baseAngle: 90, standHingeTolerance: 0 }]) {
   const params = {...defaultBaseParameters, ...changes}
   const {start, atHeight, rest1, rest2, center} = baseEndGeometry(params)
   const instance = await OpenSCAD({noInitialRun:true, wasmBinary, print:()=>{}, printErr:()=>{}})
@@ -151,13 +151,20 @@ for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, column
     if (y > faceY) assert.deepEqual(xs.map(x => Math.round(x*1e4)/1e4), [minX, maxX].map(x => Math.round(x*1e4)/1e4), 'Base end must be one solid across the full width')
     else assert.ok(xs.length >= 2, 'Row 0 wall must meet the base end')
   }
-  // The yellow outline extrusion stops twice the wall thickness short of each side.
-  const innerXs = new Raycaster(new Vector3(-1000,center.y,center.z),new Vector3(1,0,0)).intersectObject(mesh)
-    .map(hit=>hit.point.x).filter((x,i,all)=>i===0 || Math.abs(x-all[i-1])>1e-5)
-  assert.deepEqual(innerXs.map(x => Math.round(x*1e4)/1e4), [minX + 2*params.wallThickness, maxX - 2*params.wallThickness].map(x => Math.round(x*1e4)/1e4), 'Yellow outline must be inset by twice the wall thickness')
+  // The yellow outline extrusion stops twice the wall thickness short of each side; the pink hole is chamfered at both ends.
+  const holeRadius = (params.baseHeight - 2*params.wallThickness - params.standHingeTolerance) / 2
+  const chamfer = params.wallThickness / 2
+  const xsAt = (y, z) => new Raycaster(new Vector3(-1000,y,z),new Vector3(1,0,0)).intersectObject(mesh)
+    .map(hit=>hit.point.x).filter((x,i,all)=>i===0 || Math.abs(x-all[i-1])>1e-5).map(x => Math.round(x*1e4)/1e4)
+  const round = values => values.map(x => Math.round(x*1e4)/1e4)
+  const innerMin = minX + 2*params.wallThickness
+  const innerMax = maxX - 2*params.wallThickness
+  assert.deepEqual(xsAt(center.y, center.z + holeRadius + chamfer * 1.5), round([innerMin, innerMax]), 'Yellow outline must be inset by twice the wall thickness')
+  assert.deepEqual(xsAt(center.y, center.z), [], 'Hole must cut through the yellow extrusion')
+  assert.deepEqual(xsAt(center.y, center.z + holeRadius + chamfer / 2), round([innerMin + chamfer / 2, innerMax - chamfer / 2]), 'Hole ends must have 45° chamfers of wall thickness / 2')
   const hits = new Raycaster(new Vector3(0,faceY-0.5,z),new Vector3(0,1,0)).intersectObject(mesh).filter(hit=>Math.abs(hit.point.y-faceY)<1e-4)
   assert.equal(hits.length, 0, 'No internal face between row 0 and the base end')
   material.dispose()
   geometry.dispose()
-  console.log(`PASS: ${params.rows} × ${params.columns} cells, ${params.baseAngle}°: base end spans full width, fuses to row 0, with inset yellow extrusion`)
+  console.log(`PASS: ${params.rows} × ${params.columns} cells, ${params.baseAngle}°: base end spans full width, fuses to row 0, with inset yellow extrusion and chamfered hole`)
 }

@@ -63,24 +63,50 @@ module edge_hinge_cuts() {
 // A function, because a top-level assignment here would be evaluated before the appended -D parameters.
 function model_width() = (columns - 1) * column_pitch + cell_width + 2 * wall_thickness;
 
-// Extrude a sketch (Y,Z) polygon along X, starting inset from the model's left side.
-module base_end_extrusion(points, inset) {
+// Map sketch (Y,Z) to model (Y,Z), with local Z running along X from the inset left side.
+module along_x(inset) {
     multmatrix([
         [0, 0, 1, -cell_width / 2 - wall_thickness + inset],
         [1, 0, 0, 0],
         [0, 1, 0, 0],
         [0, 0, 0, 1]
     ])
+        children();
+}
+
+module base_end_extrusion(points, inset) {
+    along_x(inset)
         linear_extrude(height = model_width() - 2 * inset)
             polygon(points = points);
 }
 
+// The pink circle drilled through the yellow extrusion, with 45° chamfers of wall thickness / 2 at both ends.
+module base_end_hole(inset) {
+    length = model_width() - 2 * inset;
+    chamfer = wall_thickness / 2;
+    overshoot = 1;
+    along_x(inset)
+        translate([base_end_hole_centre[0], base_end_hole_centre[1], 0]) {
+            translate([0, 0, -overshoot])
+                cylinder(r = base_end_hole_radius, h = length + 2 * overshoot, $fn = 64);
+            translate([0, 0, -overshoot])
+                cylinder(r1 = base_end_hole_radius + chamfer + overshoot, r2 = base_end_hole_radius, h = chamfer + overshoot, $fn = 64);
+            translate([0, 0, length - chamfer])
+                cylinder(r1 = base_end_hole_radius, r2 = base_end_hole_radius + chamfer + overshoot, h = chamfer + overshoot, $fn = 64);
+        }
+}
+
 module base_end() {
+    inset = 2 * wall_thickness;
     // Blue polygon across the full model width.
     base_end_extrusion(base_end_points, 0);
     // Yellow outline, inset by twice the wall thickness on each side.
-    if (model_width() > 4 * wall_thickness)
-        base_end_extrusion(base_end_inner_points, 2 * wall_thickness);
+    if (model_width() > 2 * inset)
+        difference() {
+            base_end_extrusion(base_end_inner_points, inset);
+            if (base_end_hole_radius > 0)
+                base_end_hole(inset);
+        }
 }
 
 union() {

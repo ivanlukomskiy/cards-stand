@@ -41,7 +41,9 @@ export function baseEndGeometry(params: BaseParameters) {
     z: params.baseHeight - params.wallThickness - params.hingeThickness / 2,
     y: hingeCenter.y + (params.baseHeight - params.wallThickness - params.hingeThickness / 2 - hingeCenter.z) * slope,
   }
-  return { start, atHeight, slope, center, radius, offsetStart, rest1, rest2, outer3, outer4, hingeCenter, hingeCenter2, hingeRadius }
+  // The pink circle's diameter is reduced by the stand hinge tolerance.
+  const holeRadius = (params.baseHeight - params.wallThickness * 2 - params.standHingeTolerance) / 2
+  return { start, atHeight, slope, center, radius, holeRadius, offsetStart, rest1, rest2, outer3, outer4, hingeCenter, hingeCenter2, hingeRadius }
 }
 
 

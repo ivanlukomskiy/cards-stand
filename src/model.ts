@@ -6,11 +6,12 @@ export interface BaseParameters extends CellSketchParameters {
   rows: number
   columns: number
   standAngle: number
+  standHingeTolerance: number
   baseHeight: number
 }
 
 export const defaultBaseParameters: BaseParameters = {
-  ...defaultSketchParameters, rows: 2, columns: 2, standAngle: 80, baseAngle: 45, baseHeight: 12,
+  ...defaultSketchParameters, rows: 2, columns: 2, standAngle: 80, standHingeTolerance: 0.1, baseAngle: 45, baseHeight: 12,
 }
 
 export function validateBaseParameters(params: BaseParameters) {
@@ -62,10 +63,13 @@ export function cellFullHeightProfiles(params: BaseParameters): number[][][] {
 // Pass the same sketch coordinates to OpenSCAD that the SVG uses.
 export function baseDefinitions(params: BaseParameters): string[] {
   validateBaseParameters(params)
-  const { hingeCenter, hingeCenter2, hingeRadius, rest1, atHeight, start, rest2 } = baseEndGeometry(params)
+  const { hingeCenter, hingeCenter2, hingeRadius, rest1, atHeight, start, rest2, center, holeRadius } = baseEndGeometry(params)
   const definitions = {
     base_end_points: [rest1, atHeight, start, rest2].map(({ y, z }) => [y, z]),
     base_end_inner_points: baseEndInnerPoints(params),
+    // The sketch's pink circle.
+    base_end_hole_centre: [center.y, center.z],
+    base_end_hole_radius: holeRadius,
     hinge_centres: [[hingeCenter.y, hingeCenter.z], [hingeCenter2.y, hingeCenter2.z]],
     hinge_radius: hingeRadius,
     cell_width: params.cellWidth,

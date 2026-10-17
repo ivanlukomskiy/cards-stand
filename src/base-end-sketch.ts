@@ -5,7 +5,7 @@ import { baseEndGeometry } from './base-end-geometry.ts'
 export { baseEndGeometry } from './base-end-geometry.ts'
 
 export function baseEndSketch(params: BaseParameters = defaultBaseParameters) {
-  const { start, atHeight, slope, center, radius, offsetStart, rest1, rest2, outer3, outer4, hingeCenter, hingeCenter2, hingeRadius } = baseEndGeometry(params)
+  const { start, atHeight, slope, center, radius, holeRadius, offsetStart, rest1, rest2, outer3, outer4, hingeCenter, hingeCenter2, hingeRadius } = baseEndGeometry(params)
   const beamTop = params.baseHeight * 1.4
   const beamEndY = start.y + beamTop * slope
   const unit = Math.max(beamEndY, beamTop, center.y + radius, outer3.y, rest1.y, hingeCenter.y, hingeCenter2.y, 1) / 40
@@ -42,7 +42,7 @@ export function baseEndSketch(params: BaseParameters = defaultBaseParameters) {
         <line x1="${-parallelY(minZ + 2 * unit)}" y1="${-minZ - 2 * unit}" x2="${-parallelY(maxZ - 2 * unit)}" y2="${-maxZ + 2 * unit}" />
       </g>
       <circle class="sketch-helper-circle" cx="${-center.y}" cy="${-center.z}" r="${radius}" />
-      ${params.baseHeight > params.wallThickness * 2 ? `<circle class="sketch-inner-circle" cx="${-center.y}" cy="${-center.z}" r="${(params.baseHeight - params.wallThickness * 2) / 2}" />` : ''}
+      ${holeRadius > 0 ? `<circle class="sketch-inner-circle" cx="${-center.y}" cy="${-center.z}" r="${holeRadius}" />` : ''}
       <polygon class="sketch-outline" points="${[
         [-rest1.y, -rest1.z], [-atHeight.y, -atHeight.z], [-start.y, 0], [-rest2.y, 0],
       ].map(point => point.join(',')).join(' ')}" />
