@@ -16,7 +16,13 @@ export function rectangleSketch() {
   return `
     <svg class="sketch-canvas" viewBox="-16 -42 96 60" role="img" aria-labelledby="sketch-title sketch-description">
       <title id="sketch-title">Rectangle sketch</title>
-      <desc id="sketch-description">A 64 by 24 millimeter rectangle with vertices A (0, 0), B (64, 0), C (64, 24), and D (0, 24).</desc>
+      <desc id="sketch-description">A 64 by 24 millimeter rectangle with vertices A (0, 0), B (64, 0), C (64, 24), and D (0, 24). Dash-dot X and Y axes intersect at A, the origin.</desc>
+      <g class="sketch-axes" aria-hidden="true">
+        <line x1="-12" y1="0" x2="76" y2="0" />
+        <line x1="0" y1="14" x2="0" y2="-38" />
+        <text x="76" y="-2" text-anchor="end">X</text>
+        <text x="2" y="-36">Y</text>
+      </g>
       <polygon class="sketch-outline" points="${rectanglePoints.map(p => `${p.x},${-p.y}`).join(' ')}" />
       ${rectanglePoints.map(p => `
         <g class="sketch-vertex">
