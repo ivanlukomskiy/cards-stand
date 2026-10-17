@@ -2,14 +2,14 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs/promises'
 import OpenSCAD from '../public/vendor/openscad/openscad.js'
 import { DoubleSide, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three'
-import { baseEndGeometry, baseEndInnerPoints } from '../src/base-end-geometry.ts'
+import { baseEndCutPoints, baseEndGeometry, baseEndInnerPoints } from '../src/base-end-geometry.ts'
 import { STLLoader } from 'three/addons/loaders/STLLoader.js'
 import { baseDefinitions, defaultBaseParameters, cellRaisedProfiles, cellFullHeightProfiles } from '../src/model.ts'
 import { cellMidPoints, hingeCutRightPoints, cellOuterPoints } from '../src/sketch.ts'
 
 const wasmBinary = await fs.readFile(new URL('../public/vendor/openscad/openscad.wasm', import.meta.url))
 const source = await fs.readFile(new URL('../src/models/base.scad', import.meta.url), 'utf8')
-const solidSource = source.replace(/difference\(\) \{\s*base_solid\(\);\s*edge_hinge_cuts\(\);\s*\}/, 'base_solid();').replace(/\n\s*\/\/ Fused[^\n]*\n\s*base_end\(\);/, '')
+const solidSource = source.replace(/difference\(\) \{\s*base_solid\(\);\s*edge_hinge_cuts\(\);\s*row_cuts\(\);\s*\}/, 'base_solid();').replace(/\n\s*\/\/ Fused[^\n]*\n\s*base_end\(\);/, '')
 const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 0.0001, `${actual} != ${expected}`)
 
 for (const changes of [
@@ -167,4 +167,34 @@ for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, column
   material.dispose()
   geometry.dispose()
   console.log(`PASS: ${params.rows} × ${params.columns} cells, ${params.baseAngle}°: base end spans full width, fuses to row 0, with inset yellow extrusion and chamfered hole`)
+}
+
+// The purple outline is cut through every row, leaving only the model's outer side walls.
+for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, columns: 3, baseAngle: 30 }, { rows: 2, columns: 2, baseAngle: 60 }]) {
+  const params = {...defaultBaseParameters, ...changes}
+  const {midCut1, hingeCenter2} = baseEndGeometry(params)
+  const instance = await OpenSCAD({noInitialRun:true, wasmBinary, print:()=>{}, printErr:()=>{}})
+  instance.FS.writeFile('/base.scad', source)
+  assert.equal(instance.callMain(['/base.scad', ...baseDefinitions(params), '--export-format', 'binstl', '-o', '/base.stl']), 0)
+  const geometry = new STLLoader().parse(instance.FS.readFile('/base.stl').slice().buffer)
+  const material = new MeshBasicMaterial({side:DoubleSide})
+  const mesh = new Mesh(geometry,material)
+  mesh.updateMatrixWorld()
+  const colPitch = params.cellWidth + params.wallThickness
+  const rowPitch = params.cellLength + 2*params.wallThickness + (params.hingeThickness + params.hingeTolerance)/Math.sin(params.baseAngle*Math.PI/180)
+  const minX = -params.cellWidth/2 - params.wallThickness
+  const maxX = (params.columns-1)*colPitch + params.cellWidth/2 + params.wallThickness
+  const round = values => values.map(x => Math.round(x*1e4)/1e4)
+  // A point inside the outline, between mid cut 1 and the hinge 2 circle, below the top.
+  const z = (midCut1.z + hingeCenter2.z) / 2
+  for (let row = 0; row < params.rows; row++) {
+    const y = midCut1.y + 0.25 - row * rowPitch
+    const xs = new Raycaster(new Vector3(-1000,y,z),new Vector3(1,0,0)).intersectObject(mesh)
+      .map(hit=>hit.point.x).filter((x,i,all)=>i===0 || Math.abs(x-all[i-1])>1e-5)
+    assert.deepEqual(round(xs), round([minX, minX + params.wallThickness, maxX - params.wallThickness, maxX]), `Row ${row}: only outer walls remain inside the cut`)
+  }
+  assert.ok(baseEndCutPoints(params).length > 4)
+  material.dispose()
+  geometry.dispose()
+  console.log(`PASS: ${params.rows} × ${params.columns} cells, ${params.baseAngle}°: purple outline cut through every row except outer walls`)
 }

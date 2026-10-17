@@ -74,3 +74,24 @@ export function baseEndInnerPoints(params: BaseParameters): number[][] {
   arc[arc.length - 1] = [outer4.y, outer4.z]
   return [[rest2.y, rest2.z], ...arc, [outer3.y, outer3.z], [rest1.y, rest1.z]]
 }
+
+// Sample a circle arc in (Y,Z) from one angle to another, at 64 segments per turn.
+function arcPoints(center: { y: number, z: number }, radius: number, from: number, to: number): number[][] {
+  const segments = Math.max(1, Math.ceil(64 * Math.abs(to - from) / (2 * Math.PI)))
+  return Array.from({ length: segments + 1 }, (_, i) => {
+    const angle = from + (to - from) * i / segments
+    return [center.y + radius * Math.cos(angle), center.z + radius * Math.sin(angle)]
+  })
+}
+
+// The purple cut outline: outer 2 → mid cut 1 → mid cut 2 → arc → mid cut 3 → hinge 2 bottom → arc → hinge 2 tangent.
+export function baseEndCutPoints(params: BaseParameters): number[][] {
+  const { atHeight, midCut1, hingeCenter2, hingeCenter3, hingeRadius } = baseEndGeometry(params)
+  const angle = params.baseAngle * Math.PI / 180
+  return [
+    [atHeight.y, atHeight.z],
+    [midCut1.y, midCut1.z],
+    ...arcPoints(hingeCenter3, hingeRadius, Math.PI, 1.5 * Math.PI),
+    ...arcPoints(hingeCenter2, hingeRadius, -Math.PI / 2, angle - Math.PI / 2),
+  ]
+}

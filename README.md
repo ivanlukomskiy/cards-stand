@@ -18,4 +18,6 @@ In the cell sketch and row layout, the hinge span along Y is `(hinge thickness +
 
 The base end polygon (rest 1 → outer 2 → outer 1 → rest 2) is extruded along X across the full model width and fused to row 0 along its outer 1–outer 2 face. The yellow outline (rest 2 → outer 5 → arc → outer 4 → outer 3 → rest 1, closed back to rest 2) is extruded the same way but inset by `2 * wall thickness` from each side. The pink circle (diameter `base height - 2 * wall thickness - stand hinge tolerance`, concentric with the helper circle) is drilled through the yellow extrusion along X, with 45° chamfers of `wall thickness / 2` at both ends. Neither extrusion is subtracted by the hinge cuts.
 
+The purple outline from the Base end sketch (outer 2 → mid cut 1 → mid cut 2 → arc → mid cut 3 → hinge circle 2 bottom → arc → its tangent point on outer 1–outer 2) is cut along X through every row, between the inner faces of the two outer side walls, so only those walls remain in that region.
+
 The hinge capsule from the Base end sketch is subtracted along X through only the left wall of column 0 and the right wall of the last column, in every row. A single-column layout receives both outside cuts. Interior walls are preserved. The capsule sketch and cuts share their geometry through `src/base-end-geometry.ts`.

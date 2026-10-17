@@ -109,10 +109,19 @@ module base_end() {
         }
 }
 
+// The purple outline cut through every row, keeping only the model's outer side walls.
+module row_cuts() {
+    if (model_width() > 2 * wall_thickness)
+        for (row = [0 : rows - 1])
+            translate([0, -row * row_pitch, 0])
+                base_end_extrusion(base_end_cut_points, wall_thickness);
+}
+
 union() {
     difference() {
         base_solid();
         edge_hinge_cuts();
+        row_cuts();
     }
     // Fused to row 0 along the outer 1–outer 2 face.
     base_end();

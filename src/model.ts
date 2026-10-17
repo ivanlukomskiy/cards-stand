@@ -1,4 +1,4 @@
-import { baseEndGeometry, baseEndInnerPoints } from './base-end-geometry.ts'
+import { baseEndCutPoints, baseEndGeometry, baseEndInnerPoints } from './base-end-geometry.ts'
 import { cellInnerPoints, cellOuterPoints, cellMidPoints, hingeCutRightPoints, rimRightPoints, defaultSketchParameters } from './sketch.ts'
 import type { CellSketchParameters } from './sketch.ts'
 
@@ -67,6 +67,7 @@ export function baseDefinitions(params: BaseParameters): string[] {
   const definitions = {
     base_end_points: [rest1, atHeight, start, rest2].map(({ y, z }) => [y, z]),
     base_end_inner_points: baseEndInnerPoints(params),
+    base_end_cut_points: baseEndCutPoints(params),
     // The sketch's pink circle.
     base_end_hole_centre: [center.y, center.z],
     base_end_hole_radius: holeRadius,
