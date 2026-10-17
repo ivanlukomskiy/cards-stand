@@ -196,5 +196,10 @@ console.log('PASS: bolt circles')
   near(stand.outerRadius, (params.baseHeight - 0.3) / 2)
   near(stand.innerRadius, baseEndGeometry(params).holeRadius)
   assert.deepEqual([stand.outer1, stand.outer2], [{y: stand.outerRadius, z: 0}, {y: -stand.outerRadius, z: 0}])
+  // Outer 3 and 4 drop outer 2 and 1 by the Cell side yellow arc's radius.
+  const drop = baseEndGeometry(params).arcRadius
+  near(drop, params.baseHeight / 2 + params.standTolerance)
+  assert.deepEqual([stand.outer3, stand.outer4], [{y: -stand.outerRadius, z: -drop}, {y: stand.outerRadius, z: -drop}])
+  assert.deepEqual([stand.outer5, stand.outer6], [{y: -stand.outerRadius, z: -drop - params.wallThickness}, {y: stand.outerRadius, z: -drop - params.wallThickness}])
 }
-console.log('PASS: stand side circles and green half-circle ends')
+console.log('PASS: stand side circles, green half-circle ends, and dropped outer 3–6')

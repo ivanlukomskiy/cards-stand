@@ -32,32 +32,42 @@ export function standTopSketch(params: BaseParameters = defaultBaseParameters) {
 }
 
 export function standSideGeometry(params: BaseParameters) {
+  // The radius of the Cell side yellow arc (base end circle enlarged by the stand tolerance).
+  const drop = baseEndGeometry(params).arcRadius
+  const halfWidth = (params.baseHeight - params.standHingeTolerance) / 2
   return {
     // Green: fits the Cell side helper circle (diameter base height) with the stand hinge tolerance.
     outerRadius: (params.baseHeight - params.standHingeTolerance) / 2,
     // Red: the same as the Cell side red (stand hinge hole) circle.
     innerRadius: baseEndGeometry(params).holeRadius,
     // Ends of the green half circle after its bottom half is cut away.
-    outer1: { y: (params.baseHeight - params.standHingeTolerance) / 2, z: 0 },
-    outer2: { y: -(params.baseHeight - params.standHingeTolerance) / 2, z: 0 },
+    outer1: { y: halfWidth, z: 0 },
+    outer2: { y: -halfWidth, z: 0 },
+    // Outer 2 and outer 1 moved down by the yellow arc's radius.
+    outer3: { y: -halfWidth, z: -drop },
+    outer4: { y: halfWidth, z: -drop },
+    // Outer 3 and outer 4 moved down by the wall thickness.
+    outer5: { y: -halfWidth, z: -drop - params.wallThickness },
+    outer6: { y: halfWidth, z: -drop - params.wallThickness },
   }
 }
 
 // The stand viewed from +X, in the YOZ plane: positive Y left and positive Z up, matching the Cell side sketch.
 export function standSideSketch(params: BaseParameters = defaultBaseParameters) {
-  const { outerRadius, innerRadius, outer1, outer2 } = standSideGeometry(params)
-  return axesSketch(Math.max(outerRadius, 1e-3), 'Y', 'Z', true,
+  const { outerRadius, innerRadius, outer1, outer2, outer3, outer4, outer5, outer6 } = standSideGeometry(params)
+  return axesSketch(Math.max(outerRadius, -outer5.z, 1e-3), 'Y', 'Z', true,
     'Stand side sketch with positive Y pointing left and positive Z pointing up', unit => `
-      ${outerRadius > 0 ? `<path class="sketch-outline sketch-hinge-outline" d="M ${-outer1.y} ${-outer1.z} A ${outerRadius} ${outerRadius} 0 0 1 ${-outer2.y} ${-outer2.z}" />` : ''}
+      ${outerRadius > 0 ? `<path class="sketch-outline sketch-hinge-outline" d="M ${-outer1.y} ${-outer1.z} A ${outerRadius} ${outerRadius} 0 0 1 ${-outer2.y} ${-outer2.z} L ${-outer3.y} ${-outer3.z} L ${-outer4.y} ${-outer4.z} Z" />` : ''}
+      <polygon class="sketch-outline sketch-cut-outline" points="${[outer3, outer5, outer6, outer4].map(p => `${-p.y},${-p.z}`).join(' ')}" />
       ${innerRadius > 0 ? `<circle class="sketch-inner-circle" cx="0" cy="0" r="${innerRadius}" />` : ''}
       <g class="sketch-vertex" data-point-name="centre" data-x="0" data-y="0" data-first-axis="Y" data-second-axis="Z" data-x-formula="0" data-y-formula="0"
         data-label-x="${-2 * unit}" data-label-y="${4 * unit}" data-label-anchor="end" data-label-size="${3 * unit}">
         <circle class="sketch-vertex-dot" cx="0" cy="0" r="${0.7 * unit}" />
       </g>
-      ${[outer1, outer2].map((point, index) => `
-        <g class="sketch-vertex sketch-hinge-vertex" data-point-name="outer ${index + 1}" data-x="${point.y}" data-y="${point.z}" data-first-axis="Y" data-second-axis="Z"
-          data-x-formula="${index === 0 ? '' : '-'}(base height - stand hinge tolerance) / 2" data-y-formula="0"
-          data-label-x="${-point.y}" data-label-y="${4 * unit}" data-label-anchor="middle" data-label-size="${3 * unit}">
+      ${[outer1, outer2, outer3, outer4, outer5, outer6].map((point, index) => `
+        <g class="sketch-vertex ${index < 4 ? 'sketch-hinge-vertex' : 'sketch-cut-vertex'}" data-point-name="outer ${index + 1}" data-x="${point.y}" data-y="${point.z}" data-first-axis="Y" data-second-axis="Z"
+          data-x-formula="${point.y > 0 ? '' : '-'}(base height - stand hinge tolerance) / 2" data-y-formula="${index < 2 ? '0' : index < 4 ? '-(base height / 2 + stand tolerance)' : '-(base height / 2 + stand tolerance) - wall thickness'}"
+          data-label-x="${-point.y}" data-label-y="${-point.z + 4 * unit}" data-label-anchor="middle" data-label-size="${3 * unit}">
           <circle class="sketch-vertex-dot" cx="${-point.y}" cy="${-point.z}" r="${0.7 * unit}" />
         </g>
       `).join('')}
