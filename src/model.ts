@@ -1,4 +1,4 @@
-import { baseEndGeometry } from './base-end-geometry.ts'
+import { baseEndGeometry, baseEndInnerPoints } from './base-end-geometry.ts'
 import { cellInnerPoints, cellOuterPoints, cellMidPoints, hingeCutRightPoints, rimRightPoints, defaultSketchParameters } from './sketch.ts'
 import type { CellSketchParameters } from './sketch.ts'
 
@@ -65,6 +65,7 @@ export function baseDefinitions(params: BaseParameters): string[] {
   const { hingeCenter, hingeCenter2, hingeRadius, rest1, atHeight, start, rest2 } = baseEndGeometry(params)
   const definitions = {
     base_end_points: [rest1, atHeight, start, rest2].map(({ y, z }) => [y, z]),
+    base_end_inner_points: baseEndInnerPoints(params),
     hinge_centres: [[hingeCenter.y, hingeCenter.z], [hingeCenter2.y, hingeCenter2.z]],
     hinge_radius: hingeRadius,
     cell_width: params.cellWidth,

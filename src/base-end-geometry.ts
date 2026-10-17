@@ -44,3 +44,17 @@ export function baseEndGeometry(params: BaseParameters) {
   return { start, atHeight, slope, center, radius, offsetStart, rest1, rest2, outer3, outer4, hingeCenter, hingeCenter2, hingeRadius }
 }
 
+
+// The yellow outline, closed by rest 1–rest 2, with its arc sampled at 64 segments per turn.
+export function baseEndInnerPoints(params: BaseParameters): number[][] {
+  const { center, radius, outer3, outer4, rest1, rest2 } = baseEndGeometry(params)
+  const sweep = params.standAngle * Math.PI / 180
+  const segments = Math.max(1, Math.ceil(64 * sweep / (2 * Math.PI)))
+  // The arc runs from outer 5 at the circle bottom to outer 4, rising from +Y toward +Z.
+  const arc = Array.from({ length: segments + 1 }, (_, i) => {
+    const angle = -Math.PI / 2 + sweep * i / segments
+    return [center.y + radius * Math.cos(angle), center.z + radius * Math.sin(angle)]
+  })
+  arc[arc.length - 1] = [outer4.y, outer4.z]
+  return [[rest2.y, rest2.z], ...arc, [outer3.y, outer3.z], [rest1.y, rest1.z]]
+}

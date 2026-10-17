@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs/promises'
 import OpenSCAD from '../public/vendor/openscad/openscad.js'
 import { DoubleSide, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three'
-import { baseEndGeometry } from '../src/base-end-geometry.ts'
+import { baseEndGeometry, baseEndInnerPoints } from '../src/base-end-geometry.ts'
 import { STLLoader } from 'three/addons/loaders/STLLoader.js'
 import { baseDefinitions, defaultBaseParameters, cellRaisedProfiles, cellFullHeightProfiles } from '../src/model.ts'
 import { cellMidPoints, hingeCutRightPoints, cellOuterPoints } from '../src/sketch.ts'
@@ -129,7 +129,7 @@ for (const columns of [1, 3]) {
 // The base end spans the full model width and is fused to row 0's outer 1–outer 2 face.
 for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, columns: 3, baseAngle: 30 }, { rows: 2, columns: 2, baseAngle: 90 }]) {
   const params = {...defaultBaseParameters, ...changes}
-  const {start, atHeight, rest1, rest2} = baseEndGeometry(params)
+  const {start, atHeight, rest1, rest2, center} = baseEndGeometry(params)
   const instance = await OpenSCAD({noInitialRun:true, wasmBinary, print:()=>{}, printErr:()=>{}})
   instance.FS.writeFile('/base.scad', source)
   assert.equal(instance.callMain(['/base.scad', ...baseDefinitions(params), '--export-format', 'binstl', '-o', '/base.stl']), 0)
@@ -138,7 +138,7 @@ for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, column
   const colPitch = params.cellWidth + params.wallThickness
   const minX = -params.cellWidth/2 - params.wallThickness
   const maxX = (params.columns-1)*colPitch + params.cellWidth/2 + params.wallThickness
-  near(geometry.boundingBox.max.y, Math.max(rest1.y, rest2.y))
+  near(geometry.boundingBox.max.y, Math.max(rest1.y, rest2.y, ...baseEndInnerPoints(params).map(([y]) => y)))
   const material = new MeshBasicMaterial({side:DoubleSide})
   const mesh = new Mesh(geometry,material)
   mesh.updateMatrixWorld()
@@ -151,9 +151,13 @@ for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, column
     if (y > faceY) assert.deepEqual(xs.map(x => Math.round(x*1e4)/1e4), [minX, maxX].map(x => Math.round(x*1e4)/1e4), 'Base end must be one solid across the full width')
     else assert.ok(xs.length >= 2, 'Row 0 wall must meet the base end')
   }
+  // The yellow outline extrusion stops twice the wall thickness short of each side.
+  const innerXs = new Raycaster(new Vector3(-1000,center.y,center.z),new Vector3(1,0,0)).intersectObject(mesh)
+    .map(hit=>hit.point.x).filter((x,i,all)=>i===0 || Math.abs(x-all[i-1])>1e-5)
+  assert.deepEqual(innerXs.map(x => Math.round(x*1e4)/1e4), [minX + 2*params.wallThickness, maxX - 2*params.wallThickness].map(x => Math.round(x*1e4)/1e4), 'Yellow outline must be inset by twice the wall thickness')
   const hits = new Raycaster(new Vector3(0,faceY-0.5,z),new Vector3(0,1,0)).intersectObject(mesh).filter(hit=>Math.abs(hit.point.y-faceY)<1e-4)
   assert.equal(hits.length, 0, 'No internal face between row 0 and the base end')
   material.dispose()
   geometry.dispose()
-  console.log(`PASS: ${params.rows} × ${params.columns} cells, ${params.baseAngle}°: base end spans full width and fuses to row 0`)
+  console.log(`PASS: ${params.rows} × ${params.columns} cells, ${params.baseAngle}°: base end spans full width, fuses to row 0, with inset yellow extrusion`)
 }

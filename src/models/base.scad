@@ -60,16 +60,27 @@ module edge_hinge_cuts() {
         }
 }
 
-module base_end() {
-    // The sketch's (Y,Z) base end polygon is extruded along X across the full model width.
+// A function, because a top-level assignment here would be evaluated before the appended -D parameters.
+function model_width() = (columns - 1) * column_pitch + cell_width + 2 * wall_thickness;
+
+// Extrude a sketch (Y,Z) polygon along X, starting inset from the model's left side.
+module base_end_extrusion(points, inset) {
     multmatrix([
-        [0, 0, 1, -cell_width / 2 - wall_thickness],
+        [0, 0, 1, -cell_width / 2 - wall_thickness + inset],
         [1, 0, 0, 0],
         [0, 1, 0, 0],
         [0, 0, 0, 1]
     ])
-        linear_extrude(height = (columns - 1) * column_pitch + cell_width + 2 * wall_thickness)
-            polygon(points = base_end_points);
+        linear_extrude(height = model_width() - 2 * inset)
+            polygon(points = points);
+}
+
+module base_end() {
+    // Blue polygon across the full model width.
+    base_end_extrusion(base_end_points, 0);
+    // Yellow outline, inset by twice the wall thickness on each side.
+    if (model_width() > 4 * wall_thickness)
+        base_end_extrusion(base_end_inner_points, 2 * wall_thickness);
 }
 
 union() {
