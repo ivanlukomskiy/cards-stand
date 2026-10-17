@@ -30,9 +30,8 @@ export function baseEndGeometry(params: BaseParameters) {
     y: center.y + radius / Math.tan(standAngle / 2),
     z: atHeight.z,
   }
-  // Keep the hinge circle on the far side of the offset helper line.
-  // Its centre is one hinge radius beyond that line.
-  const hingeOffset = (params.hingeThickness + params.hingeTolerance) / 2 + params.hingeThickness / 2
+  // Keep the hinge circles tangent to outer 1–outer 2 on its negative-Y side.
+  const hingeOffset = params.hingeThickness / 2
   const hingeZ = params.wallThickness + params.hingeThickness / 2
   const hingeCenter = {
     y: start.y + hingeZ * slope - hingeOffset / Math.sin(angle),
@@ -57,6 +56,18 @@ export function baseEndSketch(params: BaseParameters = defaultBaseParameters) {
   const parallelOffset = (params.hingeThickness + params.hingeTolerance) / 2
   // Offset away from the main circle, matching the hinge-centre direction.
   const parallelY = (z: number) => start.y + z * slope - parallelOffset / Math.sin(params.baseAngle * Math.PI / 180)
+  const hingeRadius = params.hingeThickness / 2
+  const a = { x: -hingeCenter.y, y: -hingeCenter.z }
+  const b = { x: -hingeCenter2.y, y: -hingeCenter2.z }
+  const separation = Math.hypot(b.x - a.x, b.y - a.y)
+  const nx = separation > 0 ? -(b.y - a.y) / separation : 1
+  const ny = separation > 0 ? (b.x - a.x) / separation : 0
+  const tangent = (point: typeof a, side: number) => `${point.x + side * hingeRadius * nx} ${point.y + side * hingeRadius * ny}`
+  const hingeOutline = separation > 1e-9
+    ? `<path class="sketch-outline sketch-hinge-outline" d="M ${tangent(a, 1)}
+        L ${tangent(b, 1)} A ${hingeRadius} ${hingeRadius} 0 0 0 ${tangent(b, -1)}
+        L ${tangent(a, -1)} A ${hingeRadius} ${hingeRadius} 0 0 0 ${tangent(a, 1)} Z" />`
+    : `<circle class="sketch-outline sketch-hinge-outline" cx="${a.x}" cy="${a.y}" r="${hingeRadius}" />`
   // Project positive Y to the left and positive Z upward.
   return `
     <svg class="sketch-canvas" viewBox="${-maxY} ${-maxZ} ${maxY - minY} ${maxZ - minZ}" role="img" aria-label="Base end sketch with positive Y pointing left and positive Z pointing up">
@@ -80,6 +91,7 @@ export function baseEndSketch(params: BaseParameters = defaultBaseParameters) {
         A ${radius} ${radius} 0 0 1 ${-outer4.y} ${-outer4.z}
         L ${-outer3.y} ${-outer3.z}
         L ${-rest1.y} ${-rest1.z}" />
+      ${hingeOutline}
       <g class="sketch-vertex" data-point-name="outer 1" data-x="${start.y}" data-y="0" data-first-axis="Y" data-second-axis="Z"
         data-x-formula="wall thickness + hinge thickness + hinge tolerance" data-y-formula="0"
         data-label-x="${-start.y - 2 * unit}" data-label-y="${4 * unit}" data-label-anchor="end" data-label-size="${3 * unit}">
@@ -119,7 +131,7 @@ export function baseEndSketch(params: BaseParameters = defaultBaseParameters) {
       </g>
       <circle class="sketch-helper-circle" cx="${-hingeCenter.y}" cy="${-hingeCenter.z}" r="${params.hingeThickness / 2}" />
       <g class="sketch-vertex" data-point-name="hinge centre 1" data-x="${hingeCenter.y}" data-y="${hingeCenter.z}" data-first-axis="Y" data-second-axis="Z"
-        data-x-formula="outer 1 Y + (wall thickness + hinge thickness / 2) / tan(base angle) - ((hinge thickness + hinge tolerance) / 2 + hinge thickness / 2) / sin(base angle)" data-y-formula="wall thickness + hinge thickness / 2"
+        data-x-formula="outer 1 Y + (wall thickness + hinge thickness / 2) / tan(base angle) - hinge thickness / (2 * sin(base angle))" data-y-formula="wall thickness + hinge thickness / 2"
         data-label-x="${-hingeCenter.y - 2 * unit}" data-label-y="${-hingeCenter.z - 2 * unit}" data-label-anchor="end" data-label-size="${3 * unit}">
         <circle class="sketch-vertex-dot" cx="${-hingeCenter.y}" cy="${-hingeCenter.z}" r="${0.7 * unit}" />
       </g>
