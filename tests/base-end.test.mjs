@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { baseEndGeometry } from '../src/base-end-sketch.ts'
 import { defaultBaseParameters, validateBaseParameters } from '../src/model.ts'
-import { hingeInnerPoints, hingeOuterPoints } from '../src/hinge-top-sketch.ts'
+import { hingeBridgePoints, hingeInnerPoints, hingeOuterPoints, hingeOutline, hingeTopSketch } from '../src/hinge-top-sketch.ts'
 
 const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-8, `${a} != ${b}`)
 for (const standAngle of [15, 45, 80, 90, 120, 170]) {
@@ -91,17 +91,54 @@ console.log('PASS: purple cut outline tangent points on hinge circle 2')
 }
 console.log('PASS: hinge top outer points')
 
-for (const changes of [{}, { hingeHeight: 40, hingeTopWidth: 10 }, { hingeWidthBottom: 4 }]) {
+for (const changes of [{}, { hingeHeight: 40, hingeTopWidth: 10 }, { hingeProfileWidth: 4 }]) {
   const params = {...defaultBaseParameters, ...changes}
   const [, outer2, outer3] = hingeOuterPoints(params)
   const [inner1, inner2] = hingeInnerPoints(params)
   near(inner1.x, 0)
-  near(inner1.y, params.hingeHeight - params.hingeWidthBottom)
+  near(inner1.y, params.hingeHeight - params.hingeProfileWidth)
   near(inner2.y, inner1.y)
-  // Inner 2 is hinge width bottom from the outer 2–outer 3 line, on the side of O.
+  // Inner 2 is hinge profile width from the outer 2–outer 3 line, on the side of O.
   const cross = (p) => ((outer3.x - outer2.x) * (p.y - outer2.y) - (outer3.y - outer2.y) * (p.x - outer2.x)) / Math.hypot(outer3.x - outer2.x, outer3.y - outer2.y)
-  near(Math.abs(cross(inner2)), params.hingeWidthBottom)
+  near(Math.abs(cross(inner2)), params.hingeProfileWidth)
   assert.ok(Math.sign(cross(inner2)) === Math.sign(cross({x: 0, y: 0})))
 }
-assert.deepEqual(hingeInnerPoints(defaultBaseParameters)[2], { name: 'inner 3', x: 25, y: 0, xFormula: 'cell width / 2 - hinge width bottom', yFormula: '0' })
+assert.deepEqual(hingeInnerPoints(defaultBaseParameters)[2], { name: 'inner 3', x: 25, y: 0, xFormula: 'cell width / 2 - hinge profile width', yFormula: '0' })
 console.log('PASS: hinge top inner 1, inner 2 offset intersection, and inner 3')
+
+for (const changes of [{}, { hingeHeight: 40, hingeTopWidth: 10 }, { hingeProfileWidth: 4 }]) {
+  const params = {...defaultBaseParameters, ...changes}
+  const [outer1, outer2, outer3] = hingeOuterPoints(params)
+  const [inner1, inner2, inner3] = hingeInnerPoints(params)
+  const outline = hingeOutline(params)
+  near(outline.radius, params.hingeProfileWidth / 2)
+  const distanceToLine = (p, a, b) => Math.abs((b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x)) / Math.hypot(b.x - a.x, b.y - a.y)
+  for (const [corner, from, to] of [[outline.outer2, outer1, outer3], [outline.inner2, inner3, inner1]]) {
+    // Tangent points lie on their segments, radius away from the centre, and the centre is radius from both lines.
+    near(distanceToLine(corner.start, from, from === outer1 ? outer2 : inner2), 0)
+    near(distanceToLine(corner.end, from === outer1 ? outer2 : inner2, to), 0)
+    near(Math.hypot(corner.start.x - corner.centre.x, corner.start.y - corner.centre.y), outline.radius)
+    near(Math.hypot(corner.end.x - corner.centre.x, corner.end.y - corner.centre.y), outline.radius)
+    near(distanceToLine(corner.centre, from, from === outer1 ? outer2 : inner2), outline.radius)
+    near(distanceToLine(corner.centre, from === outer1 ? outer2 : inner2, to), outline.radius)
+  }
+  // Outer 2 turns clockwise (Y up) and inner 2 counter-clockwise, so the fillets bend opposite ways.
+  assert.equal(outline.outer2.turn, -1)
+  assert.equal(outline.inner2.turn, 1)
+}
+{
+  // Outer 2 turns clockwise on screen (sweep 1); inner 2 turns counter-clockwise (sweep 0).
+  const outline = hingeOutline(defaultBaseParameters)
+  const svg = hingeTopSketch(defaultBaseParameters)
+  assert.ok(svg.includes(`0 0 1 ${outline.outer2.end.x} ${-outline.outer2.end.y}`))
+  assert.ok(svg.includes(`0 0 0 ${outline.inner2.end.x} ${-outline.inner2.end.y}`))
+}
+console.log('PASS: hinge top outline fillets at outer 2 and inner 2')
+
+{
+  const [, , outer3, outer4] = hingeOuterPoints(defaultBaseParameters)
+  assert.deepEqual(hingeBridgePoints(defaultBaseParameters).map(({name, x, y}) => [name, x, y]), [
+    ['bridge 1', outer3.x + 2, outer3.y], ['bridge 2', outer4.x + 2, outer4.y],
+  ])
+}
+console.log('PASS: hinge top bridge points')

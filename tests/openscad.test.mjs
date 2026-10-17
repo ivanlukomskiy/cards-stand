@@ -103,7 +103,7 @@ for (const columns of [1, 3]) {
   mesh.updateMatrixWorld()
   const colPitch = params.cellWidth + params.wallThickness
   const rowPitch = params.cellLength + 2*params.wallThickness + (params.hingeThickness + params.hingeTolerance)/Math.sin(params.baseAngle*Math.PI/180)
-  const cutLength = params.wallThickness*2 + params.hingeWidthBottom + params.hingeTolerance
+  const cutLength = params.wallThickness*2 + params.hingeProfileWidth + params.hingeTolerance
   for (let row=0;row<params.rows;row++) {
     const z = (hingeCenter.z + hingeCenter2.z)/2 + 0.123
     const y = hingeCenter.y + (z-hingeCenter.z)/Math.tan(params.baseAngle*Math.PI/180) - row*rowPitch
@@ -118,7 +118,7 @@ for (const columns of [1, 3]) {
   }
   material.dispose()
   geometry.dispose()
-  console.log(`PASS: ${columns} columns, two rows: hinge capsules cut by wall thickness * 2 + hinge width bottom + hinge tolerance from each cell side`)
+  console.log(`PASS: ${columns} columns, two rows: hinge capsules cut by wall thickness * 2 + hinge profile width + hinge tolerance from each cell side`)
 }
 
 // The base end spans the full model width and is fused to row 0's outer 1–outer 2 face.

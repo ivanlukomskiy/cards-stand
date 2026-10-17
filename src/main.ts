@@ -44,8 +44,8 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           <input id="hinge-thickness" name="hinge-thickness" type="number" min="0.1" step="0.1" value="3" />
         </div>
         <div class="transform-field">
-          <label for="hinge-width-bottom">Hinge width bottom (mm)</label>
-          <input id="hinge-width-bottom" name="hinge-width-bottom" type="number" min="0.1" step="0.1" value="7" />
+          <label for="hinge-profile-width">Hinge profile width (mm)</label>
+          <input id="hinge-profile-width" name="hinge-profile-width" type="number" min="0.1" step="0.1" value="7" />
         </div>
         <div class="transform-field">
           <label for="hinge-tolerance">Hinge tolerance (mm)</label>
@@ -178,7 +178,7 @@ const parameterInputs = {
   cellLength: document.querySelector<HTMLInputElement>('#cell-length')!,
   wallThickness: document.querySelector<HTMLInputElement>('#wall-thickness')!,
   hingeThickness: document.querySelector<HTMLInputElement>('#hinge-thickness')!,
-  hingeWidthBottom: document.querySelector<HTMLInputElement>('#hinge-width-bottom')!,
+  hingeProfileWidth: document.querySelector<HTMLInputElement>('#hinge-profile-width')!,
   hingeTolerance: document.querySelector<HTMLInputElement>('#hinge-tolerance')!,
   hingeTopWidth: document.querySelector<HTMLInputElement>('#hinge-top-width')!,
   hingeHeight: document.querySelector<HTMLInputElement>('#hinge-height')!,

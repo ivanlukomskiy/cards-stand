@@ -12,7 +12,7 @@ export interface CellSketchParameters {
   cellLength: number
   wallThickness: number
   hingeThickness: number
-  hingeWidthBottom: number
+  hingeProfileWidth: number
   hingeTolerance: number
   rimWidth: number
 }
@@ -23,7 +23,7 @@ export const defaultSketchParameters: CellSketchParameters = {
   cellLength: 24,
   wallThickness: 2,
   hingeThickness: 3,
-  hingeWidthBottom: 7,
+  hingeProfileWidth: 7,
   hingeTolerance: 0.1,
   rimWidth: 7,
 }
