@@ -21,16 +21,25 @@ export function baseEndGeometry(params: BaseParameters) {
   const rest1 = { y: rest2.y + params.baseHeight * slope, z: atHeight.z }
   // Move the circle and its dependent points left by the rest-line offset.
   center.y += rest1.y - atHeight.y
-  return { start, atHeight, slope, center, radius, offsetStart, rest1, rest2 }
+  const standAngle = params.standAngle * Math.PI / 180
+  const outer4 = {
+    y: center.y + radius * Math.sin(standAngle),
+    z: center.z - radius * Math.cos(standAngle),
+  }
+  const outer3 = {
+    y: center.y + radius / Math.tan(standAngle / 2),
+    z: atHeight.z,
+  }
+  return { start, atHeight, slope, center, radius, offsetStart, rest1, rest2, outer3, outer4 }
 }
 
 export function baseEndSketch(params: BaseParameters = defaultBaseParameters) {
-  const { start, atHeight, slope, center, radius, offsetStart, rest1, rest2 } = baseEndGeometry(params)
+  const { start, atHeight, slope, center, radius, offsetStart, rest1, rest2, outer3, outer4 } = baseEndGeometry(params)
   const beamTop = params.baseHeight * 1.4
   const beamEndY = start.y + beamTop * slope
-  const unit = Math.max(beamEndY, beamTop, center.y + radius, rest1.y, 1) / 40
+  const unit = Math.max(beamEndY, beamTop, center.y + radius, outer3.y, rest1.y, 1) / 40
   const minY = -10 * unit
-  const maxY = Math.max(beamEndY, atHeight.y, center.y + radius, rest1.y) + 14 * unit
+  const maxY = Math.max(beamEndY, atHeight.y, center.y + radius, outer3.y, rest1.y) + 14 * unit
   const minZ = Math.min(0, offsetStart.z) - 10 * unit
   const maxZ = beamTop + 8 * unit
   // Project positive Y to the left and positive Z upward.
@@ -42,19 +51,15 @@ export function baseEndSketch(params: BaseParameters = defaultBaseParameters) {
         <text x="${-maxY + 2 * unit}" y="${-2 * unit}" style="font-size:${3 * unit}px">Y</text>
         <text x="${2 * unit}" y="${-maxZ + 4 * unit}" style="font-size:${3 * unit}px">Z</text>
       </g>
-      <g class="sketch-helper">
-        <line x1="${-start.y}" y1="0" x2="${-beamEndY}" y2="${-beamTop}" />
-        <line x1="${-offsetStart.y}" y1="${-offsetStart.z}" x2="${-(offsetStart.y + (beamTop - offsetStart.z) * slope)}" y2="${-beamTop}" />
-        <line x1="${-atHeight.y}" y1="${-atHeight.z}" x2="${-maxY + 2 * unit}" y2="${-atHeight.z}" />
-      </g>
       <circle class="sketch-helper-circle" cx="${-center.y}" cy="${-center.z}" r="${radius}" />
+      ${params.baseHeight > params.wallThickness * 2 ? `<circle class="sketch-inner-circle" cx="${-center.y}" cy="${-center.z}" r="${(params.baseHeight - params.wallThickness * 2) / 2}" />` : ''}
       <polygon class="sketch-outline" points="${[
         [-rest1.y, -rest1.z], [-atHeight.y, -atHeight.z], [-start.y, 0], [-rest2.y, 0],
       ].map(point => point.join(',')).join(' ')}" />
       <path class="sketch-outline sketch-inner-outline" d="M ${-rest2.y} 0
         L ${-center.y} 0
-        A ${radius} ${radius} 0 0 1 ${-center.y - radius} ${-center.z}
-        L ${-center.y - radius} ${-center.z - radius}
+        A ${radius} ${radius} 0 0 1 ${-outer4.y} ${-outer4.z}
+        L ${-outer3.y} ${-outer3.z}
         L ${-rest1.y} ${-rest1.z}" />
       <g class="sketch-vertex" data-point-name="outer 1" data-x="${start.y}" data-y="0" data-first-axis="Y" data-second-axis="Z"
         data-x-formula="wall thickness + hinge thickness + hinge tolerance" data-y-formula="0"
@@ -71,10 +76,10 @@ export function baseEndSketch(params: BaseParameters = defaultBaseParameters) {
         data-label-x="${-center.y - 2 * unit}" data-label-y="${-center.z - 2 * unit}" data-label-anchor="end" data-label-size="${3 * unit}">
         <circle class="sketch-vertex-dot" cx="${-center.y}" cy="${-center.z}" r="${0.7 * unit}" />
       </g>
-      <g class="sketch-vertex" data-point-name="outer 3" data-x="${center.y + radius}" data-y="${center.z + radius}" data-first-axis="Y" data-second-axis="Z"
-        data-x-formula="circle centre Y + radius" data-y-formula="circle centre Z + radius"
-        data-label-x="${-center.y - radius - 2 * unit}" data-label-y="${-center.z - radius - 2 * unit}" data-label-anchor="end" data-label-size="${3 * unit}">
-        <circle class="sketch-vertex-dot" cx="${-center.y - radius}" cy="${-center.z - radius}" r="${0.7 * unit}" />
+      <g class="sketch-vertex" data-point-name="outer 3" data-x="${outer3.y}" data-y="${outer3.z}" data-first-axis="Y" data-second-axis="Z"
+        data-x-formula="circle centre Y + radius / tan(stand angle / 2)" data-y-formula="base height"
+        data-label-x="${-outer3.y - 2 * unit}" data-label-y="${-outer3.z - 2 * unit}" data-label-anchor="end" data-label-size="${3 * unit}">
+        <circle class="sketch-vertex-dot" cx="${-outer3.y}" cy="${-outer3.z}" r="${0.7 * unit}" />
       </g>
       <g class="sketch-vertex" data-point-name="outer 5" data-x="${center.y}" data-y="0" data-first-axis="Y" data-second-axis="Z"
         data-x-formula="circle centre Y" data-y-formula="0"
@@ -88,10 +93,10 @@ export function baseEndSketch(params: BaseParameters = defaultBaseParameters) {
           <circle class="sketch-vertex-dot" cx="${-point.y}" cy="${-point.z}" r="${0.7 * unit}" />
         </g>
       `).join('')}
-      <g class="sketch-vertex" data-point-name="outer 4" data-x="${center.y + radius}" data-y="${center.z}" data-first-axis="Y" data-second-axis="Z"
-        data-x-formula="circle centre Y + radius" data-y-formula="circle centre Z"
-        data-label-x="${-center.y - radius - 2 * unit}" data-label-y="${-center.z - 2 * unit}" data-label-anchor="end" data-label-size="${3 * unit}">
-        <circle class="sketch-vertex-dot" cx="${-center.y - radius}" cy="${-center.z}" r="${0.7 * unit}" />
+      <g class="sketch-vertex" data-point-name="outer 4" data-x="${outer4.y}" data-y="${outer4.z}" data-first-axis="Y" data-second-axis="Z"
+        data-x-formula="circle centre Y + radius * sin(stand angle)" data-y-formula="circle centre Z - radius * cos(stand angle)"
+        data-label-x="${-outer4.y - 2 * unit}" data-label-y="${-outer4.z - 2 * unit}" data-label-anchor="end" data-label-size="${3 * unit}">
+        <circle class="sketch-vertex-dot" cx="${-outer4.y}" cy="${-outer4.z}" r="${0.7 * unit}" />
       </g>
       <text class="sketch-point-label" hidden></text>
     </svg>

@@ -4,12 +4,13 @@ import type { CellSketchParameters } from './sketch.ts'
 export interface BaseParameters extends CellSketchParameters {
   rows: number
   columns: number
+  standAngle: number
   baseAngle: number
   baseHeight: number
 }
 
 export const defaultBaseParameters: BaseParameters = {
-  ...defaultSketchParameters, rows: 2, columns: 2, baseAngle: 45, baseHeight: 12,
+  ...defaultSketchParameters, rows: 2, columns: 2, standAngle: 80, baseAngle: 45, baseHeight: 12,
 }
 
 export function validateBaseParameters(params: BaseParameters) {
@@ -25,6 +26,9 @@ export function validateBaseParameters(params: BaseParameters) {
   }
   if (params.baseHeight <= params.hingeThickness + params.hingeTolerance) {
     throw new Error('Base height must exceed hinge thickness + hinge tolerance.')
+  }
+  if (params.standAngle <= 0 || params.standAngle >= 180) {
+    throw new Error('Stand angle must be greater than 0° and less than 180°.')
   }
   if (params.baseAngle <= 0 || params.baseAngle > 90) {
     throw new Error('Base angle must be greater than 0° and at most 90°.')

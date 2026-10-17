@@ -58,6 +58,10 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           <label for="base-angle">Base angle (°)</label>
           <input id="base-angle" name="base-angle" type="number" min="0.1" step="0.1" value="45" max="90" />
         </div>
+        <div class="transform-field">
+          <label for="stand-angle">Stand angle (°)</label>
+          <input id="stand-angle" name="stand-angle" type="number" min="0.1" max="179.9" step="0.1" value="80" />
+        </div>
         <p id="parameters-error" class="error" role="status"></p>
       </div>
     </details>
@@ -146,6 +150,7 @@ const parameterInputs = {
   rows: document.querySelector<HTMLInputElement>('#cells-rows')!,
   columns: document.querySelector<HTMLInputElement>('#cell-columns')!,
   baseAngle: document.querySelector<HTMLInputElement>('#base-angle')!,
+  standAngle: document.querySelector<HTMLInputElement>('#stand-angle')!,
   baseHeight: document.querySelector<HTMLInputElement>('#base-height')!,
   cellWidth: document.querySelector<HTMLInputElement>('#cell-width')!,
   cellLength: document.querySelector<HTMLInputElement>('#cell-length')!,

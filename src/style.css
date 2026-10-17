@@ -83,3 +83,5 @@ canvas { display: block; touch-action: none; }
 .sketch-helper line { stroke: var(--text-dim); stroke-width: 1; stroke-dasharray: 6 4; vector-effect: non-scaling-stroke; }
 
 .sketch-helper-circle { fill: none; stroke: var(--text-dim); stroke-width: 1; stroke-dasharray: 6 4; vector-effect: non-scaling-stroke; pointer-events: none; }
+
+.sketch-inner-circle { fill: none; stroke: #f28b94; stroke-width: 1.5; vector-effect: non-scaling-stroke; pointer-events: none; }
