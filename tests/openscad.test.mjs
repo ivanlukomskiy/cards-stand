@@ -421,5 +421,59 @@ for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, column
       })
     }
   }
-  console.log('PASS: assembly centres parts on X = 0 and places one hinge per row on hinge centre 1 (extended) or 2')
+  // The stand pivots on the Cell side circle centre; its plate's top face lies along outer 4 → outer 3 when extended, else on Z = -stand tolerance.
+  {
+    const { standSideGeometry } = await import('../src/stand-sketch.ts')
+    const params = defaultBaseParameters
+    const { center, outer3, outer4 } = baseEndGeometry(params)
+    const plateTop = standSideGeometry(params).outer3.z
+    for (const standExtended of [false, true]) {
+      const placements = assemblyPlacements(params, { standExtended, hingeExtended: false })
+      const [placement] = placements.stand
+      // Measure in the base's own frame, undoing its placement (the tilt, when extended).
+      const [base] = placements.base
+      const toBase = ([x, y, z]) => {
+        const dy = y - base.offset[1], dz = z - base.offset[2], cos = Math.cos(base.rotationX), sin = Math.sin(base.rotationX)
+        return [x - base.offset[0], dy * cos + dz * sin, -dy * sin + dz * cos]
+      }
+      const origin = toBase(applyPlacement(placement, [0, 0, 0]))
+      near(origin[1], center.y); near(origin[2], center.z)
+      const a = toBase(applyPlacement(placement, [0, 0, plateTop]))
+      const b = toBase(applyPlacement(placement, [0, 1, plateTop]))
+      if (standExtended) {
+        near(a[1], outer4.y); near(a[2], outer4.z)
+        const length = Math.hypot(outer3.y - outer4.y, outer3.z - outer4.z)
+        near(b[1] - a[1], (outer3.y - outer4.y) / length); near(b[2] - a[2], (outer3.z - outer4.z) / length)
+      } else {
+        near(a[2], -params.standTolerance); near(b[2], -params.standTolerance)
+      }
+    }
+  }
+  // With the stand extended, every part tilts rigidly by the base tilt angle about the base's far bottom edge.
+  {
+    const { tiltPivot } = await import('../src/assembly.ts')
+    const params = {...defaultBaseParameters, rows: 3}
+    const flat = assemblyPlacements(params, { standExtended: true, hingeExtended: true })
+    const angle = params.baseTiltAngle * Math.PI / 180
+    const [py, pz] = tiltPivot(params)
+    // The pivot is the far end of the last row.
+    near(py, baseEndGeometry(params).start.y - params.rows * rowPitch(params))
+    const rotate = ([x, y, z]) => [x, (y - py) * Math.cos(angle) - (z - pz) * Math.sin(angle) + py, (y - py) * Math.sin(angle) + (z - pz) * Math.cos(angle) + pz]
+    for (const part of assemblyParts) {
+      for (const placement of flat[part]) {
+        assert.ok(Math.abs(placement.rotationX - angle - (part === 'stand' ? params.standAngle * Math.PI / 180 : part === 'hinge' ? params.baseAngle * Math.PI / 180 : 0)) < 1e-9)
+      }
+    }
+    // A point fixed on the base stays fixed relative to it: the pivot edge does not move, and the stand end rises by the tilt.
+    const [base] = flat.base
+    const pivotPoint = applyPlacement(base, [0, py, 0])
+    near(pivotPoint[1], py); near(pivotPoint[2], 0)
+    const { center } = baseEndGeometry(params)
+    const [stand] = flat.stand
+    const hingeAxis = applyPlacement(stand, [0, 0, 0])
+    const expected = rotate([0, center.y, center.z])
+    near(hingeAxis[1], expected[1]); near(hingeAxis[2], expected[2])
+    assert.ok(hingeAxis[2] > center.z, 'The stand end rises')
+  }
+  console.log('PASS: assembly centres parts on X = 0, places hinges and stand, and tilts everything when the stand is extended')
 }
