@@ -66,6 +66,8 @@ canvas { display: block; touch-action: none; }
 .sketch-hinge-outline { stroke: #73d6ac; }
 .sketch-hinge-vertex .sketch-vertex-dot { fill: #73d6ac; }
 
+.sketch-cut-outline { stroke: #b48ce6; }
+
 .sketch-point-hud { max-width: calc(100% - 32px); overflow-wrap: anywhere; }
 .hud-hub { margin-top: 6px; font-size: 11px; color: rgba(255, 255, 255, 0.55); }
 

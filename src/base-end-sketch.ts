@@ -5,13 +5,13 @@ import { baseEndGeometry } from './base-end-geometry.ts'
 export { baseEndGeometry } from './base-end-geometry.ts'
 
 export function baseEndSketch(params: BaseParameters = defaultBaseParameters) {
-  const { start, atHeight, slope, center, radius, holeRadius, offsetStart, rest1, rest2, outer3, outer4, hingeCenter, hingeCenter2, hingeRadius } = baseEndGeometry(params)
+  const { start, atHeight, slope, center, radius, holeRadius, offsetStart, rest1, rest2, outer3, outer4, hingeCenter, hingeCenter2, hingeCenter3, hingeRadius, midCut1, midCut2, midCut3, hinge2Bottom, hinge2Tangent } = baseEndGeometry(params)
   const beamTop = params.baseHeight * 1.4
   const beamEndY = start.y + beamTop * slope
   const unit = Math.max(beamEndY, beamTop, center.y + radius, outer3.y, rest1.y, hingeCenter.y, hingeCenter2.y, 1) / 40
-  const minY = Math.min(0, hingeCenter.y, hingeCenter2.y) - 10 * unit
+  const minY = Math.min(0, hingeCenter.y, hingeCenter2.y, midCut1.y) - 10 * unit
   const maxY = Math.max(beamEndY, atHeight.y, center.y + radius, outer3.y, rest1.y, hingeCenter.y, hingeCenter2.y) + 14 * unit
-  const minZ = Math.min(0, offsetStart.z, hingeCenter2.z - hingeRadius) - 10 * unit
+  const minZ = Math.min(0, offsetStart.z, hingeCenter2.z - hingeRadius, midCut3.z) - 10 * unit
   const maxZ = Math.max(beamTop, hingeCenter.z) + 8 * unit
   const parallelOffset = (params.hingeThickness + params.hingeTolerance) / 2
   // Offset away from the main circle, matching the hinge-centre direction.
@@ -52,6 +52,12 @@ export function baseEndSketch(params: BaseParameters = defaultBaseParameters) {
         L ${-outer3.y} ${-outer3.z}
         L ${-rest1.y} ${-rest1.z}" />
       ${hingeOutline}
+      <path class="sketch-outline sketch-cut-outline" d="M ${-atHeight.y} ${-atHeight.z}
+        L ${-midCut1.y} ${-midCut1.z}
+        L ${-midCut2.y} ${-midCut2.z}
+        A ${hingeRadius} ${hingeRadius} 0 0 1 ${-midCut3.y} ${-midCut3.z}
+        L ${-hinge2Bottom.y} ${-hinge2Bottom.z}
+        A ${hingeRadius} ${hingeRadius} 0 0 1 ${-hinge2Tangent.y} ${-hinge2Tangent.z} Z" />
       <g class="sketch-vertex" data-point-name="outer 1" data-x="${start.y}" data-y="0" data-first-axis="Y" data-second-axis="Z"
         data-x-formula="wall thickness + (hinge thickness + hinge tolerance) / sin(base angle)" data-y-formula="0"
         data-label-x="${-start.y - 2 * unit}" data-label-y="${4 * unit}" data-label-anchor="end" data-label-size="${3 * unit}">
@@ -100,6 +106,17 @@ export function baseEndSketch(params: BaseParameters = defaultBaseParameters) {
         data-x-formula="hinge centre 1 Y + (base height - wall thickness - hinge thickness / 2 - hinge centre 1 Z) / tan(base angle)" data-y-formula="base height - wall thickness - hinge thickness / 2"
         data-label-x="${-hingeCenter2.y - 2 * unit}" data-label-y="${-hingeCenter2.z - 2 * unit}" data-label-anchor="end" data-label-size="${3 * unit}">
         <circle class="sketch-vertex-dot" cx="${-hingeCenter2.y}" cy="${-hingeCenter2.z}" r="${0.7 * unit}" />
+      </g>
+      <circle class="sketch-helper-circle" cx="${-hingeCenter3.y}" cy="${-hingeCenter3.z}" r="${hingeRadius}" />
+      <g class="sketch-vertex" data-point-name="hinge centre 3" data-x="${hingeCenter3.y}" data-y="${hingeCenter3.z}" data-first-axis="Y" data-second-axis="Z"
+        data-x-formula="hinge centre 2 Y - distance(hinge centre 1, hinge centre 2)" data-y-formula="hinge centre 2 Z"
+        data-label-x="${-hingeCenter3.y - 2 * unit}" data-label-y="${-hingeCenter3.z - 2 * unit}" data-label-anchor="end" data-label-size="${3 * unit}">
+        <circle class="sketch-vertex-dot" cx="${-hingeCenter3.y}" cy="${-hingeCenter3.z}" r="${0.7 * unit}" />
+      </g>
+      <g class="sketch-vertex" data-point-name="mid cut 1" data-x="${midCut1.y}" data-y="${midCut1.z}" data-first-axis="Y" data-second-axis="Z"
+        data-x-formula="hinge centre 3 Y - (hinge thickness + hinge tolerance) / 2" data-y-formula="base height"
+        data-label-x="${-midCut1.y + 2 * unit}" data-label-y="${-midCut1.z - 2 * unit}" data-label-anchor="start" data-label-size="${3 * unit}">
+        <circle class="sketch-vertex-dot" cx="${-midCut1.y}" cy="${-midCut1.z}" r="${0.7 * unit}" />
       </g>
       <text class="sketch-point-label" hidden></text>
     </svg>

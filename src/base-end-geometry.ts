@@ -41,9 +41,23 @@ export function baseEndGeometry(params: BaseParameters) {
     z: params.baseHeight - params.wallThickness - params.hingeThickness / 2,
     y: hingeCenter.y + (params.baseHeight - params.wallThickness - params.hingeThickness / 2 - hingeCenter.z) * slope,
   }
+  // Hinge centre 3 lies on hinge centre 2's horizontal, one hinge centre 1–2 distance toward -Y.
+  const hingeCenter3 = {
+    y: hingeCenter2.y - Math.hypot(hingeCenter2.y - hingeCenter.y, hingeCenter2.z - hingeCenter.z),
+    z: hingeCenter2.z,
+  }
+  // Mid cut 1: right of hinge centre 3 by the hinge radius (toward -Y), raised to outer 2's Z.
+  const midCut1 = { y: hingeCenter3.y - hingeRadius, z: atHeight.z }
+  // Mid cuts 2 and 3: the right and bottom points of hinge circle 3.
+  const midCut2 = { y: hingeCenter3.y - hingeRadius, z: hingeCenter3.z }
+  const midCut3 = { y: hingeCenter3.y, z: hingeCenter3.z - hingeRadius }
+  // Mid cut 3 lies on the shared bottom tangent of hinge circles 2 and 3, so the tangent from it touches circle 2 at its bottom.
+  const hinge2Bottom = { y: hingeCenter2.y, z: hingeCenter2.z - hingeRadius }
+  // Circle 2 touches outer 1–outer 2 at the foot of the perpendicular from hinge centre 2.
+  const hinge2Tangent = { y: hingeCenter2.y + hingeRadius * Math.sin(angle), z: hingeCenter2.z - hingeRadius * Math.cos(angle) }
   // The pink circle's diameter is reduced by the stand hinge tolerance.
   const holeRadius = (params.baseHeight - params.wallThickness * 2 - params.standHingeTolerance) / 2
-  return { start, atHeight, slope, center, radius, holeRadius, offsetStart, rest1, rest2, outer3, outer4, hingeCenter, hingeCenter2, hingeRadius }
+  return { start, atHeight, slope, center, radius, holeRadius, offsetStart, rest1, rest2, outer3, outer4, hingeCenter, hingeCenter2, hingeCenter3, hingeRadius, midCut1, midCut2, midCut3, hinge2Bottom, hinge2Tangent }
 }
 
 
