@@ -5,6 +5,7 @@ import { baseEndSketch } from './base-end-sketch'
 import { hingeTopSketch } from './hinge-top-sketch'
 import { hingeSideSketch } from './hinge-side-sketch'
 import { boltSketch } from './bolt-sketch'
+import { standSideSketch, standTopSketch } from './stand-sketch'
 import { validateBaseParameters } from './model'
 import type { BaseParameters } from './model'
 import type { ModelName } from './openscad.worker'
@@ -87,6 +88,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           <input id="bolt-length" name="bolt-length" type="number" min="0" step="0.1" value="10" />
         </div>
         <p id="parameters-error" class="error" role="status"></p>
+        <button id="reset-parameters" class="viewport-action reset-parameters" type="button">Reset to defaults</button>
       </div>
     </details>
   </aside>
@@ -98,6 +100,8 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         <button id="hinge-top-tab" type="button" role="tab" aria-selected="false" aria-controls="hinge-top-sketch-panel" tabindex="-1">Hinge top</button>
         <button id="hinge-side-tab" type="button" role="tab" aria-selected="false" aria-controls="hinge-side-sketch-panel" tabindex="-1">Hinge side</button>
         <button id="bolt-tab" type="button" role="tab" aria-selected="false" aria-controls="bolt-sketch-panel" tabindex="-1">Bolt</button>
+        <button id="stand-top-tab" type="button" role="tab" aria-selected="false" aria-controls="stand-top-sketch-panel" tabindex="-1">Stand top</button>
+        <button id="stand-side-tab" type="button" role="tab" aria-selected="false" aria-controls="stand-side-sketch-panel" tabindex="-1">Stand side</button>
       </div>
       <div id="cell-sketch-panel" class="sketch-panel" role="tabpanel" aria-labelledby="cell-tab">
         ${cellSketch()}
@@ -113,6 +117,12 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       </div>
       <div id="bolt-sketch-panel" class="sketch-panel" role="tabpanel" aria-labelledby="bolt-tab" hidden>
         ${boltSketch()}
+      </div>
+      <div id="stand-top-sketch-panel" class="sketch-panel" role="tabpanel" aria-labelledby="stand-top-tab" hidden>
+        ${standTopSketch()}
+      </div>
+      <div id="stand-side-sketch-panel" class="sketch-panel" role="tabpanel" aria-labelledby="stand-side-tab" hidden>
+        ${standSideSketch()}
       </div>
     </section>
     <section id="model-view" class="preview-view" aria-label="Interactive 3D model preview" hidden>
@@ -138,15 +148,24 @@ const baseEndPanel = document.querySelector<HTMLElement>('#base-end-sketch-panel
 const hingeTopPanel = document.querySelector<HTMLElement>('#hinge-top-sketch-panel')!
 const hingeSidePanel = document.querySelector<HTMLElement>('#hinge-side-sketch-panel')!
 const boltPanel = document.querySelector<HTMLElement>('#bolt-sketch-panel')!
-const sketchPanels = [cellPanel, baseEndPanel, hingeTopPanel, hingeSidePanel, boltPanel]
+const standTopPanel = document.querySelector<HTMLElement>('#stand-top-sketch-panel')!
+const standSidePanel = document.querySelector<HTMLElement>('#stand-side-sketch-panel')!
+const sketchPanels = [cellPanel, baseEndPanel, hingeTopPanel, hingeSidePanel, boltPanel, standTopPanel, standSidePanel]
 const sketchTabs = [
   document.querySelector<HTMLButtonElement>('#cell-tab')!,
   document.querySelector<HTMLButtonElement>('#base-end-tab')!,
   document.querySelector<HTMLButtonElement>('#hinge-top-tab')!,
   document.querySelector<HTMLButtonElement>('#hinge-side-tab')!,
   document.querySelector<HTMLButtonElement>('#bolt-tab')!,
+  document.querySelector<HTMLButtonElement>('#stand-top-tab')!,
+  document.querySelector<HTMLButtonElement>('#stand-side-tab')!,
 ]
+// Remember the selected view, sketch, and model across reloads. Storage can be unavailable, so failures are ignored.
+const recall = (key: string) => { try { return localStorage.getItem(key) } catch { return null } }
+const remember = (key: string, value: string) => { try { localStorage.setItem(key, value) } catch { /* not persisted */ } }
+const forget = (key: string) => { try { localStorage.removeItem(key) } catch { /* not persisted */ } }
 const selectSketch = (index: number) => {
+  remember('cards-stand:sketch', sketchTabs[index]!.id)
   sketchPanels.forEach((panel, i) => { panel.hidden = i !== index })
   sketchTabs.forEach((tab, i) => {
     tab.classList.toggle('active', i === index)
@@ -167,6 +186,7 @@ sketchTabs.forEach((tab, index) => {
     sketchTabs[next]!.focus()
   })
 })
+selectSketch(Math.max(0, sketchTabs.findIndex(tab => tab.id === recall('cards-stand:sketch'))))
 const hoveredPoint = (target: EventTarget | null) => target instanceof Element
   ? target.closest<SVGElement>('.sketch-vertex') : null
 sketchView.addEventListener('pointerover', event => {
@@ -237,10 +257,48 @@ const readParameters = (): BaseParameters | null => {
     return null
   }
 }
+const renderSketches = (params: BaseParameters) => {
+  cellPanel.innerHTML = cellSketch(params)
+  baseEndPanel.innerHTML = baseEndSketch(params)
+  hingeTopPanel.innerHTML = hingeTopSketch(params)
+  hingeSidePanel.innerHTML = hingeSideSketch(params)
+  boltPanel.innerHTML = boltSketch(params)
+  standTopPanel.innerHTML = standTopSketch(params)
+  standSidePanel.innerHTML = standSideSketch(params)
+}
+// Sidebar values persist as typed; defaults come from each input's value attribute.
+const parametersKey = 'cards-stand:parameters'
+const parameterFields = Object.entries(parameterInputs)
+try {
+  const stored: unknown = JSON.parse(recall(parametersKey) ?? '{}')
+  if (stored && typeof stored === 'object') {
+    for (const [name, field] of parameterFields) {
+      const value = (stored as Record<string, unknown>)[name]
+      if (typeof value === 'string') field.value = value
+    }
+  }
+} catch { /* ignore unreadable stored parameters */ }
+const saveParameters = () => {
+  if (parameterFields.every(([, field]) => field.value === field.defaultValue)) { forget(parametersKey); return }
+  remember(parametersKey, JSON.stringify(Object.fromEntries(parameterFields.map(([name, field]) => [name, field.value]))))
+}
+parameterFields.forEach(([, field]) => field.addEventListener('input', () => {
+  saveParameters()
+  const params = readParameters()
+  if (params) renderSketches(params)
+}))
+const initialParameters = readParameters()
+if (initialParameters) renderSketches(initialParameters)
+document.querySelector('#reset-parameters')!.addEventListener('click', () => {
+  parameterFields.forEach(([, field]) => { field.value = field.defaultValue })
+  // One input event saves, redraws the sketches, and schedules a rebuild.
+  parameterFields[0]![1].dispatchEvent(new Event('input'))
+})
 const modelView = document.querySelector<HTMLElement>('#model-view')!
 const sketchMode = document.querySelector<HTMLButtonElement>('#sketch-mode')!
 const modelMode = document.querySelector<HTMLButtonElement>('#model-mode')!
 const switchMode = (mode: 'sketch' | 'model') => {
+  remember('cards-stand:mode', mode)
   const isSketch = mode === 'sketch'
   sketchView.hidden = !isSketch
   modelView.hidden = isSketch
@@ -251,6 +309,7 @@ const switchMode = (mode: 'sketch' | 'model') => {
 }
 sketchMode.addEventListener('click', () => switchMode('sketch'))
 modelMode.addEventListener('click', () => switchMode('model'))
+switchMode(recall('cards-stand:mode') === 'model' ? 'model' : 'sketch')
 
 const message = document.querySelector<HTMLElement>('#preview-error')!
 const dimensions = document.querySelector<HTMLElement>('#dimensions')!
@@ -267,6 +326,17 @@ const modelButtons: Record<ModelName, HTMLButtonElement> = {
   bolt: document.querySelector<HTMLButtonElement>('#bolt-model')!,
 }
 const modelName = document.querySelector<HTMLElement>('#model-name')!
+const showModel = (name: ModelName) => {
+  remember('cards-stand:model', name)
+  currentModel = name
+  for (const [other, button] of Object.entries(modelButtons)) {
+    button.classList.toggle('active', other === name)
+    button.setAttribute('aria-pressed', String(other === name))
+  }
+  modelName.textContent = modelButtons[name].textContent
+}
+const storedModel = recall('cards-stand:model')
+showModel(storedModel !== null && storedModel in modelButtons ? storedModel as ModelName : 'base')
 
 try {
   const preview = new BasePreview(document.querySelector<HTMLDivElement>('#canvas-host')!)
@@ -326,11 +396,6 @@ try {
     const params = readParameters()
     dimensions.textContent = params ? 'Parameters changed' : 'Invalid parameters'
     if (!params) return
-    cellPanel.innerHTML = cellSketch(params)
-    baseEndPanel.innerHTML = baseEndSketch(params)
-    hingeTopPanel.innerHTML = hingeTopSketch(params)
-    hingeSidePanel.innerHTML = hingeSideSketch(params)
-    boltPanel.innerHTML = boltSketch(params)
     timer = setTimeout(build, 250)
   }
   Object.values(parameterInputs).forEach(field => field.addEventListener('input', onParametersChanged))
@@ -339,12 +404,7 @@ try {
   for (const [name, button] of Object.entries(modelButtons) as [ModelName, HTMLButtonElement][]) {
     button.addEventListener('click', () => {
       if (name === currentModel) return
-      currentModel = name
-      for (const [other, otherButton] of Object.entries(modelButtons)) {
-        otherButton.classList.toggle('active', other === name)
-        otherButton.setAttribute('aria-pressed', String(other === name))
-      }
-      modelName.textContent = button.textContent
+      showModel(name)
       // Frame the newly selected model once it arrives.
       firstModel = true
       build()
