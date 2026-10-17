@@ -9,7 +9,7 @@ import { cellMidPoints, cellOuterPoints } from '../src/sketch.ts'
 
 const wasmBinary = await fs.readFile(new URL('../public/vendor/openscad/openscad.wasm', import.meta.url))
 const source = await fs.readFile(new URL('../src/models/base.scad', import.meta.url), 'utf8')
-const solidSource = source.replace(/difference\(\) \{\s*base_solid\(\);\s*wall_hinge_cuts\(\);\s*row_cuts\(\);\s*\}/, 'base_solid();').replace(/\n\s*\/\/ Fused[^\n]*\n\s*base_end\(\);/, '')
+const solidSource = source.replace(/difference\(\) \{\s*base_solid\(\);\s*cell_hinge_cuts\(\);\s*row_cuts\(\);\s*\}/, 'base_solid();').replace(/\n\s*\/\/ Fused[^\n]*\n\s*base_end\(\);/, '')
 const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 0.0001, `${actual} != ${expected}`)
 
 for (const changes of [
@@ -103,21 +103,22 @@ for (const columns of [1, 3]) {
   mesh.updateMatrixWorld()
   const colPitch = params.cellWidth + params.wallThickness
   const rowPitch = params.cellLength + 2*params.wallThickness + (params.hingeThickness + params.hingeTolerance)/Math.sin(params.baseAngle*Math.PI/180)
+  const cutLength = params.wallThickness*2 + params.hingeWidthBottom + params.hingeTolerance
   for (let row=0;row<params.rows;row++) {
     const z = (hingeCenter.z + hingeCenter2.z)/2 + 0.123
     const y = hingeCenter.y + (z-hingeCenter.z)/Math.tan(params.baseAngle*Math.PI/180) - row*rowPitch
     const hits = new Raycaster(new Vector3(-1000,y,z),new Vector3(1,0,0)).intersectObject(mesh)
     const xs = hits.map(hit=>hit.point.x).filter((x,i,all)=>i===0 || Math.abs(x-all[i-1])>1e-5)
-    const inside = x => xs.filter(hitX=>hitX<x).length%2===1
-    assert.equal(inside(-params.cellWidth/2-params.wallThickness/2),false,'Left exterior must be cut')
-    assert.equal(inside((columns-1)*colPitch+params.cellWidth/2+params.wallThickness/2),false,'Right exterior must be cut')
-    for(let column=0;column<columns-1;column++) {
-      assert.equal(inside(column*colPitch+params.cellWidth/2+params.wallThickness/2),false,'Interior wall must be cut')
-    }
+    // Each cell keeps material only between its two cuts.
+    const expected = Array.from({length: columns}, (_, column) => [
+      column*colPitch - params.cellWidth/2 - params.wallThickness + cutLength,
+      column*colPitch + params.cellWidth/2 + params.wallThickness - cutLength,
+    ]).flat()
+    assert.deepEqual(xs.map(x => Math.round(x*1e4)/1e4), expected.map(x => Math.round(x*1e4)/1e4), `Row ${row}: hinge cuts must reach the cut length from each cell side`)
   }
   material.dispose()
   geometry.dispose()
-  console.log(`PASS: ${columns} columns, two rows: capsules cut every cell side wall`)
+  console.log(`PASS: ${columns} columns, two rows: hinge capsules cut by wall thickness * 2 + hinge width bottom + hinge tolerance from each cell side`)
 }
 
 // The base end spans the full model width and is fused to row 0's outer 1–outer 2 face.

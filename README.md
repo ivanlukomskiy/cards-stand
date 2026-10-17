@@ -20,4 +20,4 @@ The base end polygon (rest 1 → outer 2 → outer 1 → rest 2) is extruded alo
 
 The purple outline from the Base end sketch (outer 2 → mid cut 1 → mid cut 2 → arc → mid cut 3 → hinge circle 2 bottom → arc → its tangent point on outer 1–outer 2) is shifted toward +Y by `cutOutlineEpsilon` (0.001 mm) and cut along X through every row, between the inner faces of the two outer side walls, so only those walls remain in that region.
 
-The hinge capsule from the Base end sketch is subtracted along X through the side walls of every cell, including the shared interior walls, in every row. Cell interiors between the walls are not cut. The capsule sketch and cuts share their geometry through `src/base-end-geometry.ts`.
+The hinge capsule from the Base end sketch is subtracted along X at both sides of every cell, in every row. Each cut starts at the outer face of the side wall and runs inward by `wall thickness * 2 + hinge width bottom + hinge tolerance`. The capsule sketch and cuts share their geometry through `src/base-end-geometry.ts`.

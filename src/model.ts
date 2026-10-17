@@ -68,6 +68,7 @@ export function baseDefinitions(params: BaseParameters): string[] {
     base_end_hole_radius: holeRadius,
     hinge_centres: [[hingeCenter.y, hingeCenter.z], [hingeCenter2.y, hingeCenter2.z]],
     hinge_radius: hingeRadius,
+    hinge_cut_length: params.wallThickness * 2 + params.hingeWidthBottom + params.hingeTolerance,
     cell_width: params.cellWidth,
     full_raised_profiles: cellFullRaisedProfiles(params),
     semi_raised_profiles: cellSemiRaisedProfiles(params),

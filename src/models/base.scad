@@ -37,14 +37,14 @@ module base_solid() {
 }
 
 module hinge_capsule_cut(x_start) {
-    // The sketch's (Y,Z) capsule is extruded along X through one side wall.
+    // The sketch's (Y,Z) capsule is extruded along X by the hinge cut length.
     multmatrix([
         [0, 0, 1, x_start],
         [1, 0, 0, 0],
         [0, 1, 0, 0],
         [0, 0, 0, 1]
     ])
-        linear_extrude(height = wall_thickness)
+        linear_extrude(height = hinge_cut_length)
             hull() {
                 for (centre = hinge_centres)
                     translate(centre)
@@ -52,12 +52,14 @@ module hinge_capsule_cut(x_start) {
             }
 }
 
-// Cut through the side walls of every cell, including the shared interior walls.
-module wall_hinge_cuts() {
+// At both sides of every cell, cut inward from the outer face of the side wall.
+module cell_hinge_cuts() {
     for (row = [0 : rows - 1])
         translate([0, -row * row_pitch, 0])
-            for (wall = [0 : columns])
-                hinge_capsule_cut(wall * column_pitch - cell_width / 2 - wall_thickness);
+            for (column = [0 : columns - 1]) {
+                hinge_capsule_cut(column * column_pitch - cell_width / 2 - wall_thickness);
+                hinge_capsule_cut(column * column_pitch + cell_width / 2 + wall_thickness - hinge_cut_length);
+            }
 }
 
 // A function, because a top-level assignment here would be evaluated before the appended -D parameters.
@@ -120,7 +122,7 @@ module row_cuts() {
 union() {
     difference() {
         base_solid();
-        wall_hinge_cuts();
+        cell_hinge_cuts();
         row_cuts();
     }
     // Fused to row 0 along the outer 1–outer 2 face.
