@@ -1,14 +1,17 @@
 import baseSource from './models/base.scad?raw'
 import hingeSource from './models/hinge.scad?raw'
+import boltSource from './models/bolt.scad?raw'
 import { baseDefinitions } from './model'
 import type { BaseParameters } from './model'
 import { hingeDefinitions } from './hinge-model'
+import { boltDefinitions } from './bolt-model'
 
-export type ModelName = 'base' | 'hinge'
+export type ModelName = 'base' | 'hinge' | 'bolt'
 
 const models: Record<ModelName, { source: string; definitions: (params: BaseParameters) => string[] }> = {
   base: { source: baseSource, definitions: baseDefinitions },
   hinge: { source: hingeSource, definitions: hingeDefinitions },
+  bolt: { source: boltSource, definitions: boltDefinitions },
 }
 
 interface OpenScadInstance {

@@ -9,11 +9,13 @@ export interface BaseParameters extends CellSketchParameters {
   standHingeTolerance: number
   hingeTopWidth: number
   hingeHeight: number
+  boltTolerance: number
+  boltLength: number
   baseHeight: number
 }
 
 export const defaultBaseParameters: BaseParameters = {
-  ...defaultSketchParameters, rows: 2, columns: 2, standAngle: 80, standHingeTolerance: 0.1, hingeTopWidth: 22, hingeHeight: 58, baseAngle: 45, baseHeight: 12,
+  ...defaultSketchParameters, rows: 2, columns: 2, standAngle: 80, standHingeTolerance: 0.1, hingeTopWidth: 22, hingeHeight: 58, boltTolerance: 0.1, boltLength: 10, baseAngle: 45, baseHeight: 12,
 }
 
 export function validateBaseParameters(params: BaseParameters) {

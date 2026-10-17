@@ -265,3 +265,48 @@ for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, column
     console.log(`PASS: ${params.columns} hinges, ${params.hingeProfileWidth} mm profile width: symmetric ${params.wallThickness} mm plate with circle along X from inner 3, mirrored across ZOY, bridged between neighbours`)
   }
 }
+
+// The bolt: red circle extruded by wall thickness, green circle by bolt length + wall thickness with a 45° end chamfer.
+{
+  const { boltDefinitions } = await import('../src/bolt-model.ts')
+  const { boltGeometry } = await import('../src/bolt-sketch.ts')
+  const boltSource = await fs.readFile(new URL('../src/models/bolt.scad', import.meta.url), 'utf8')
+  for (const changes of [{}, { boltLength: 20, boltTolerance: 0.3, wallThickness: 1.5 }]) {
+    const params = {...defaultBaseParameters, ...changes}
+    const instance = await OpenSCAD({noInitialRun:true, wasmBinary, print:()=>{}, printErr:()=>{}})
+    instance.FS.writeFile('/bolt.scad', boltSource)
+    assert.equal(instance.callMain(['/bolt.scad', ...boltDefinitions(params), '--export-format', 'binstl', '-o', '/bolt.stl']), 0)
+    const geometry = new STLLoader().parse(instance.FS.readFile('/bolt.stl').slice().buffer)
+    geometry.computeBoundingBox()
+    const { min, max } = geometry.boundingBox
+    const { outerRadius, innerRadius } = boltGeometry(params)
+    const length = params.boltLength + params.wallThickness
+    const chamfer = innerRadius / 3
+    near(max.x, outerRadius)
+    near(min.x, -outerRadius)
+    near(min.z, 0)
+    near(max.z, length)
+    // Volumes use the 64-gon OpenSCAD renders in place of each circle; the chamfer is a 64-gon frustum.
+    const polygonArea = r => 32 * r ** 2 * Math.sin(2 * Math.PI / 64)
+    const top = polygonArea(innerRadius - chamfer), bottom = polygonArea(innerRadius)
+    const expected = polygonArea(outerRadius) * params.wallThickness + bottom * (length - chamfer - params.wallThickness) + chamfer / 3 * (bottom + top + Math.sqrt(bottom * top))
+    const position = geometry.attributes.position
+    let volume = 0
+    for (let i = 0; i < position.count; i += 3) {
+      const a = [position.getX(i), position.getY(i), position.getZ(i)]
+      const b = [position.getX(i+1), position.getY(i+1), position.getZ(i+1)]
+      const c = [position.getX(i+2), position.getY(i+2), position.getZ(i+2)]
+      volume += (a[0]*(b[1]*c[2]-b[2]*c[1]) + a[1]*(b[2]*c[0]-b[0]*c[2]) + a[2]*(b[0]*c[1]-b[1]*c[0])) / 6
+    }
+    assert.ok(Math.abs(Math.abs(volume) - expected) < expected * 1e-5, `Unexpected bolt volume ${volume}; expected ${expected}`)
+    // The top face is the chamfered radius.
+    const material = new MeshBasicMaterial({side:DoubleSide})
+    const mesh = new Mesh(geometry, material)
+    mesh.updateMatrixWorld()
+    const xs = new Raycaster(new Vector3(-1000, 0, length - 1e-6), new Vector3(1,0,0)).intersectObject(mesh).map(hit => hit.point.x)
+    near(Math.max(...xs), innerRadius - chamfer)
+    material.dispose()
+    geometry.dispose()
+    console.log(`PASS: bolt, ${params.boltLength} mm length: head, shank, and ${chamfer.toFixed(3)} mm chamfer`)
+  }
+}

@@ -4,6 +4,7 @@ import { cellSketch } from './sketch'
 import { baseEndSketch } from './base-end-sketch'
 import { hingeTopSketch } from './hinge-top-sketch'
 import { hingeSideSketch } from './hinge-side-sketch'
+import { boltSketch } from './bolt-sketch'
 import { validateBaseParameters } from './model'
 import type { BaseParameters } from './model'
 import type { ModelName } from './openscad.worker'
@@ -77,6 +78,14 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           <label for="stand-hinge-tolerance">Stand hinge tolerance (mm)</label>
           <input id="stand-hinge-tolerance" name="stand-hinge-tolerance" type="number" min="0" step="0.01" value="0.1" />
         </div>
+        <div class="transform-field">
+          <label for="bolt-tolerance">Bolt tolerance (mm)</label>
+          <input id="bolt-tolerance" name="bolt-tolerance" type="number" min="0" step="0.01" value="0.1" />
+        </div>
+        <div class="transform-field">
+          <label for="bolt-length">Bolt length (mm)</label>
+          <input id="bolt-length" name="bolt-length" type="number" min="0" step="0.1" value="10" />
+        </div>
         <p id="parameters-error" class="error" role="status"></p>
       </div>
     </details>
@@ -88,6 +97,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         <button id="base-end-tab" type="button" role="tab" aria-selected="false" aria-controls="base-end-sketch-panel" tabindex="-1">Cell side</button>
         <button id="hinge-top-tab" type="button" role="tab" aria-selected="false" aria-controls="hinge-top-sketch-panel" tabindex="-1">Hinge top</button>
         <button id="hinge-side-tab" type="button" role="tab" aria-selected="false" aria-controls="hinge-side-sketch-panel" tabindex="-1">Hinge side</button>
+        <button id="bolt-tab" type="button" role="tab" aria-selected="false" aria-controls="bolt-sketch-panel" tabindex="-1">Bolt</button>
       </div>
       <div id="cell-sketch-panel" class="sketch-panel" role="tabpanel" aria-labelledby="cell-tab">
         ${cellSketch()}
@@ -101,12 +111,16 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       <div id="hinge-side-sketch-panel" class="sketch-panel" role="tabpanel" aria-labelledby="hinge-side-tab" hidden>
         ${hingeSideSketch()}
       </div>
+      <div id="bolt-sketch-panel" class="sketch-panel" role="tabpanel" aria-labelledby="bolt-tab" hidden>
+        ${boltSketch()}
+      </div>
     </section>
     <section id="model-view" class="preview-view" aria-label="Interactive 3D model preview" hidden>
     <div class="viewport-actions">
       <div class="segmented-control model-tabs" role="group" aria-label="Model">
         <button id="base-model" class="active" type="button" aria-pressed="true">Base</button>
         <button id="hinge-model" type="button" aria-pressed="false">Hinge</button>
+        <button id="bolt-model" type="button" aria-pressed="false">Bolt</button>
       </div>
       <button id="fit" class="viewport-action" type="button">Fit model</button>
       <button id="redraw" class="viewport-action" type="button">Redraw</button>
@@ -123,12 +137,14 @@ const cellPanel = document.querySelector<HTMLElement>('#cell-sketch-panel')!
 const baseEndPanel = document.querySelector<HTMLElement>('#base-end-sketch-panel')!
 const hingeTopPanel = document.querySelector<HTMLElement>('#hinge-top-sketch-panel')!
 const hingeSidePanel = document.querySelector<HTMLElement>('#hinge-side-sketch-panel')!
-const sketchPanels = [cellPanel, baseEndPanel, hingeTopPanel, hingeSidePanel]
+const boltPanel = document.querySelector<HTMLElement>('#bolt-sketch-panel')!
+const sketchPanels = [cellPanel, baseEndPanel, hingeTopPanel, hingeSidePanel, boltPanel]
 const sketchTabs = [
   document.querySelector<HTMLButtonElement>('#cell-tab')!,
   document.querySelector<HTMLButtonElement>('#base-end-tab')!,
   document.querySelector<HTMLButtonElement>('#hinge-top-tab')!,
   document.querySelector<HTMLButtonElement>('#hinge-side-tab')!,
+  document.querySelector<HTMLButtonElement>('#bolt-tab')!,
 ]
 const selectSketch = (index: number) => {
   sketchPanels.forEach((panel, i) => { panel.hidden = i !== index })
@@ -185,6 +201,8 @@ const parameterInputs = {
   baseAngle: document.querySelector<HTMLInputElement>('#base-angle')!,
   standAngle: document.querySelector<HTMLInputElement>('#stand-angle')!,
   standHingeTolerance: document.querySelector<HTMLInputElement>('#stand-hinge-tolerance')!,
+  boltTolerance: document.querySelector<HTMLInputElement>('#bolt-tolerance')!,
+  boltLength: document.querySelector<HTMLInputElement>('#bolt-length')!,
   baseHeight: document.querySelector<HTMLInputElement>('#base-height')!,
   cellWidth: document.querySelector<HTMLInputElement>('#cell-width')!,
   cellLength: document.querySelector<HTMLInputElement>('#cell-length')!,
@@ -246,6 +264,7 @@ let currentModel: ModelName = 'base'
 const modelButtons: Record<ModelName, HTMLButtonElement> = {
   base: document.querySelector<HTMLButtonElement>('#base-model')!,
   hinge: document.querySelector<HTMLButtonElement>('#hinge-model')!,
+  bolt: document.querySelector<HTMLButtonElement>('#bolt-model')!,
 }
 const modelName = document.querySelector<HTMLElement>('#model-name')!
 
@@ -311,6 +330,7 @@ try {
     baseEndPanel.innerHTML = baseEndSketch(params)
     hingeTopPanel.innerHTML = hingeTopSketch(params)
     hingeSidePanel.innerHTML = hingeSideSketch(params)
+    boltPanel.innerHTML = boltSketch(params)
     timer = setTimeout(build, 250)
   }
   Object.values(parameterInputs).forEach(field => field.addEventListener('input', onParametersChanged))

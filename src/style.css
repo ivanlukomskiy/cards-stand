@@ -79,7 +79,7 @@ canvas { display: block; touch-action: none; }
 .sketch-rest-vertex .sketch-vertex-dot { fill: #73d6ac; }
 .sketch-vertex:hover .sketch-vertex-dot { fill: #fff; }
 
-.sketch-tabs { position: absolute; top: 16px; left: 16px; width: min(400px, calc(100% - 32px)); z-index: 2; margin: 0; }
+.sketch-tabs { position: absolute; top: 16px; left: 16px; width: min(480px, calc(100% - 32px)); z-index: 2; margin: 0; }
 .sketch-panel { position: absolute; inset: 56px 0 0; }
 
 .sketch-helper { pointer-events: none; }

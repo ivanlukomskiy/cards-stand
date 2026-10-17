@@ -168,3 +168,13 @@ console.log('PASS: hinge outline fillet sampling')
   assert.deepEqual(side.centre, {y: 0, z: 0})
 }
 console.log('PASS: hinge side circle')
+
+{
+  const { boltGeometry } = await import('../src/bolt-sketch.ts')
+  const params = {...defaultBaseParameters, boltTolerance: 0.25}
+  const bolt = boltGeometry(params)
+  near(bolt.outerRadius, (params.baseHeight - params.hingeTolerance) / 2)
+  near(bolt.innerRadius, (params.baseHeight - 2 * params.wallThickness - params.standHingeTolerance) / 2 - 0.25)
+  near(bolt.innerRadius, baseEndGeometry(params).holeRadius - 0.25)
+}
+console.log('PASS: bolt circles')
