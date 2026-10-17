@@ -174,7 +174,7 @@ console.log('PASS: hinge outline fillet sampling')
 {
   const { hingeSideGeometry } = await import('../src/hinge-side-sketch.ts')
   const side = hingeSideGeometry(defaultBaseParameters)
-  near(side.radius, defaultBaseParameters.wallThickness / 2)
+  near(side.radius, defaultBaseParameters.hingeThickness / 2)
   assert.deepEqual(side.centre, {y: 0, z: 0})
 }
 console.log('PASS: hinge side circle')

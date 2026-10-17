@@ -200,7 +200,7 @@ for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, column
   const { hingeSideGeometry } = await import('../src/hinge-side-sketch.ts')
   const { hingeInnerPoints, hingeOuterPoints } = await import('../src/hinge-top-sketch.ts')
   const hingeSource = await fs.readFile(new URL('../src/models/hinge.scad', import.meta.url), 'utf8')
-  for (const changes of [{ columns: 1 }, { columns: 3, hingeProfileWidth: 4, wallThickness: 3 }, {}]) {
+  for (const changes of [{ columns: 1 }, { columns: 3, hingeProfileWidth: 4, wallThickness: 3, hingeThickness: 2.5 }, {}]) {
     const params = {...defaultBaseParameters, ...changes}
     const instance = await OpenSCAD({noInitialRun:true, wasmBinary, print:()=>{}, printErr:()=>{}})
     instance.FS.writeFile('/hinge.scad', hingeSource)
@@ -217,8 +217,8 @@ for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, column
     near(max.x, last + circleStart + circleLength)
     near(min.y, -radius)
     near(max.y, params.hingeHeight)
-    near(min.z, -params.wallThickness / 2)
-    near(max.z, params.wallThickness / 2)
+    near(min.z, -params.hingeThickness / 2)
+    near(max.z, params.hingeThickness / 2)
     // Below Y = 0 only the circle extrusions remain, from ±inner 3 for hinge profile width + wall thickness; neighbours' cylinders overlap and merge.
     const material = new MeshBasicMaterial({side:DoubleSide})
     const mesh = new Mesh(geometry, material)
@@ -258,11 +258,11 @@ for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, column
     // The plate covers the circle's +Y half between inner 3 and outer 4; the 64-gon stands in for the circle.
     const circleArea = 32 * radius ** 2 * Math.sin(2 * Math.PI / 64)
     // Neighbouring hinges' cylinders overlap for one wall thickness; each bridge adds its slab minus the cylinders' +Y half inside it.
-    const bridgeVolume = params.wallThickness * hingeOuterPoints(params)[2].y * params.wallThickness - circleArea / 2 * params.wallThickness
-    const expected = params.columns * 2 * (area * params.wallThickness + circleArea * circleLength - circleArea / 2 * params.hingeProfileWidth) - (params.columns - 1) * (circleArea * params.wallThickness - bridgeVolume)
+    const bridgeVolume = params.wallThickness * hingeOuterPoints(params)[2].y * params.hingeThickness - circleArea / 2 * params.wallThickness
+    const expected = params.columns * 2 * (area * params.hingeThickness + circleArea * circleLength - circleArea / 2 * params.hingeProfileWidth) - (params.columns - 1) * (circleArea * params.wallThickness - bridgeVolume)
     assert.ok(Math.abs(Math.abs(volume) - expected) < expected * 1e-5, `Unexpected hinge volume ${volume}; expected ${expected}`)
     geometry.dispose()
-    console.log(`PASS: ${params.columns} hinges, ${params.hingeProfileWidth} mm profile width: symmetric ${params.wallThickness} mm plate with circle along X from inner 3, mirrored across ZOY, bridged between neighbours`)
+    console.log(`PASS: ${params.columns} hinges, ${params.hingeProfileWidth} mm profile width: symmetric ${params.hingeThickness} mm plate with circle along X from inner 3, mirrored across ZOY, bridged between neighbours`)
   }
 }
 

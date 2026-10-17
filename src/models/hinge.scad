@@ -1,7 +1,7 @@
 // Parameters and sketch profiles are supplied by src/hinge-model.ts.
 module hinge_half() {
-    // The Hinge top sketch's blue outline, extruded symmetrically about Z = 0 by wall thickness in total.
-    linear_extrude(height = wall_thickness, center = true)
+    // The Hinge top sketch's blue outline, extruded symmetrically about Z = 0 by hinge thickness in total.
+    linear_extrude(height = hinge_thickness, center = true)
         polygon(points = hinge_outline_points);
     // The Hinge side circle in (Y,Z), extruded along X from inner 3.
     multmatrix([
@@ -31,6 +31,6 @@ union() {
     if (columns > 1)
         for (column = [0 : columns - 2])
             translate([column * column_pitch, 0, 0])
-                linear_extrude(height = wall_thickness, center = true)
+                linear_extrude(height = hinge_thickness, center = true)
                     polygon(points = bridge_points);
 }

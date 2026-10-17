@@ -1,10 +1,10 @@
 import { defaultBaseParameters } from './model.ts'
 import type { BaseParameters } from './model.ts'
 
-// A circle at the origin whose diameter is the wall thickness.
+// A circle at the origin whose diameter is the hinge thickness.
 export function hingeSideGeometry(params: BaseParameters) {
   return {
-    radius: params.wallThickness / 2,
+    radius: params.hingeThickness / 2,
     centre: { y: 0, z: 0 },
   }
 }

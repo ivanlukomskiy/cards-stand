@@ -25,7 +25,7 @@ export function hingeDefinitions(params: BaseParameters): string[] {
   const [, , outer3, outer4] = hingeOuterPoints(params)
   const [bridge1, bridge2] = hingeBridgePoints(params)
   const definitions = {
-    wall_thickness: params.wallThickness,
+    hinge_thickness: params.hingeThickness,
     hinge_outline_points: hingeOutlinePoints(params),
     circle_centre: [centre.y, centre.z],
     circle_radius: radius,
