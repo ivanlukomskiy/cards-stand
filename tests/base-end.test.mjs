@@ -142,3 +142,21 @@ console.log('PASS: hinge top outline fillets at outer 2 and inner 2')
   ])
 }
 console.log('PASS: hinge top bridge points')
+
+{
+  // Sampled fillet arcs start and end on their tangent points and stay on the fillet circle.
+  const { hingeOutlinePoints } = await import('../src/hinge-model.ts')
+  const outline = hingeOutline(defaultBaseParameters)
+  const points = hingeOutlinePoints(defaultBaseParameters)
+  for (const corner of [outline.outer2, outline.inner2]) {
+    const start = points.findIndex(([x, y]) => Math.abs(x - corner.start.x) < 1e-9 && Math.abs(y - corner.start.y) < 1e-9)
+    const end = points.findIndex(([x, y]) => Math.abs(x - corner.end.x) < 1e-9 && Math.abs(y - corner.end.y) < 1e-9)
+    assert.ok(start >= 0 && end > start + 1)
+    for (const [x, y] of points.slice(start, end + 1)) near(Math.hypot(x - corner.centre.x, y - corner.centre.y), outline.radius)
+    // The arc stays inside the corner: no sample is farther from the corner's centre side than the tangent points.
+    const mid = points[Math.floor((start + end) / 2)]
+    const chordMid = [(corner.start.x + corner.end.x) / 2, (corner.start.y + corner.end.y) / 2]
+    assert.ok(Math.hypot(mid[0] - corner.centre.x, mid[1] - corner.centre.y) > Math.hypot(chordMid[0] - corner.centre.x, chordMid[1] - corner.centre.y))
+  }
+}
+console.log('PASS: hinge outline fillet sampling')

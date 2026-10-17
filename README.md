@@ -12,7 +12,7 @@ Each cell unions three extrusions. The floor is the outer rectangle (cell outer 
 
 `src/sketch.ts` defines the points, including outer/inner midpoint markers. `src/model.ts` passes the same inner rectangle coordinates to OpenSCAD along with layout and extrusion parameters. `src/models/base.scad` defines the angled extrusion and repeated cell union. The official OpenSCAD WebAssembly runtime is installed in `public/vendor/openscad` with source, version, checksum, and license details.
 
-OpenSCAD runs in an isolated background worker and exports a binary STL in millimeters. Three.js loads that mesh, converts Z-up to Y-up, and fits the actual mesh bounds. Superseded builds are terminated; the last successful mesh remains visible during rebuilding or invalid edits. Export/download UI is a future step.
+The 3D tab switches between models: Base, and Hinge (the Hinge top blue outline, with sampled fillets, extruded along Z by wall thickness). OpenSCAD runs in an isolated background worker and exports a binary STL in millimeters. Three.js loads that mesh, converts Z-up to Y-up, and fits the actual mesh bounds. Superseded builds are terminated; the last successful mesh remains visible during rebuilding or invalid edits. Export/download UI is a future step.
 
 In the cell sketch and row layout, the hinge span along Y is `(hinge thickness + hinge tolerance) / sin(base angle)`, with top points at `wall thickness + (hinge thickness + hinge tolerance) / sin(base angle)`. X coordinates retain the original hinge tolerance; extrusion distances along Z are unchanged.
 

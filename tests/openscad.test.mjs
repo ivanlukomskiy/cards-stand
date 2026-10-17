@@ -193,3 +193,40 @@ for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, column
   geometry.dispose()
   console.log(`PASS: ${params.rows} × ${params.columns} cells, ${params.baseAngle}°: purple outline cut through every row except outer walls`)
 }
+
+// The hinge is the Hinge top blue outline extruded along Z by wall thickness.
+{
+  const { hingeDefinitions, hingeOutlinePoints } = await import('../src/hinge-model.ts')
+  const hingeSource = await fs.readFile(new URL('../src/models/hinge.scad', import.meta.url), 'utf8')
+  for (const changes of [{}, { hingeProfileWidth: 4, wallThickness: 3 }]) {
+    const params = {...defaultBaseParameters, ...changes}
+    const instance = await OpenSCAD({noInitialRun:true, wasmBinary, print:()=>{}, printErr:()=>{}})
+    instance.FS.writeFile('/hinge.scad', hingeSource)
+    assert.equal(instance.callMain(['/hinge.scad', ...hingeDefinitions(params), '--export-format', 'binstl', '-o', '/hinge.stl']), 0)
+    const geometry = new STLLoader().parse(instance.FS.readFile('/hinge.stl').slice().buffer)
+    geometry.computeBoundingBox()
+    const { min, max } = geometry.boundingBox
+    near(min.x, 0)
+    near(max.x, params.cellWidth / 2)
+    near(min.y, 0)
+    near(max.y, params.hingeHeight)
+    near(min.z, 0)
+    near(max.z, params.wallThickness)
+    const outline = hingeOutlinePoints(params)
+    const area = Math.abs(outline.reduce((sum, p, i) => {
+      const q = outline[(i + 1) % outline.length]
+      return sum + p[0] * q[1] - q[0] * p[1]
+    }, 0)) / 2
+    const position = geometry.attributes.position
+    let volume = 0
+    for (let i = 0; i < position.count; i += 3) {
+      const a = [position.getX(i), position.getY(i), position.getZ(i)]
+      const b = [position.getX(i+1), position.getY(i+1), position.getZ(i+1)]
+      const c = [position.getX(i+2), position.getY(i+2), position.getZ(i+2)]
+      volume += (a[0]*(b[1]*c[2]-b[2]*c[1]) + a[1]*(b[2]*c[0]-b[0]*c[2]) + a[2]*(b[0]*c[1]-b[1]*c[0])) / 6
+    }
+    assert.ok(Math.abs(Math.abs(volume) - area * params.wallThickness) < area * params.wallThickness * 1e-5, `Unexpected hinge volume ${volume}`)
+    geometry.dispose()
+    console.log(`PASS: hinge, ${params.hingeProfileWidth} mm profile width: blue outline extruded by ${params.wallThickness} mm`)
+  }
+}

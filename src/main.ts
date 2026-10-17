@@ -5,6 +5,7 @@ import { baseEndSketch } from './base-end-sketch'
 import { hingeTopSketch } from './hinge-top-sketch'
 import { validateBaseParameters } from './model'
 import type { BaseParameters } from './model'
+import type { ModelName } from './openscad.worker'
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <aside class="sidebar" aria-label="Model parameters">
@@ -98,10 +99,14 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     </section>
     <section id="model-view" class="preview-view" aria-label="Interactive 3D model preview" hidden>
     <div class="viewport-actions">
+      <div class="segmented-control model-tabs" role="group" aria-label="Model">
+        <button id="base-model" class="active" type="button" aria-pressed="true">Base</button>
+        <button id="hinge-model" type="button" aria-pressed="false">Hinge</button>
+      </div>
       <button id="fit" class="viewport-action" type="button">Fit model</button>
       <button id="redraw" class="viewport-action" type="button">Redraw</button>
     </div>
-    <div class="hud"><span>Base</span><br><span id="dimensions" role="status">Building…</span></div>
+    <div class="hud"><span id="model-name">Base</span><br><span id="dimensions" role="status">Building…</span></div>
     <div id="canvas-host"></div>
     <p id="preview-error" class="preview-error" role="alert" hidden></p>
     </section>
@@ -230,6 +235,12 @@ let timer: ReturnType<typeof setTimeout> | undefined
 let buildTimeout: ReturnType<typeof setTimeout> | undefined
 let generation = 0
 let firstModel = true
+let currentModel: ModelName = 'base'
+const modelButtons: Record<ModelName, HTMLButtonElement> = {
+  base: document.querySelector<HTMLButtonElement>('#base-model')!,
+  hinge: document.querySelector<HTMLButtonElement>('#hinge-model')!,
+}
+const modelName = document.querySelector<HTMLElement>('#model-name')!
 
 try {
   const preview = new BasePreview(document.querySelector<HTMLDivElement>('#canvas-host')!)
@@ -254,7 +265,7 @@ try {
     const fail = (text: string) => {
       if (request !== generation) return
       cancel()
-      message.textContent = `Could not build Base. ${text}`
+      message.textContent = `Could not build ${modelButtons[currentModel].textContent}. ${text}`
       message.hidden = false
       dimensions.textContent = 'Build failed'
     }
@@ -275,6 +286,7 @@ try {
       worker.onerror = (event) => { event.preventDefault(); fail(event.message || 'OpenSCAD could not start.') }
       buildTimeout = setTimeout(() => fail('Rendering timed out. Try Redraw.'), 60000)
       worker.postMessage({
+        model: currentModel,
         params,
         runtimeUrl: new URL(`${import.meta.env.BASE_URL}vendor/openscad/openscad.js`, document.baseURI).href,
       })
@@ -296,6 +308,20 @@ try {
   Object.values(parameterInputs).forEach(field => field.addEventListener('input', onParametersChanged))
   document.querySelector('#fit')!.addEventListener('click', () => preview.fit())
   redraw.addEventListener('click', build)
+  for (const [name, button] of Object.entries(modelButtons) as [ModelName, HTMLButtonElement][]) {
+    button.addEventListener('click', () => {
+      if (name === currentModel) return
+      currentModel = name
+      for (const [other, otherButton] of Object.entries(modelButtons)) {
+        otherButton.classList.toggle('active', other === name)
+        otherButton.setAttribute('aria-pressed', String(other === name))
+      }
+      modelName.textContent = button.textContent
+      // Frame the newly selected model once it arrives.
+      firstModel = true
+      build()
+    })
+  }
   build()
   import.meta.hot?.dispose(() => { cancel(); preview.dispose() })
 } catch (cause) {
