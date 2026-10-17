@@ -20,7 +20,14 @@ module stand_half() {
 }
 
 // Mirror across the YOZ plane; the plate halves meet along X = 0.
-union() {
+// Set with -D for coloured exports; left undefined, the part is uncoloured.
+part_color = undef;
+module part_colored() {
+    if (is_undef(part_color)) children();
+    else color(part_color) children();
+}
+
+part_colored() union() {
     stand_half();
     mirror([1, 0, 0])
         stand_half();

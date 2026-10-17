@@ -18,7 +18,7 @@ export interface BaseParameters extends CellSketchParameters {
 }
 
 export const defaultBaseParameters: BaseParameters = {
-  ...defaultSketchParameters, rows: 2, columns: 2, standAngle: 80, standHingeTolerance: 0.1, standTolerance: 0.5, baseTiltAngle: 30, standProfileWidth: 18, hingeTopWidth: 22, hingeHeight: 58, boltTolerance: 0.1, boltLength: 10, baseAngle: 45, baseHeight: 12,
+  ...defaultSketchParameters, rows: 2, columns: 2, standAngle: 80, standHingeTolerance: 0.1, standTolerance: 0.5, baseTiltAngle: 30, standProfileWidth: 18, hingeTopWidth: 22, hingeHeight: 58, boltTolerance: 0.1, boltLength: 10, hingeAngle: 45, baseHeight: 12,
 }
 
 export function validateBaseParameters(params: BaseParameters) {
@@ -47,8 +47,8 @@ export function validateBaseParameters(params: BaseParameters) {
   if (params.standAngle < limit || params.standAngle > 180 - limit) {
     throw new Error(`Stand angle must be between ${limit.toFixed(1)}° and ${(180 - limit).toFixed(1)}° for this stand tolerance and base height.`)
   }
-  if (params.baseAngle <= 0 || params.baseAngle > 90) {
-    throw new Error('Base angle must be greater than 0° and at most 90°.')
+  if (params.hingeAngle <= 0 || params.hingeAngle > 90) {
+    throw new Error('Hinge angle must be greater than 0° and at most 90°.')
   }
 }
 
@@ -73,7 +73,7 @@ export function cellSemiRaisedProfiles(params: BaseParameters): number[][][] {
 
 // Rows advance in -Y by this pitch.
 export function rowPitch(params: BaseParameters) {
-  return params.cellLength + params.wallThickness * 2 + (params.hingeThickness + params.hingeTolerance) / Math.sin(params.baseAngle * Math.PI / 180)
+  return params.cellLength + params.wallThickness * 2 + (params.hingeThickness + params.hingeTolerance) / Math.sin(params.hingeAngle * Math.PI / 180)
 }
 
 // Pass the same sketch coordinates to OpenSCAD that the SVG uses.

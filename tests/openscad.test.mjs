@@ -13,12 +13,12 @@ const solidSource = source.replace(/difference\(\) \{\s*base_solid\(\);\s*cell_h
 const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 0.0001, `${actual} != ${expected}`)
 
 for (const changes of [
-  { rows: 1, columns: 1, baseAngle: 45 },
-  { rows: 1, columns: 1, baseAngle: 30, baseHeight: 16 },
-  { rows: 1, columns: 1, baseAngle: 90 },
+  { rows: 1, columns: 1, hingeAngle: 45 },
+  { rows: 1, columns: 1, hingeAngle: 30, baseHeight: 16 },
+  { rows: 1, columns: 1, hingeAngle: 90 },
   {},
-  { rows: 3, columns: 2, baseAngle: 30, wallThickness: 3 },
-  { rows: 1, columns: 3, baseAngle: 90 },
+  { rows: 3, columns: 2, hingeAngle: 30, wallThickness: 3 },
+  { rows: 1, columns: 3, hingeAngle: 90 },
 ]) {
   const params = { ...defaultBaseParameters, ...changes }
   const diagnostics = []
@@ -32,8 +32,8 @@ for (const changes of [
   const geometry = new STLLoader().parse(instance.FS.readFile('/base.stl').slice().buffer)
   geometry.computeBoundingBox()
   const { min, max } = geometry.boundingBox
-  const shear = 1 / Math.tan(params.baseAngle * Math.PI / 180)
-  const hingeSpanY = (params.hingeThickness + params.hingeTolerance) / Math.sin(params.baseAngle * Math.PI / 180)
+  const shear = 1 / Math.tan(params.hingeAngle * Math.PI / 180)
+  const hingeSpanY = (params.hingeThickness + params.hingeTolerance) / Math.sin(params.hingeAngle * Math.PI / 180)
   const rowPitch = params.cellLength + params.wallThickness * 2 + hingeSpanY
   const colPitch = params.cellWidth + params.wallThickness
   const raisedHeight = params.baseHeight - params.hingeThickness - params.hingeTolerance
@@ -65,9 +65,9 @@ for (const changes of [
     assert.ok(Math.abs(Math.abs(volume) - expectedVolume) < expectedVolume * 1e-5, `Unexpected volume ${volume}; expected ${expectedVolume}`)
   }
   geometry.dispose()
-  console.log(`PASS: ${params.rows} × ${params.columns} cells, ${params.baseAngle}°, ${raisedHeight} mm semi raised profiles; mesh bounds and single-cell volume`)
+  console.log(`PASS: ${params.rows} × ${params.columns} cells, ${params.hingeAngle}°, ${raisedHeight} mm semi raised profiles; mesh bounds and single-cell volume`)
 }
-assert.throws(() => baseDefinitions({ ...defaultBaseParameters, baseAngle: 0 }))
+assert.throws(() => baseDefinitions({ ...defaultBaseParameters, hingeAngle: 0 }))
 assert.throws(() => baseDefinitions({ ...defaultBaseParameters, baseHeight: 3.1 }))
 assert.throws(() => baseDefinitions({ ...defaultBaseParameters, rows: 1.5 }))
 assert.throws(() => baseDefinitions({ ...defaultBaseParameters, columns: 0 }))
@@ -84,9 +84,9 @@ console.log('PASS: full raised right profile coordinates and ordering')
 assert.deepEqual(cellSemiRaisedProfiles(defaultBaseParameters)[0], [[0,-24],[25,-24],[25,-26],[0,-26]])
 console.log('PASS: semi raised right profile coordinates and ordering')
 
-for (const baseAngle of [30, 45, 90]) {
-  const params = {...defaultBaseParameters, baseAngle}
-  near(cellOuterPoints(params)[0].y, 2 + 3.1 / Math.sin(baseAngle * Math.PI / 180))
+for (const hingeAngle of [30, 45, 90]) {
+  const params = {...defaultBaseParameters, hingeAngle}
+  near(cellOuterPoints(params)[0].y, 2 + 3.1 / Math.sin(hingeAngle * Math.PI / 180))
 }
 console.log('PASS: projected Y tolerance at cell outer 1')
 
@@ -102,11 +102,11 @@ for (const columns of [1, 3]) {
   const mesh = new Mesh(geometry,material)
   mesh.updateMatrixWorld()
   const colPitch = params.cellWidth + params.wallThickness
-  const rowPitch = params.cellLength + 2*params.wallThickness + (params.hingeThickness + params.hingeTolerance)/Math.sin(params.baseAngle*Math.PI/180)
+  const rowPitch = params.cellLength + 2*params.wallThickness + (params.hingeThickness + params.hingeTolerance)/Math.sin(params.hingeAngle*Math.PI/180)
   const cutLength = params.wallThickness*2 + params.hingeProfileWidth + params.hingeTolerance
   for (let row=0;row<params.rows;row++) {
     const z = (hingeCenter.z + hingeCenter2.z)/2 + 0.123
-    const y = hingeCenter.y + (z-hingeCenter.z)/Math.tan(params.baseAngle*Math.PI/180) - row*rowPitch
+    const y = hingeCenter.y + (z-hingeCenter.z)/Math.tan(params.hingeAngle*Math.PI/180) - row*rowPitch
     const hits = new Raycaster(new Vector3(-1000,y,z),new Vector3(1,0,0)).intersectObject(mesh)
     const xs = hits.map(hit=>hit.point.x).filter((x,i,all)=>i===0 || Math.abs(x-all[i-1])>1e-5)
     // Each cell keeps material only between its two cuts.
@@ -122,7 +122,7 @@ for (const columns of [1, 3]) {
 }
 
 // The base end spans the full model width and is fused to row 0's outer 1–outer 2 face.
-for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, columns: 3, baseAngle: 30, standHingeTolerance: 0.5 }, { rows: 2, columns: 2, baseAngle: 90, standHingeTolerance: 0 }]) {
+for (const changes of [{ rows: 1, columns: 1, hingeAngle: 45 }, { rows: 3, columns: 3, hingeAngle: 30, standHingeTolerance: 0.5 }, { rows: 2, columns: 2, hingeAngle: 90, standHingeTolerance: 0 }]) {
   const params = {...defaultBaseParameters, ...changes}
   const {start, atHeight, rest1, rest2, center} = baseEndGeometry(params)
   const instance = await OpenSCAD({noInitialRun:true, wasmBinary, print:()=>{}, printErr:()=>{}})
@@ -161,11 +161,11 @@ for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, column
   assert.equal(hits.length, 0, 'No internal face between row 0 and the base end')
   material.dispose()
   geometry.dispose()
-  console.log(`PASS: ${params.rows} × ${params.columns} cells, ${params.baseAngle}°: base end spans full width, fuses to row 0, with inset yellow extrusion and chamfered hole`)
+  console.log(`PASS: ${params.rows} × ${params.columns} cells, ${params.hingeAngle}°: base end spans full width, fuses to row 0, with inset yellow extrusion and chamfered hole`)
 }
 
 // The purple outline is cut through every row, leaving only the model's outer side walls.
-for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, columns: 3, baseAngle: 30 }, { rows: 2, columns: 2, baseAngle: 60 }]) {
+for (const changes of [{ rows: 1, columns: 1, hingeAngle: 45 }, { rows: 3, columns: 3, hingeAngle: 30 }, { rows: 2, columns: 2, hingeAngle: 60 }]) {
   const params = {...defaultBaseParameters, ...changes}
   const {midCut1, hingeCenter2} = baseEndGeometry(params)
   const instance = await OpenSCAD({noInitialRun:true, wasmBinary, print:()=>{}, printErr:()=>{}})
@@ -176,7 +176,7 @@ for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, column
   const mesh = new Mesh(geometry,material)
   mesh.updateMatrixWorld()
   const colPitch = params.cellWidth + params.wallThickness
-  const rowPitch = params.cellLength + 2*params.wallThickness + (params.hingeThickness + params.hingeTolerance)/Math.sin(params.baseAngle*Math.PI/180)
+  const rowPitch = params.cellLength + 2*params.wallThickness + (params.hingeThickness + params.hingeTolerance)/Math.sin(params.hingeAngle*Math.PI/180)
   const minX = -params.cellWidth/2 - params.wallThickness
   const maxX = (params.columns-1)*colPitch + params.cellWidth/2 + params.wallThickness
   const round = values => values.map(x => Math.round(x*1e4)/1e4)
@@ -191,7 +191,7 @@ for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, column
   assert.ok(baseEndCutPoints(params).length > 4)
   material.dispose()
   geometry.dispose()
-  console.log(`PASS: ${params.rows} × ${params.columns} cells, ${params.baseAngle}°: purple outline cut through every row except outer walls`)
+  console.log(`PASS: ${params.rows} × ${params.columns} cells, ${params.hingeAngle}°: purple outline cut through every row except outer walls`)
 }
 
 // The hinge is the Hinge top blue outline extruded symmetrically about Z = 0, plus the Hinge side circle extruded along X from inner 3, both mirrored across ZOY, repeated per column at the cell pitch, with green bridges between neighbours only.
@@ -467,7 +467,7 @@ for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, column
     const rotate = ([x, y, z]) => [x, (y - py) * Math.cos(angle) - (z - pz) * Math.sin(angle) + py, (y - py) * Math.sin(angle) + (z - pz) * Math.cos(angle) + pz]
     for (const part of assemblyParts) {
       for (const placement of flat[part]) {
-        assert.ok(Math.abs(placement.rotationX - angle - (part === 'stand' ? params.standAngle * Math.PI / 180 : part === 'hinge' ? params.baseAngle * Math.PI / 180 : 0)) < 1e-9)
+        assert.ok(Math.abs(placement.rotationX - angle - (part === 'stand' ? params.standAngle * Math.PI / 180 : part === 'hinge' ? params.hingeAngle * Math.PI / 180 : 0)) < 1e-9)
       }
     }
     // A point fixed on the base stays fixed relative to it: the pivot edge does not move, and the stand end rises by the tilt.
@@ -540,4 +540,51 @@ for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, column
     }
   }
   console.log('PASS: assembly centres parts on X = 0, places hinges and stand, tilts everything when the stand is extended, lands the stand tip on Z = 0, and inserts two bolts')
+}
+
+// 3MF export: each part, coloured through part_color, carries its colour as a 3MF material and keeps its geometry.
+{
+  const zlib = await import('node:zlib')
+  const { hingeDefinitions } = await import('../src/hinge-model.ts')
+  const { standDefinitions } = await import('../src/stand-model.ts')
+  const { boltDefinitions } = await import('../src/bolt-model.ts')
+  // Read one entry from a ZIP archive (stored or deflated) via its local header.
+  const readZipEntry = (bytes, name) => {
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+    for (let offset = 0; offset + 30 < bytes.length;) {
+      if (view.getUint32(offset, true) !== 0x04034b50) break
+      const method = view.getUint16(offset + 8, true)
+      const compressed = view.getUint32(offset + 18, true)
+      const nameLength = view.getUint16(offset + 26, true), extraLength = view.getUint16(offset + 28, true)
+      const entryName = new TextDecoder().decode(bytes.slice(offset + 30, offset + 30 + nameLength))
+      const start = offset + 30 + nameLength + extraLength
+      const data = bytes.slice(start, start + compressed)
+      if (entryName === name) return method === 8 ? zlib.inflateRawSync(data) : Buffer.from(data)
+      offset = start + compressed
+    }
+    throw new Error(`${name} not found`)
+  }
+  const colors = { base: '#5b9bd5', hinge: '#73d6ac', bolt: '#e5b567', stand: '#b48ce6' }
+  const parts = {
+    base: [source, baseDefinitions],
+    hinge: [await fs.readFile(new URL('../src/models/hinge.scad', import.meta.url), 'utf8'), hingeDefinitions],
+    bolt: [await fs.readFile(new URL('../src/models/bolt.scad', import.meta.url), 'utf8'), boltDefinitions],
+    stand: [await fs.readFile(new URL('../src/models/stand.scad', import.meta.url), 'utf8'), standDefinitions],
+  }
+  for (const [part, [partSource, definitions]] of Object.entries(parts)) {
+    const messages = []
+    const instance = await OpenSCAD({noInitialRun:true, wasmBinary, print: t => messages.push(t), printErr: t => messages.push(t)})
+    instance.FS.writeFile('/part.scad', partSource)
+    assert.equal(instance.callMain(['/part.scad', ...definitions(defaultBaseParameters), '-D', `part_color="${colors[part]}"`, '--export-format', '3mf', '-o', '/part.3mf']), 0)
+    assert.deepEqual(messages.filter(line => /WARNING|ERROR/.test(line)), [], `${part}: no warnings`)
+    const model = readZipEntry(instance.FS.readFile('/part.3mf'), '3D/3dmodel.model').toString('utf8')
+    // Every triangle points at the base material holding the part colour.
+    const materials = [...model.matchAll(/<base [^>]*displaycolor="([^"]*)"/g)].map(match => match[1])
+    const colourIndex = materials.indexOf(`${colors[part].toUpperCase()}FF`)
+    assert.ok(colourIndex >= 0, `${part}: carries its assembly colour`)
+    const triangles = model.match(/<triangle [^>]*\/>/g) ?? []
+    assert.ok(triangles.length > 100, `${part}: has geometry`)
+    assert.ok(triangles.every(triangle => triangle.includes(`p1="${colourIndex}"`)), `${part}: every triangle uses its colour`)
+  }
+  console.log('PASS: 3MF exports carry each part colour')
 }

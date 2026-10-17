@@ -1,17 +1,17 @@
 import type { BaseParameters } from './model.ts'
 
 export function baseEndGeometry(params: BaseParameters) {
-  const start = { y: params.wallThickness + (params.hingeThickness + params.hingeTolerance) / Math.sin(params.baseAngle * Math.PI / 180), z: 0 }
-  const slope = 1 / Math.tan(params.baseAngle * Math.PI / 180)
+  const start = { y: params.wallThickness + (params.hingeThickness + params.hingeTolerance) / Math.sin(params.hingeAngle * Math.PI / 180), z: 0 }
+  const slope = 1 / Math.tan(params.hingeAngle * Math.PI / 180)
   const atHeight = { y: start.y + params.baseHeight * slope, z: params.baseHeight }
   // OY and the upper horizontal beam are baseHeight apart.
   const radius = params.baseHeight / 2
   const center = {
-    y: start.y + radius * slope + radius / Math.sin(params.baseAngle * Math.PI / 180),
+    y: start.y + radius * slope + radius / Math.sin(params.hingeAngle * Math.PI / 180),
     z: radius,
   }
   // Unit normal toward the centre in (Y, Z) coordinates.
-  const angle = params.baseAngle * Math.PI / 180
+  const angle = params.hingeAngle * Math.PI / 180
   const offsetStart = {
     y: start.y + params.wallThickness * Math.sin(angle),
     z: start.z - params.wallThickness * Math.cos(angle),
@@ -101,7 +101,7 @@ export const cutOutlineEpsilon = 0.001
 // The purple cut outline: outer 2 → mid cut 1 → mid cut 2 → arc → mid cut 3 → hinge 2 bottom → arc → hinge 2 tangent.
 export function baseEndCutPoints(params: BaseParameters): number[][] {
   const { atHeight, midCut1, hingeCenter2, hingeCenter3, hingeRadius } = baseEndGeometry(params)
-  const angle = params.baseAngle * Math.PI / 180
+  const angle = params.hingeAngle * Math.PI / 180
   return [
     [atHeight.y, atHeight.z],
     [midCut1.y, midCut1.z],

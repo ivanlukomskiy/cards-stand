@@ -7,7 +7,7 @@ export interface SketchPoint {
 }
 
 export interface CellSketchParameters {
-  baseAngle: number
+  hingeAngle: number
   cellWidth: number
   cellLength: number
   wallThickness: number
@@ -18,7 +18,7 @@ export interface CellSketchParameters {
 }
 
 export const defaultSketchParameters: CellSketchParameters = {
-  baseAngle: 45,
+  hingeAngle: 45,
   cellWidth: 64,
   cellLength: 24,
   wallThickness: 2,
@@ -31,13 +31,13 @@ export const defaultSketchParameters: CellSketchParameters = {
 // Sketch coordinates use millimeters, with Y increasing upward.
 export function cellOuterPoints(params: CellSketchParameters): readonly SketchPoint[] {
   const x = params.cellWidth / 2 + params.wallThickness
-  const top = params.wallThickness + (params.hingeThickness + params.hingeTolerance) / Math.sin(params.baseAngle * Math.PI / 180)
+  const top = params.wallThickness + (params.hingeThickness + params.hingeTolerance) / Math.sin(params.hingeAngle * Math.PI / 180)
   const bottom = -params.cellLength - params.wallThickness
   return [
-    { name: 'cell outer 1', x, y: top, xFormula: 'cell width / 2 + wall thickness', yFormula: 'wall thickness + (hinge thickness + hinge tolerance) / sin(base angle)' },
+    { name: 'cell outer 1', x, y: top, xFormula: 'cell width / 2 + wall thickness', yFormula: 'wall thickness + (hinge thickness + hinge tolerance) / sin(hinge angle)' },
     { name: 'cell outer 2', x, y: bottom, xFormula: 'cell width / 2 + wall thickness', yFormula: '-cell length - wall thickness' },
     { name: 'cell outer 3', x: -x, y: bottom, xFormula: '-(cell width / 2 + wall thickness)', yFormula: '-cell length - wall thickness' },
-    { name: 'cell outer 4', x: -x, y: top, xFormula: '-(cell width / 2 + wall thickness)', yFormula: 'wall thickness + (hinge thickness + hinge tolerance) / sin(base angle)' },
+    { name: 'cell outer 4', x: -x, y: top, xFormula: '-(cell width / 2 + wall thickness)', yFormula: 'wall thickness + (hinge thickness + hinge tolerance) / sin(hinge angle)' },
   ]
 }
 

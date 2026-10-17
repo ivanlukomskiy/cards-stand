@@ -23,7 +23,14 @@ module hinge() {
 }
 
 // One hinge per column, at the same pitch as the base cells.
-union() {
+// Set with -D for coloured exports; left undefined, the part is uncoloured.
+part_color = undef;
+module part_colored() {
+    if (is_undef(part_color)) children();
+    else color(part_color) children();
+}
+
+part_colored() union() {
     for (column = [0 : columns - 1])
         translate([column * column_pitch, 0, 0])
             hinge();

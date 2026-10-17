@@ -1,5 +1,12 @@
 // Parameters are supplied by src/bolt-model.ts.
-union() {
+// Set with -D for coloured exports; left undefined, the part is uncoloured.
+part_color = undef;
+module part_colored() {
+    if (is_undef(part_color)) children();
+    else color(part_color) children();
+}
+
+part_colored() union() {
     // The Bolt sketch's red circle, extruded along Z by wall thickness.
     cylinder(r = head_radius, h = wall_thickness, $fn = 64);
     // The green circle, extruded by bolt length + wall thickness, with a 45° chamfer at its end.

@@ -1,5 +1,5 @@
 // Parameters and sketch profiles are supplied by src/model.ts.
-// Angle is measured from +Y toward +Z in the YOZ plane; shear = 1 / tan(base angle).
+// Angle is measured from +Y toward +Z in the YOZ plane; shear = 1 / tan(hinge angle).
 module angled_extrusion(z_distance) {
     multmatrix([
         [1, 0, 0, 0],
@@ -119,7 +119,14 @@ module row_cuts() {
                 base_end_extrusion(base_end_cut_points, wall_thickness);
 }
 
-union() {
+// Set with -D for coloured exports; left undefined, the part is uncoloured.
+part_color = undef;
+module part_colored() {
+    if (is_undef(part_color)) children();
+    else color(part_color) children();
+}
+
+part_colored() union() {
     difference() {
         base_solid();
         cell_hinge_cuts();

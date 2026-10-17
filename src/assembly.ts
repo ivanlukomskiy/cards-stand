@@ -48,7 +48,7 @@ export function assemblyPlacements(params: BaseParameters, options: AssemblyOpti
   // direction (local Z) is perpendicular to that line.
   const { hingeCenter, hingeCenter2, center } = baseEndGeometry(params)
   const centre = options.hingeExtended ? hingeCenter : hingeCenter2
-  const rotationX = options.hingeExtended ? params.baseAngle * Math.PI / 180 : Math.PI
+  const rotationX = options.hingeExtended ? params.hingeAngle * Math.PI / 180 : Math.PI
   const placements: Record<AssemblyPart, Placement[]> = {
     base: [{ rotationX: 0, offset: [-columnsCentre, 0, 0] }],
     hinge: Array.from({ length: params.rows }, (_, row) => ({

@@ -29,8 +29,8 @@ assert.throws(() => validateBaseParameters({...defaultBaseParameters, standAngle
 assert.throws(() => validateBaseParameters({...defaultBaseParameters, standAngle: 160}))
 validateBaseParameters({...defaultBaseParameters, standAngle: 15, standTolerance: 0})
 
-for (const baseAngle of [15, 45, 90]) {
-  const params = {...defaultBaseParameters, baseAngle}
+for (const hingeAngle of [15, 45, 90]) {
+  const params = {...defaultBaseParameters, hingeAngle}
   const {start, slope, hingeCenter} = baseEndGeometry(params)
   near(hingeCenter.z, params.wallThickness + params.hingeThickness / 2)
   const distance = (hingeCenter.y - start.y - hingeCenter.z * slope) / Math.hypot(1, slope)
@@ -38,8 +38,8 @@ for (const baseAngle of [15, 45, 90]) {
 }
 console.log('PASS: hinge centre Z and tangency to outer 1–outer 2')
 
-for (const baseAngle of [15,45,90]) {
-  const params = {...defaultBaseParameters, baseAngle}
+for (const hingeAngle of [15,45,90]) {
+  const params = {...defaultBaseParameters, hingeAngle}
   const {start, hingeCenter, hingeCenter2, slope} = baseEndGeometry(params)
   near((hingeCenter2.y - start.y - hingeCenter2.z * slope) / Math.hypot(1, slope), -(params.hingeThickness + params.hingeTolerance) / 2)
   near(hingeCenter2.z, params.baseHeight - params.wallThickness - params.hingeThickness / 2)
@@ -47,31 +47,31 @@ for (const baseAngle of [15,45,90]) {
 }
 console.log('PASS: hinge centre 2 target Z and beam-parallel translation')
 
-for (const baseAngle of [30,45,90]) {
-  const params = {...defaultBaseParameters,baseAngle}
+for (const hingeAngle of [30,45,90]) {
+  const params = {...defaultBaseParameters,hingeAngle}
   const geometry = baseEndGeometry(params)
-  near(geometry.start.y, params.wallThickness + (params.hingeThickness + params.hingeTolerance) / Math.sin(baseAngle*Math.PI/180))
+  near(geometry.start.y, params.wallThickness + (params.hingeThickness + params.hingeTolerance) / Math.sin(hingeAngle*Math.PI/180))
   near(geometry.atHeight.y-geometry.start.y, params.baseHeight*geometry.slope)
 }
 console.log('PASS: base end outer 1 projected tolerance and dependent beam position')
 
-for (const baseAngle of [15,45,90]) {
-  const {hingeCenter, hingeCenter2, hingeCenter3} = baseEndGeometry({...defaultBaseParameters, baseAngle})
+for (const hingeAngle of [15,45,90]) {
+  const {hingeCenter, hingeCenter2, hingeCenter3} = baseEndGeometry({...defaultBaseParameters, hingeAngle})
   near(hingeCenter3.z, hingeCenter2.z)
   near(hingeCenter2.y - hingeCenter3.y, Math.hypot(hingeCenter2.y - hingeCenter.y, hingeCenter2.z - hingeCenter.z))
 }
 console.log('PASS: hinge centre 3 offset along -Y by the hinge centre 1–2 distance')
 
-for (const baseAngle of [15,45,90]) {
-  const params = {...defaultBaseParameters, baseAngle}
+for (const hingeAngle of [15,45,90]) {
+  const params = {...defaultBaseParameters, hingeAngle}
   const {hingeCenter3, hingeRadius, midCut1, atHeight} = baseEndGeometry(params)
   near(midCut1.y, hingeCenter3.y - hingeRadius)
   near(midCut1.z, atHeight.z)
 }
 console.log('PASS: mid cut 1 right of hinge centre 3 by its radius, at outer 2 Z')
 
-for (const baseAngle of [15,45,90]) {
-  const {hingeCenter3, hingeRadius, midCut2, midCut3} = baseEndGeometry({...defaultBaseParameters, baseAngle})
+for (const hingeAngle of [15,45,90]) {
+  const {hingeCenter3, hingeRadius, midCut2, midCut3} = baseEndGeometry({...defaultBaseParameters, hingeAngle})
   near(midCut2.y, hingeCenter3.y - hingeRadius)
   near(midCut2.z, hingeCenter3.z)
   near(midCut3.y, hingeCenter3.y)
@@ -79,8 +79,8 @@ for (const baseAngle of [15,45,90]) {
 }
 console.log('PASS: mid cuts 2 and 3 on the right and bottom of hinge circle 3')
 
-for (const baseAngle of [15,45,90]) {
-  const {start, slope, hingeCenter2, hingeCenter3, hingeRadius, midCut3, hinge2Bottom, hinge2Tangent} = baseEndGeometry({...defaultBaseParameters, baseAngle})
+for (const hingeAngle of [15,45,90]) {
+  const {start, slope, hingeCenter2, hingeCenter3, hingeRadius, midCut3, hinge2Bottom, hinge2Tangent} = baseEndGeometry({...defaultBaseParameters, hingeAngle})
   // Mid cut 3 → hinge 2 bottom is the shared horizontal tangent of circles 3 and 2.
   near(midCut3.z, hinge2Bottom.z)
   near(Math.hypot(hinge2Bottom.y - hingeCenter2.y, hinge2Bottom.z - hingeCenter2.z), hingeRadius)
@@ -247,3 +247,30 @@ console.log('PASS: stand top precalculated lengths, outer 1–4, and inner 1–4
   assert.ok(standTopSketch(params).includes(`0 0 0 ${fillets.inner2.end.x} ${-fillets.inner2.end.y}`))
 }
 console.log('PASS: stand top fillets at inner 3 and inner 2')
+
+{
+  const { crc32, zip } = await import('../src/zip.ts')
+  const encoder = new TextEncoder()
+  // The standard CRC-32 check value.
+  assert.equal(crc32(encoder.encode('123456789')), 0xcbf43926)
+  const files = [{ name: 'a.stl', data: encoder.encode('solid a') }, { name: 'b.stl', data: new Uint8Array([0, 1, 2, 255]) }]
+  const archive = zip(files)
+  const view = new DataView(archive.buffer)
+  // End of central directory: two entries, and the central directory offset points at its signature.
+  const end = archive.length - 22
+  assert.equal(view.getUint32(end, true), 0x06054b50)
+  assert.equal(view.getUint16(end + 10, true), 2)
+  let central = view.getUint32(end + 16, true)
+  for (const file of files) {
+    assert.equal(view.getUint32(central, true), 0x02014b50)
+    const nameLength = view.getUint16(central + 28, true)
+    assert.equal(new TextDecoder().decode(archive.slice(central + 46, central + 46 + nameLength)), file.name)
+    const local = view.getUint32(central + 42, true)
+    assert.equal(view.getUint32(local, true), 0x04034b50)
+    const dataStart = local + 30 + view.getUint16(local + 26, true)
+    assert.deepEqual(archive.slice(dataStart, dataStart + file.data.length), file.data)
+    assert.equal(view.getUint32(central + 16, true), crc32(file.data))
+    central += 46 + nameLength
+  }
+}
+console.log('PASS: zip writer stores files with names, offsets, and CRC-32')

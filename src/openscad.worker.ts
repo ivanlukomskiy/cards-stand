@@ -9,6 +9,7 @@ import { boltDefinitions } from './bolt-model'
 import { standDefinitions } from './stand-model'
 
 export type ModelName = 'base' | 'hinge' | 'bolt' | 'stand'
+export type ExportFormat = 'stl' | '3mf'
 
 const models: Record<ModelName, { source: string; definitions: (params: BaseParameters) => string[] }> = {
   base: { source: baseSource, definitions: baseDefinitions },
@@ -26,11 +27,13 @@ interface OpenScadInstance {
 }
 
 // OpenSCAD's CLI is single-use. Each build gets an isolated worker/runtime.
-self.onmessage = async ({ data }: MessageEvent<{ model: ModelName; params: BaseParameters; runtimeUrl: string }>) => {
+// `color` (a CSS hex colour) is applied through each model's part_color; it is only kept by formats with colour, such as 3MF.
+self.onmessage = async ({ data }: MessageEvent<{ model: ModelName; params: BaseParameters; runtimeUrl: string; format?: ExportFormat; color?: string }>) => {
   const messages: string[] = []
   try {
     const model = models[data.model]
-    const definitions = model.definitions(data.params)
+    const format = data.format ?? 'stl'
+    const definitions = [...model.definitions(data.params), ...(data.color ? ['-D', `part_color=${JSON.stringify(data.color)}`] : [])]
     const { default: OpenSCAD } = await import(/* @vite-ignore */ data.runtimeUrl)
     const instance: OpenScadInstance = await OpenSCAD({
       noInitialRun: true,
@@ -40,10 +43,10 @@ self.onmessage = async ({ data }: MessageEvent<{ model: ModelName; params: BaseP
     instance.FS.writeFile('/model.scad', model.source)
     const code = instance.callMain([
       '/model.scad', ...definitions,
-      '--export-format', 'binstl', '-o', '/model.stl',
+      '--export-format', format === 'stl' ? 'binstl' : '3mf', '-o', `/model.${format}`,
     ])
     if (code !== 0) throw new Error(messages.join('\n') || `OpenSCAD exited with code ${code}.`)
-    const stl = instance.FS.readFile('/model.stl').slice().buffer
+    const stl = instance.FS.readFile(`/model.${format}`).slice().buffer
     self.postMessage({ stl }, { transfer: [stl] })
   } catch (cause) {
     self.postMessage({ error: cause instanceof Error ? cause.message : String(cause) })

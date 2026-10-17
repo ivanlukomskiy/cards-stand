@@ -8,8 +8,9 @@ import { boltSketch } from './bolt-sketch'
 import { standSideSketch, standTopSketch } from './stand-sketch'
 import { validateBaseParameters } from './model'
 import type { BaseParameters } from './model'
-import type { ModelName } from './openscad.worker'
+import type { ExportFormat, ModelName } from './openscad.worker'
 import { assemblyParts, assemblyPlacements } from './assembly'
+import { zip } from './zip'
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <aside class="sidebar" aria-label="Model parameters">
@@ -102,8 +103,8 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           <input id="rim-width" name="rim-width" type="number" min="0" step="0.1" value="7" />
         </div>
         <div class="transform-field">
-          <label for="base-angle">Base angle (°)</label>
-          <input id="base-angle" name="base-angle" type="number" min="0.1" step="0.1" value="45" max="90" />
+          <label for="hinge-angle">Hinge angle (°)</label>
+          <input id="hinge-angle" name="hinge-angle" type="number" min="0.1" step="0.1" value="45" max="90" />
         </div>
         <div class="transform-field">
           <label for="stand-angle">Stand angle (°)</label>
@@ -134,7 +135,15 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           <input id="bolt-length" name="bolt-length" type="number" min="0" step="0.1" value="10" />
         </div>
         <p id="parameters-error" class="error" role="status"></p>
-        <button id="reset-parameters" class="viewport-action reset-parameters" type="button">Reset to defaults</button>
+        <button id="reset-parameters" class="sidebar-button reset-parameters" type="button">Reset to defaults</button>
+      </div>
+    </details>
+    <details id="export-section" class="sidebar-section" open>
+      <summary>Export</summary>
+      <div class="sidebar-section-content">
+        <button id="export-stl" class="sidebar-button" type="button">Export STL</button>
+        <button id="export-3mf" class="sidebar-button" type="button">Export 3MF</button>
+        <p id="export-status" class="export-status" role="status"></p>
       </div>
     </details>
   </aside>
@@ -257,7 +266,7 @@ sketchView.addEventListener('pointerout', event => {
 const parameterInputs = {
   rows: document.querySelector<HTMLInputElement>('#cells-rows')!,
   columns: document.querySelector<HTMLInputElement>('#cell-columns')!,
-  baseAngle: document.querySelector<HTMLInputElement>('#base-angle')!,
+  hingeAngle: document.querySelector<HTMLInputElement>('#hinge-angle')!,
   standAngle: document.querySelector<HTMLInputElement>('#stand-angle')!,
   standHingeTolerance: document.querySelector<HTMLInputElement>('#stand-hinge-tolerance')!,
   standTolerance: document.querySelector<HTMLInputElement>('#stand-tolerance')!,
@@ -404,8 +413,8 @@ const saveAssemblyOptions = () => remember(assemblyKey, JSON.stringify(Object.fr
 // Each part type has its own colour in the assembly.
 const partColors: Record<ModelName, string> = { base: '#5b9bd5', hinge: '#73d6ac', bolt: '#e5b567', stand: '#b48ce6' }
 const runtimeUrl = () => new URL(`${import.meta.env.BASE_URL}vendor/openscad/openscad.js`, document.baseURI).href
-// Render one model in its own worker; cancel() terminates it.
-const renderStl = (model: ModelName, params: BaseParameters) => {
+// Render one model in its own worker (binary STL unless another format is asked for); cancel() terminates it.
+const renderModel = (model: ModelName, params: BaseParameters, options: { format?: ExportFormat; color?: string } = {}) => {
   const worker = new Worker(new URL('./openscad.worker.ts', import.meta.url), { type: 'module' })
   let timeout: ReturnType<typeof setTimeout> | undefined
   const cancel = () => { clearTimeout(timeout); worker.terminate() }
@@ -416,10 +425,46 @@ const renderStl = (model: ModelName, params: BaseParameters) => {
     }
     worker.onerror = event => { event.preventDefault(); reject(new Error(event.message || 'OpenSCAD could not start.')) }
     timeout = setTimeout(() => reject(new Error('Rendering timed out. Change a parameter to try again.')), 60000)
-    worker.postMessage({ model, params, runtimeUrl: runtimeUrl() })
+    worker.postMessage({ model, params, runtimeUrl: runtimeUrl(), ...options })
   })
   promise.then(cancel, cancel)
   return { promise, cancel }
+}
+// Export one file per part type, bundled as a single ZIP download; 3MF files carry the assembly colours.
+const exportButtons: Record<ExportFormat, HTMLButtonElement> = {
+  stl: document.querySelector<HTMLButtonElement>('#export-stl')!,
+  '3mf': document.querySelector<HTMLButtonElement>('#export-3mf')!,
+}
+const exportStatus = document.querySelector<HTMLElement>('#export-status')!
+const exportModels: readonly ModelName[] = ['base', 'hinge', 'bolt', 'stand']
+const exportParts = async (format: ExportFormat) => {
+  const params = readParameters()
+  if (!params) { exportStatus.textContent = 'Fix the parameters before exporting.'; return }
+  const buttons = Object.values(exportButtons)
+  buttons.forEach(button => { button.disabled = true })
+  exportButtons[format].setAttribute('aria-busy', 'true')
+  exportStatus.textContent = 'Rendering parts…'
+  try {
+    const files = await Promise.all(exportModels.map(model =>
+      renderModel(model, params, format === '3mf' ? { format, color: partColors[model] } : {}).promise))
+    const names = exportModels.map(model => `${model}.${format}`)
+    const archive = zip(names.map((name, index) => ({ name, data: new Uint8Array(files[index]!) })))
+    const url = URL.createObjectURL(new Blob([archive], { type: 'application/zip' }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `cards-stand-parts-${format}.zip`
+    link.click()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+    exportStatus.textContent = `Exported ${names.join(', ')}.`
+  } catch (cause) {
+    exportStatus.textContent = `Could not export. ${cause instanceof Error ? cause.message : String(cause)}`
+  } finally {
+    buttons.forEach(button => { button.disabled = false })
+    exportButtons[format].removeAttribute('aria-busy')
+  }
+}
+for (const [format, button] of Object.entries(exportButtons) as [ExportFormat, HTMLButtonElement][]) {
+  button.addEventListener('click', () => exportParts(format))
 }
 const formatSize = (size: { toArray(): number[] }) => `${size.toArray().map(value => Number(value.toFixed(3))).join(' × ')} mm`
 
@@ -474,7 +519,7 @@ try {
       dimensions.textContent = 'Build failed'
     }
     try {
-      const render = renderStl(currentModel, params)
+      const render = renderModel(currentModel, params)
       job = render
       render.promise.then(stl => {
         if (request !== generation) return
@@ -515,7 +560,7 @@ try {
       hingeExtended: assemblyOptions.hingeExtended.checked,
     })
     try {
-      const renders = parts.map(part => renderStl(part, params))
+      const renders = parts.map(part => renderModel(part, params))
       assemblyJobs = renders
       Promise.all(renders.map(render => render.promise)).then(stls => {
         if (request !== assemblyGeneration) return
