@@ -475,5 +475,28 @@ for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, column
     near(hingeAxis[1], expected[1]); near(hingeAxis[2], expected[2])
     assert.ok(hingeAxis[2] > center.z, 'The stand end rises')
   }
-  console.log('PASS: assembly centres parts on X = 0, places hinges and stand, and tilts everything when the stand is extended')
+  // The extended stand's tip lands on the table: its lowest plate end corner is at Z = 0, and the rendered stand reaches no lower.
+  {
+    const { standSideGeometry, standTopGeometry } = await import('../src/stand-sketch.ts')
+    const { standDefinitions } = await import('../src/stand-model.ts')
+    const standSource = await fs.readFile(new URL('../src/models/stand.scad', import.meta.url), 'utf8')
+    for (const changes of [{}, { standAngle: 40, baseTiltAngle: 20 }, { rows: 3, standAngle: 120, baseTiltAngle: 15 }]) {
+      const params = {...defaultBaseParameters, ...changes}
+      const [stand] = assemblyPlacements(params, { standExtended: true, hingeExtended: false }).stand
+      const { standLength } = standTopGeometry(params)
+      const plateTop = standSideGeometry(params).outer3.z
+      const tipZ = Math.min(applyPlacement(stand, [0, -standLength, plateTop])[2], applyPlacement(stand, [0, -standLength, plateTop - params.wallThickness])[2])
+      near(tipZ, 0)
+      const instance = await OpenSCAD({noInitialRun:true, wasmBinary, print:()=>{}, printErr:()=>{}})
+      instance.FS.writeFile('/stand.scad', standSource)
+      assert.equal(instance.callMain(['/stand.scad', ...standDefinitions(params), '--export-format', 'binstl', '-o', '/stand.stl']), 0)
+      const geometry = new STLLoader().parse(instance.FS.readFile('/stand.stl').slice().buffer)
+      geometry.rotateX(stand.rotationX)
+      geometry.translate(...stand.offset)
+      geometry.computeBoundingBox()
+      near(geometry.boundingBox.min.z, 0)
+      geometry.dispose()
+    }
+  }
+  console.log('PASS: assembly centres parts on X = 0, places hinges and stand, tilts everything when the stand is extended, and lands the stand tip on Z = 0')
 }

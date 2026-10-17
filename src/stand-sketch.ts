@@ -29,7 +29,7 @@ function axesSketch(extent: number, first: string, second: string, leftAxis: boo
 }
 
 export function standTopGeometry(params: BaseParameters) {
-  const { center, start, outer3, outer4 } = baseEndGeometry(params)
+  const { center, start, outer3, outer4, arcRadius } = baseEndGeometry(params)
   const [cellOuter1, cellOuter2] = cellOuterPoints(params) as readonly [SketchPoint, SketchPoint, ...SketchPoint[]]
   // Cell side: length of outer 3–outer 4.
   const yTop1 = Math.hypot(outer3.y - outer4.y, outer3.z - outer4.z)
@@ -39,7 +39,13 @@ export function standTopGeometry(params: BaseParameters) {
   const fullLength = yTop2 + (cellOuter1.y - cellOuter2.y) * params.rows
   const standAngle = params.standAngle * Math.PI / 180
   const tiltAngle = params.baseTiltAngle * Math.PI / 180
-  const standLength = fullLength * Math.sin(tiltAngle) / Math.sin(Math.PI - tiltAngle - standAngle)
+  // The extended stand pivots on the circle centre (raised base height / 2 above the base bottom) and its plate
+  // sits arcRadius (top face) to arcRadius + wall thickness (bottom face) from that axis. After rotating by the
+  // stand angle and tilting by the base tilt angle about the base's far bottom edge, the plate's lowest end
+  // corner lands at Z = 0 when the stand has this length.
+  const total = standAngle + tiltAngle
+  const lowestCorner = total >= Math.PI / 2 ? -arcRadius : -(arcRadius + params.wallThickness)
+  const standLength = (fullLength * Math.sin(tiltAngle) + center.z * Math.cos(tiltAngle) + lowestCorner * Math.cos(total)) / Math.sin(total)
   // Half the full model width, where the helper lines meet the stand's side.
   const halfWidth = (params.wallThickness * (params.columns + 1) + params.cellWidth * params.columns) / 2
   return {

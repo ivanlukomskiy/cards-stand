@@ -216,7 +216,9 @@ console.log('PASS: stand side circles, green half-circle ends, and dropped outer
     near(top.yTop2, center.y - start.y)
     near(top.fullLength, top.yTop2 + (o1.y - o2.y) * params.rows)
     const s = params.standAngle * Math.PI / 180, t = params.baseTiltAngle * Math.PI / 180
-    near(top.standLength, top.fullLength * Math.sin(t) / Math.sin(Math.PI - t - s))
+    const { arcRadius } = baseEndGeometry(params)
+    const corner = s + t >= Math.PI / 2 ? -arcRadius : -(arcRadius + params.wallThickness)
+    near(top.standLength, (top.fullLength * Math.sin(t) + center.z * Math.cos(t) + corner * Math.cos(s + t)) / Math.sin(s + t))
     const halfWidth = (params.wallThickness * (params.columns + 1) + params.cellWidth * params.columns) / 2
     assert.deepEqual([top.outer1, top.outer2], [{x: halfWidth, y: top.yTop1}, {x: halfWidth, y: -top.standLength}])
     assert.deepEqual([top.outer3, top.outer4], [{x: 0, y: -top.standLength}, {x: 0, y: top.yTop1}])
