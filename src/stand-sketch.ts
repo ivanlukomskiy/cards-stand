@@ -1,5 +1,7 @@
 import { baseEndGeometry } from './base-end-geometry.ts'
 import { defaultBaseParameters } from './model.ts'
+import { cellOuterPoints } from './sketch.ts'
+import type { SketchPoint } from './sketch.ts'
 import type { BaseParameters } from './model.ts'
 
 // A sketch with dash-dot axes and optional content. `leftAxis` puts the first axis's positive direction to the left.
@@ -25,10 +27,57 @@ function axesSketch(extent: number, first: string, second: string, leftAxis: boo
   `
 }
 
+export function standTopGeometry(params: BaseParameters) {
+  const { center, start, outer3, outer4 } = baseEndGeometry(params)
+  const [cellOuter1, cellOuter2] = cellOuterPoints(params) as readonly [SketchPoint, SketchPoint, ...SketchPoint[]]
+  // Cell side: length of outer 3–outer 4.
+  const yTop1 = Math.hypot(outer3.y - outer4.y, outer3.z - outer4.z)
+  // Cell side: from outer 1 to the circle centre's projection on OY.
+  const yTop2 = center.y - start.y
+  // Cell top: cell outer 1–outer 2 length, once per row.
+  const fullLength = yTop2 + (cellOuter1.y - cellOuter2.y) * params.rows
+  const standAngle = params.standAngle * Math.PI / 180
+  const tiltAngle = params.baseTiltAngle * Math.PI / 180
+  const standLength = fullLength * Math.sin(standAngle) / Math.sin(standAngle + tiltAngle)
+  // Half the full model width, where the helper lines meet the stand's side.
+  const halfWidth = (params.wallThickness * (params.columns + 1) + params.cellWidth * params.columns) / 2
+  return {
+    yTop1, yTop2, fullLength, standLength,
+    outer1: { x: halfWidth, y: yTop1 },
+    outer2: { x: halfWidth, y: -standLength },
+    // Projections of outer 2 and outer 1 onto OY.
+    outer3: { x: 0, y: -standLength },
+    outer4: { x: 0, y: yTop1 },
+    inner1: { x: params.standProfileWidth, y: 0 },
+    // Outer 1 moved left by the stand profile width, on OX.
+    inner2: { x: halfWidth - params.standProfileWidth, y: 0 },
+  }
+}
+
 // The stand viewed from above, in the XOY plane: positive X right, positive Y up.
 export function standTopSketch(params: BaseParameters = defaultBaseParameters) {
-  return axesSketch(params.cellWidth / 2 + params.wallThickness, 'X', 'Y', false,
-    'Stand top sketch with positive X pointing right and positive Y pointing up')
+  const { yTop1, standLength, outer1, outer2, outer3, outer4, inner1, inner2 } = standTopGeometry(params)
+  const xFormula = '(wall thickness * (columns + 1) + cell width * columns) / 2'
+  return axesSketch(Math.max(outer1.x, yTop1, standLength), 'X', 'Y', false,
+    'Stand top sketch with positive X pointing right and positive Y pointing up', unit => `
+      <polygon class="sketch-outline" points="${[outer1, outer2, outer3, outer4].map(p => `${p.x},${-p.y}`).join(' ')}" />
+      ${[[outer1, 'Y top 1', -2], [outer2, '-stand length', 4], [outer3, '-stand length', 4], [outer4, 'Y top 1', -2]].map(([point, yFormula, labelOffset], index) => {
+        const { x, y } = point as { x: number, y: number }
+        return `
+        <g class="sketch-vertex" data-point-name="outer ${index + 1}" data-x="${x}" data-y="${y}" data-x-formula="${x === 0 ? '0' : xFormula}" data-y-formula="${yFormula}"
+          data-label-x="${x - 2 * unit}" data-label-y="${-y + (labelOffset as number) * unit}" data-label-anchor="end" data-label-size="${3 * unit}">
+          <circle class="sketch-vertex-dot" cx="${x}" cy="${-y}" r="${0.7 * unit}" />
+        </g>`
+      }).join('')}
+      ${[[inner1, 'stand profile width'], [inner2, `${xFormula} - stand profile width`]].map(([point, formula], index) => {
+        const { x, y } = point as { x: number, y: number }
+        return `
+        <g class="sketch-vertex sketch-inner-vertex" data-point-name="inner ${index + 1}" data-x="${x}" data-y="${y}" data-x-formula="${formula}" data-y-formula="0"
+          data-label-x="${x}" data-label-y="${-y + 4 * unit}" data-label-anchor="middle" data-label-size="${3 * unit}">
+          <circle class="sketch-vertex-dot" cx="${x}" cy="${-y}" r="${0.7 * unit}" />
+        </g>`
+      }).join('')}
+    `)
 }
 
 export function standSideGeometry(params: BaseParameters) {

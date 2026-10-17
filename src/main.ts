@@ -84,6 +84,14 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           <input id="stand-tolerance" name="stand-tolerance" type="number" min="0" step="0.01" value="0.5" />
         </div>
         <div class="transform-field">
+          <label for="base-tilt-angle">Base tilt angle (°)</label>
+          <input id="base-tilt-angle" name="base-tilt-angle" type="number" min="0" max="179.9" step="0.1" value="30" />
+        </div>
+        <div class="transform-field">
+          <label for="stand-profile-width">Stand profile width (mm)</label>
+          <input id="stand-profile-width" name="stand-profile-width" type="number" min="0" step="0.1" value="25" />
+        </div>
+        <div class="transform-field">
           <label for="bolt-tolerance">Bolt tolerance (mm)</label>
           <input id="bolt-tolerance" name="bolt-tolerance" type="number" min="0" step="0.01" value="0.1" />
         </div>
@@ -226,6 +234,8 @@ const parameterInputs = {
   standAngle: document.querySelector<HTMLInputElement>('#stand-angle')!,
   standHingeTolerance: document.querySelector<HTMLInputElement>('#stand-hinge-tolerance')!,
   standTolerance: document.querySelector<HTMLInputElement>('#stand-tolerance')!,
+  baseTiltAngle: document.querySelector<HTMLInputElement>('#base-tilt-angle')!,
+  standProfileWidth: document.querySelector<HTMLInputElement>('#stand-profile-width')!,
   boltTolerance: document.querySelector<HTMLInputElement>('#bolt-tolerance')!,
   boltLength: document.querySelector<HTMLInputElement>('#bolt-length')!,
   baseHeight: document.querySelector<HTMLInputElement>('#base-height')!,

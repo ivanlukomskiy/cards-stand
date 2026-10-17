@@ -203,3 +203,25 @@ console.log('PASS: bolt circles')
   assert.deepEqual([stand.outer5, stand.outer6], [{y: -stand.outerRadius, z: -drop - params.wallThickness}, {y: stand.outerRadius, z: -drop - params.wallThickness}])
 }
 console.log('PASS: stand side circles, green half-circle ends, and dropped outer 3–6')
+
+{
+  const { standTopGeometry } = await import('../src/stand-sketch.ts')
+  const { cellOuterPoints } = await import('../src/sketch.ts')
+  for (const changes of [{}, { rows: 3, baseTiltAngle: 10, standAngle: 60 }]) {
+    const params = {...defaultBaseParameters, ...changes}
+    const { center, start, outer3, outer4 } = baseEndGeometry(params)
+    const [o1, o2] = cellOuterPoints(params)
+    const top = standTopGeometry(params)
+    near(top.yTop1, Math.hypot(outer3.y - outer4.y, outer3.z - outer4.z))
+    near(top.yTop2, center.y - start.y)
+    near(top.fullLength, top.yTop2 + (o1.y - o2.y) * params.rows)
+    const s = params.standAngle * Math.PI / 180, t = params.baseTiltAngle * Math.PI / 180
+    near(top.standLength, top.fullLength * Math.sin(s) / Math.sin(s + t))
+    const halfWidth = (params.wallThickness * (params.columns + 1) + params.cellWidth * params.columns) / 2
+    assert.deepEqual([top.outer1, top.outer2], [{x: halfWidth, y: top.yTop1}, {x: halfWidth, y: -top.standLength}])
+    assert.deepEqual([top.outer3, top.outer4], [{x: 0, y: -top.standLength}, {x: 0, y: top.yTop1}])
+    assert.deepEqual([top.inner1, top.inner2], [{x: params.standProfileWidth, y: 0}, {x: halfWidth - params.standProfileWidth, y: 0}])
+  }
+  assert.throws(() => validateBaseParameters({...defaultBaseParameters, standAngle: 150, baseTiltAngle: 30}))
+}
+console.log('PASS: stand top precalculated lengths, outer 1–4, and inner 1–2')

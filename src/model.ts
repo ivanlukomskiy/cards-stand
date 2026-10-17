@@ -8,6 +8,8 @@ export interface BaseParameters extends CellSketchParameters {
   standAngle: number
   standHingeTolerance: number
   standTolerance: number
+  baseTiltAngle: number
+  standProfileWidth: number
   hingeTopWidth: number
   hingeHeight: number
   boltTolerance: number
@@ -16,7 +18,7 @@ export interface BaseParameters extends CellSketchParameters {
 }
 
 export const defaultBaseParameters: BaseParameters = {
-  ...defaultSketchParameters, rows: 2, columns: 2, standAngle: 80, standHingeTolerance: 0.1, standTolerance: 0.5, hingeTopWidth: 22, hingeHeight: 58, boltTolerance: 0.1, boltLength: 10, baseAngle: 45, baseHeight: 12,
+  ...defaultSketchParameters, rows: 2, columns: 2, standAngle: 80, standHingeTolerance: 0.1, standTolerance: 0.5, baseTiltAngle: 30, standProfileWidth: 25, hingeTopWidth: 22, hingeHeight: 58, boltTolerance: 0.1, boltLength: 10, baseAngle: 45, baseHeight: 12,
 }
 
 export function validateBaseParameters(params: BaseParameters) {
@@ -35,6 +37,9 @@ export function validateBaseParameters(params: BaseParameters) {
   }
   if (params.standAngle <= 0 || params.standAngle >= 180) {
     throw new Error('Stand angle must be greater than 0° and less than 180°.')
+  }
+  if (params.baseTiltAngle >= 180 - params.standAngle) {
+    throw new Error('Stand angle + base tilt angle must be less than 180°.')
   }
   // Outer 4 lies on the base end circle enlarged by the stand tolerance; it must stay between Z = 0 and base height.
   const radius = params.baseHeight / 2
