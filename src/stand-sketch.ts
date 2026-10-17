@@ -46,8 +46,8 @@ export function standTopGeometry(params: BaseParameters) {
   const total = standAngle + tiltAngle
   const lowestCorner = total >= Math.PI / 2 ? -arcRadius : -(arcRadius + params.wallThickness)
   const standLength = (fullLength * Math.sin(tiltAngle) + center.z * Math.cos(tiltAngle) + lowestCorner * Math.cos(total)) / Math.sin(total)
-  // Half the full model width, where the helper lines meet the stand's side.
-  const halfWidth = (params.wallThickness * (params.columns + 1) + params.cellWidth * params.columns) / 2
+  // Half the full model width, less one wall thickness: the X of the stand's outer side.
+  const halfWidth = (params.wallThickness * (params.columns + 1) + params.cellWidth * params.columns) / 2 - params.wallThickness
   return {
     yTop1, yTop2, fullLength, standLength,
     outer1: { x: halfWidth, y: yTop1 },
@@ -78,7 +78,7 @@ export function standTopFillets(params: BaseParameters) {
 // The stand viewed from above, in the XOY plane: positive X right, positive Y up.
 export function standTopSketch(params: BaseParameters = defaultBaseParameters) {
   const { yTop1, standLength, outer1, outer2, outer3, outer4, inner1, inner2, inner3, inner4 } = standTopGeometry(params)
-  const xFormula = '(wall thickness * (columns + 1) + cell width * columns) / 2'
+  const xFormula = '(wall thickness * (columns + 1) + cell width * columns) / 2 - wall thickness'
   const fillets = standTopFillets(params)
   return axesSketch(Math.max(outer1.x, yTop1, standLength), 'X', 'Y', false,
     'Stand top sketch with positive X pointing right and positive Y pointing up', unit => `
