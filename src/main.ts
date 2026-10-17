@@ -73,11 +73,38 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 `
 
 const sketchView = document.querySelector<HTMLElement>('#sketch-view')!
+const hoveredPoint = (target: EventTarget | null) => target instanceof Element
+  ? target.closest<SVGElement>('.sketch-vertex') : null
+sketchView.addEventListener('pointerover', event => {
+  const point = hoveredPoint(event.target)
+  if (!point) return
+  const label = sketchView.querySelector<SVGTextElement>('.sketch-point-label')!
+  label.setAttribute('x', point.dataset.labelX!)
+  label.setAttribute('y', point.dataset.labelY!)
+  label.setAttribute('text-anchor', point.dataset.labelAnchor!)
+  label.style.fontSize = `${point.dataset.labelSize}px`
+  label.textContent = point.dataset.pointName!
+  label.removeAttribute('hidden')
+  const hud = sketchView.querySelector<HTMLElement>('.sketch-point-hud')!
+  const formatCoordinate = (value: string | undefined) => Number(Number(value).toFixed(6))
+  hud.querySelector('.point-name')!.textContent = point.dataset.pointName!
+  hud.querySelector('.point-x')!.textContent = `X = ${point.dataset.xFormula} = ${formatCoordinate(point.dataset.x)} mm`
+  hud.querySelector('.point-y')!.textContent = `Y = ${point.dataset.yFormula} = ${formatCoordinate(point.dataset.y)} mm`
+  hud.hidden = false
+})
+sketchView.addEventListener('pointerout', event => {
+  const point = hoveredPoint(event.target)
+  if (point && point !== hoveredPoint(event.relatedTarget)) {
+    sketchView.querySelector<HTMLElement>('.sketch-point-hud')!.hidden = true
+    sketchView.querySelector('.sketch-point-label')!.setAttribute('hidden', '')
+  }
+})
 const sketchInputs = {
   cellWidth: document.querySelector<HTMLInputElement>('#cell-width')!,
   cellLength: document.querySelector<HTMLInputElement>('#cell-length')!,
   wallThickness: document.querySelector<HTMLInputElement>('#wall-thickness')!,
   hingeThickness: document.querySelector<HTMLInputElement>('#hinge-thickness')!,
+  hingeWidthBottom: document.querySelector<HTMLInputElement>('#hinge-width-bottom')!,
   hingeTolerance: document.querySelector<HTMLInputElement>('#hinge-tolerance')!,
 }
 const updateSketch = () => {
@@ -91,6 +118,7 @@ const updateSketch = () => {
     cellLength: sketchInputs.cellLength.valueAsNumber,
     wallThickness: sketchInputs.wallThickness.valueAsNumber,
     hingeThickness: sketchInputs.hingeThickness.valueAsNumber,
+    hingeWidthBottom: sketchInputs.hingeWidthBottom.valueAsNumber,
     hingeTolerance: sketchInputs.hingeTolerance.valueAsNumber,
   })
 }
