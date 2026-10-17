@@ -7,10 +7,12 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "node tests/openscad.test.mjs && node tests/base-end.test.mjs"
+    "test": "node tests/openscad.test.mjs && node tests/base-end.test.mjs",
+    "deploy": "npm run build && gh-pages -d dist"
   },
   "devDependencies": {
     "@types/three": "^0.185.4",
+    "gh-pages": "^6.3.0",
     "typescript": "~6.0.2",
     "vite": "^8.3.0"
   },
