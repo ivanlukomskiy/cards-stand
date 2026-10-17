@@ -17,3 +17,22 @@ for (const standAngle of [15, 45, 80, 90, 120, 170]) {
 }
 assert.throws(() => validateBaseParameters({...defaultBaseParameters, standAngle: 0}))
 assert.throws(() => validateBaseParameters({...defaultBaseParameters, standAngle: 180}))
+
+for (const baseAngle of [15, 45, 90]) {
+  const params = {...defaultBaseParameters, baseAngle}
+  const {start, slope, hingeCenter} = baseEndGeometry(params)
+  near(hingeCenter.z, params.wallThickness + params.hingeThickness / 2)
+  const distance = (hingeCenter.y - start.y - hingeCenter.z * slope) / Math.hypot(1, slope)
+  const helperOffset = (params.hingeThickness + params.hingeTolerance) / 2
+  near(distance, -helperOffset - params.hingeThickness / 2)
+  near(Math.abs(distance + helperOffset), params.hingeThickness / 2)
+}
+console.log('PASS: hinge centre Z and tangency to the offset helper line')
+
+for (const baseAngle of [15,45,90]) {
+  const params = {...defaultBaseParameters, baseAngle}
+  const {hingeCenter, hingeCenter2, slope} = baseEndGeometry(params)
+  near(hingeCenter2.z, params.baseHeight - params.hingeThickness / 2 - params.wallThickness)
+  near(hingeCenter2.y - hingeCenter.y, (hingeCenter2.z - hingeCenter.z) * slope)
+}
+console.log('PASS: hinge centre 2 target Z and beam-parallel translation')
