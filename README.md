@@ -1,11 +1,15 @@
 # Cards stand
 
-A parametric cards stand constructor with an OpenSCAD-generated Base and a Three.js preview.
+A parametric cards stand constructor with a named 2D sketch and an OpenSCAD-generated Three.js preview.
 
-Use Node.js 24, then run `npm install` and `npm run dev`. Run `npm run build` for a production build and `npm test` to verify OpenSCAD mesh generation at several sizes.
+Use Node.js 24, then run `npm install` and `npm run dev`. Run `npm run build` for production and `npm test` to verify the actual OpenSCAD mesh geometry.
 
-The sidebar and viewport styling follow the sibling dome-builder project. Enter a Base side length from 0.1 to 10,000 mm to regenerate its mesh after a short debounce. Drag to orbit, scroll/pinch to zoom, and right-drag/two-finger drag to pan. Fit model frames the Base; Redraw rebuilds it using OpenSCAD.
+The sidebar and viewport styles follow the sibling dome-builder project. Sketch shows one cell, with named points, hover formulas, and dash-dot axes. 3D shows the repeated cell layout. Drag to orbit, scroll/pinch to zoom, and right-drag to pan. Fit model frames the generated mesh; Redraw rebuilds it.
 
-`src/models/base.scad` defines the actual geometry. The official OpenSCAD WebAssembly runtime is installed in `public/vendor/openscad` (version, source, checksum and license are included there). It runs entirely in the browser, in a background worker, so no desktop OpenSCAD installation or backend is required. Each build creates an isolated runtime; superseded workers are terminated to prevent stale models replacing newer edits.
+The first cell keeps its sketch coordinates. Columns advance in +X by `cell width + wall thickness`; rows advance in +Y by `cell length + 2 * wall thickness + hinge thickness + hinge tolerance`.
 
-The worker exports a binary STL in millimeters. Three.js loads this mesh and converts OpenSCAD's Z-up coordinates to the viewport's Y-up coordinates. It does not construct the Base geometry itself. The previous mesh remains visible during rebuilds and failures. Model download/export UI is a future step.
+Currently each cell contains extrusion 1: the inner rectangle, with a Z distance of wall thickness. Extrusion rises toward +Y and +Z, at the base angle measured from +Y in the YOZ plane. The Y shift is `Z / tan(base angle)`. Angles must be greater than 0° and at most 90°. At this stage the individual cell plates are separate solids; later extrusions will connect them. Base height remains reserved for later geometry.
+
+`src/sketch.ts` defines the points, including outer/inner midpoint markers. `src/model.ts` passes the same inner rectangle coordinates to OpenSCAD along with layout and extrusion parameters. `src/models/base.scad` defines the angled extrusion and repeated cell union. The official OpenSCAD WebAssembly runtime is installed in `public/vendor/openscad` with source, version, checksum, and license details.
+
+OpenSCAD runs in an isolated background worker and exports a binary STL in millimeters. Three.js loads that mesh, converts Z-up to Y-up, and fits the actual mesh bounds. Superseded builds are terminated; the last successful mesh remains visible during rebuilding or invalid edits. Export/download UI is a future step.

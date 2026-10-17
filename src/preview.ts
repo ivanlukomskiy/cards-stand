@@ -18,7 +18,8 @@ export class BasePreview {
   )
   private readonly grid = new THREE.GridHelper(1000, 100, '#3a4050', '#2a2e39')
   private readonly observer: ResizeObserver
-  private side = 50
+  private radius = 50
+  private readonly center = new THREE.Vector3()
   private fittedVisibleViewport = false
 
   private readonly host: HTMLElement
@@ -51,8 +52,10 @@ export class BasePreview {
     })
   }
 
-  setModel(stl: ArrayBuffer, side: number) {
+  setModel(stl: ArrayBuffer) {
     const geometry = new STLLoader().parse(stl)
+    geometry.computeBoundingBox()
+    const size = geometry.boundingBox!.getSize(new THREE.Vector3())
     // OpenSCAD uses Z-up; this viewport uses Y-up.
     geometry.rotateX(-Math.PI / 2)
     geometry.computeVertexNormals()
@@ -62,8 +65,11 @@ export class BasePreview {
     this.base.geometry = geometry
     this.edges.geometry = edges
     this.base.visible = true
-    this.side = side
-    // Keep the camera still so a size edit visibly changes the base.
+    geometry.computeBoundingSphere()
+    this.center.copy(geometry.boundingSphere!.center)
+    this.radius = Math.max(geometry.boundingSphere!.radius, 0.01)
+    const side = this.radius * 2
+    // Keep the camera still so parameter changes remain visible.
     const step = 10 ** Math.floor(Math.log10(side / 5))
     this.grid.scale.setScalar(step / 10)
     this.camera.near = Math.max(side / 10000, 0.001)
@@ -71,13 +77,14 @@ export class BasePreview {
     this.camera.updateProjectionMatrix()
     this.controls.minDistance = side * 0.03
     this.controls.maxDistance = Math.max(side * 40, 100000)
+    return size
   }
 
   fit() {
-    const center = new THREE.Vector3(0, this.side / 2, 0)
+    const center = this.center
     const vertical = THREE.MathUtils.degToRad(this.camera.fov / 2)
     const horizontal = Math.atan(Math.tan(vertical) * this.camera.aspect)
-    const distance = this.side * Math.sqrt(3) / 2 / Math.sin(Math.min(vertical, horizontal)) * 1.2
+    const distance = this.radius / Math.sin(Math.min(vertical, horizontal)) * 1.2
     this.controls.target.copy(center)
     this.camera.position.copy(center).addScaledVector(new THREE.Vector3(0.875, 0.7, 1).normalize(), distance)
     this.controls.update()

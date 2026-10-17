@@ -1,6 +1,8 @@
 import './style.css'
 import { BasePreview } from './preview'
 import { cellSketch } from './sketch'
+import { validateBaseParameters } from './model'
+import type { BaseParameters } from './model'
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <aside class="sidebar" aria-label="Model parameters">
@@ -53,18 +55,9 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         </div>
         <div class="transform-field">
           <label for="base-angle">Base angle (°)</label>
-          <input id="base-angle" name="base-angle" type="number" min="0" step="0.1" value="45" max="90" />
+          <input id="base-angle" name="base-angle" type="number" min="0.1" step="0.1" value="45" max="90" />
         </div>
-      </div>
-    </details>
-    <details class="sidebar-section" open>
-      <summary>Base</summary>
-      <div class="sidebar-section-content">
-        <div class="transform-field">
-          <label for="side-length">Side length (mm)</label>
-          <input id="side-length" type="number" min="0.1" max="10000" step="0.1" value="50" aria-describedby="size-error" />
-        </div>
-        <p id="size-error" class="error" role="status"></p>
+        <p id="parameters-error" class="error" role="status"></p>
       </div>
     </details>
   </aside>
@@ -111,7 +104,11 @@ sketchView.addEventListener('pointerout', event => {
     sketchView.querySelector('.sketch-point-label')!.setAttribute('hidden', '')
   }
 })
-const sketchInputs = {
+const parameterInputs = {
+  rows: document.querySelector<HTMLInputElement>('#cells-rows')!,
+  columns: document.querySelector<HTMLInputElement>('#cell-columns')!,
+  baseAngle: document.querySelector<HTMLInputElement>('#base-angle')!,
+  baseHeight: document.querySelector<HTMLInputElement>('#base-height')!,
   cellWidth: document.querySelector<HTMLInputElement>('#cell-width')!,
   cellLength: document.querySelector<HTMLInputElement>('#cell-length')!,
   wallThickness: document.querySelector<HTMLInputElement>('#wall-thickness')!,
@@ -120,23 +117,29 @@ const sketchInputs = {
   hingeTolerance: document.querySelector<HTMLInputElement>('#hinge-tolerance')!,
   rimWidth: document.querySelector<HTMLInputElement>('#rim-width')!,
 }
-const updateSketch = () => {
-  const fields = Object.values(sketchInputs)
-  for (const field of fields) {
-    field.setAttribute('aria-invalid', String(!field.validity.valid || !Number.isFinite(field.valueAsNumber)))
+const parameterError = document.querySelector<HTMLElement>('#parameters-error')!
+const readParameters = (): BaseParameters | null => {
+  const entries = Object.entries(parameterInputs)
+  let invalid = false
+  for (const [, field] of entries) {
+    const valid = field.validity.valid && Number.isFinite(field.valueAsNumber)
+    field.setAttribute('aria-invalid', String(!valid))
+    if (!valid) invalid = true
   }
-  if (fields.some(field => !field.validity.valid || !Number.isFinite(field.valueAsNumber))) return
-  sketchView.innerHTML = cellSketch({
-    cellWidth: sketchInputs.cellWidth.valueAsNumber,
-    cellLength: sketchInputs.cellLength.valueAsNumber,
-    wallThickness: sketchInputs.wallThickness.valueAsNumber,
-    hingeThickness: sketchInputs.hingeThickness.valueAsNumber,
-    hingeWidthBottom: sketchInputs.hingeWidthBottom.valueAsNumber,
-    hingeTolerance: sketchInputs.hingeTolerance.valueAsNumber,
-    rimWidth: sketchInputs.rimWidth.valueAsNumber,
-  })
+  if (invalid) {
+    parameterError.textContent = 'Enter valid parameters. Rows and columns must be positive integers; angle must be greater than 0° and at most 90°.'
+    return null
+  }
+  const params = Object.fromEntries(entries.map(([name, field]) => [name, field.valueAsNumber])) as unknown as BaseParameters
+  try {
+    validateBaseParameters(params)
+    parameterError.textContent = ''
+    return params
+  } catch (cause) {
+    parameterError.textContent = cause instanceof Error ? cause.message : String(cause)
+    return null
+  }
 }
-Object.values(sketchInputs).forEach(field => field.addEventListener('input', updateSketch))
 const modelView = document.querySelector<HTMLElement>('#model-view')!
 const sketchMode = document.querySelector<HTMLButtonElement>('#sketch-mode')!
 const modelMode = document.querySelector<HTMLButtonElement>('#model-mode')!
@@ -152,8 +155,6 @@ const switchMode = (mode: 'sketch' | 'model') => {
 sketchMode.addEventListener('click', () => switchMode('sketch'))
 modelMode.addEventListener('click', () => switchMode('model'))
 
-const input = document.querySelector<HTMLInputElement>('#side-length')!
-const error = document.querySelector<HTMLElement>('#size-error')!
 const message = document.querySelector<HTMLElement>('#preview-error')!
 const dimensions = document.querySelector<HTMLElement>('#dimensions')!
 const redraw = document.querySelector<HTMLButtonElement>('#redraw')!
@@ -165,12 +166,6 @@ let firstModel = true
 
 try {
   const preview = new BasePreview(document.querySelector<HTMLDivElement>('#canvas-host')!)
-  const validSide = () => {
-    const valid = input.value !== '' && input.validity.valid && Number.isFinite(input.valueAsNumber)
-    input.setAttribute('aria-invalid', String(!valid))
-    error.textContent = valid ? '' : 'Enter a side length between 0.1 and 10,000 mm.'
-    return valid ? input.valueAsNumber : null
-  }
   const cancel = () => {
     generation++
     clearTimeout(timer)
@@ -182,8 +177,8 @@ try {
   }
   const build = () => {
     cancel()
-    const side = validSide()
-    if (side === null) return
+    const params = readParameters()
+    if (!params) return
     const request = generation
     message.hidden = true
     dimensions.textContent = 'Building…'
@@ -202,9 +197,9 @@ try {
         if (request !== generation) return
         if (!data.stl) { fail(data.error || 'OpenSCAD returned no mesh.'); return }
         try {
-          preview.setModel(data.stl, side)
+          const size = preview.setModel(data.stl)
           if (firstModel) { preview.fit(); firstModel = false }
-          dimensions.textContent = `${side} × ${side} × ${side} mm`
+          dimensions.textContent = `${size.toArray().map(value => Number(value.toFixed(3))).join(' × ')} mm`
           cancel()
         } catch (cause) {
           fail(cause instanceof Error ? cause.message : String(cause))
@@ -213,19 +208,23 @@ try {
       worker.onerror = (event) => { event.preventDefault(); fail(event.message || 'OpenSCAD could not start.') }
       buildTimeout = setTimeout(() => fail('Rendering timed out. Try Redraw.'), 60000)
       worker.postMessage({
-        side,
+        params,
         runtimeUrl: new URL(`${import.meta.env.BASE_URL}vendor/openscad/openscad.js`, document.baseURI).href,
       })
     } catch (cause) {
       fail(cause instanceof Error ? cause.message : String(cause))
     }
   }
-  input.addEventListener('input', () => {
+  const onParametersChanged = () => {
     cancel()
     message.hidden = true
-    dimensions.textContent = 'Parameters changed'
-    if (validSide() !== null) timer = setTimeout(build, 250)
-  })
+    const params = readParameters()
+    dimensions.textContent = params ? 'Parameters changed' : 'Invalid parameters'
+    if (!params) return
+    sketchView.innerHTML = cellSketch(params)
+    timer = setTimeout(build, 250)
+  }
+  Object.values(parameterInputs).forEach(field => field.addEventListener('input', onParametersChanged))
   document.querySelector('#fit')!.addEventListener('click', () => preview.fit())
   redraw.addEventListener('click', build)
   build()
