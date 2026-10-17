@@ -24,7 +24,7 @@ The purple outline from the Base end sketch (outer 2 → mid cut 1 → mid cut 2
 
 The hinge capsule from the Base end sketch is subtracted along X at both sides of every cell, in every row. Each cut starts at the outer face of the side wall and runs inward by `wall thickness * 2 + hinge profile width + hinge tolerance`. The capsule sketch and cuts share their geometry through `src/base-end-geometry.ts`.
 
-Stand top values: `Y top 1` is the Cell side outer 3–outer 4 length; `Y top 2` is the Cell side distance from outer 1 to the circle centre's projection on OY; `full length = Y top 2 + (cell outer 1–outer 2 length) * rows`; `stand length = full length * sin(stand angle) / sin(stand angle + base tilt angle)`. Stand angle + base tilt angle must be less than 180°.
+Stand top values: `Y top 1` is the Cell side outer 3–outer 4 length; `Y top 2` is the Cell side distance from outer 1 to the circle centre's projection on OY; `full length = Y top 2 + (cell outer 1–outer 2 length) * rows`; `stand length = full length * sin(base tilt angle) / sin(180° - base tilt angle - stand angle)`. Stand angle + base tilt angle must be less than 180°.
 
 Stand model: the Stand top blue outline extruded along -Z by wall thickness from Z = Stand side outer 3 Z, unioned with the Stand side green outline (half circle plus outer 2 → outer 3 → outer 4), minus its red circle, extruded along X by wall thickness from X = Stand top outer 1 X toward O; everything is mirrored across the YOZ plane.
 

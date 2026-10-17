@@ -39,7 +39,7 @@ export function standTopGeometry(params: BaseParameters) {
   const fullLength = yTop2 + (cellOuter1.y - cellOuter2.y) * params.rows
   const standAngle = params.standAngle * Math.PI / 180
   const tiltAngle = params.baseTiltAngle * Math.PI / 180
-  const standLength = fullLength * Math.sin(standAngle) / Math.sin(standAngle + tiltAngle)
+  const standLength = fullLength * Math.sin(tiltAngle) / Math.sin(Math.PI - tiltAngle - standAngle)
   // Half the full model width, where the helper lines meet the stand's side.
   const halfWidth = (params.wallThickness * (params.columns + 1) + params.cellWidth * params.columns) / 2
   return {
