@@ -1,8 +1,13 @@
 import './style.css'
 import { BasePreview } from './preview'
+import { rectangleSketch } from './sketch'
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <aside class="sidebar" aria-label="Model parameters">
+    <div class="segmented-control" role="group" aria-label="View mode">
+      <button id="sketch-mode" class="active" type="button" aria-pressed="true" aria-controls="sketch-view">Sketch</button>
+      <button id="model-mode" type="button" aria-pressed="false" aria-controls="model-view">3D</button>
+    </div>
     <details class="sidebar-section" open>
       <summary>Parameters</summary>
       <div class="sidebar-section-content">
@@ -51,7 +56,11 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       </div>
     </details>
   </aside>
-  <main class="viewport" aria-label="Interactive 3D model preview">
+  <main class="viewport" aria-label="Constructor preview">
+    <section id="sketch-view" class="preview-view" aria-label="2D sketch preview">
+      ${rectangleSketch()}
+    </section>
+    <section id="model-view" class="preview-view" aria-label="Interactive 3D model preview" hidden>
     <div class="viewport-actions">
       <button id="fit" class="viewport-action" type="button">Fit model</button>
       <button id="redraw" class="viewport-action" type="button">Redraw</button>
@@ -59,8 +68,25 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <div class="hud"><span>Base</span><br><span id="dimensions" role="status">Building…</span></div>
     <div id="canvas-host"></div>
     <p id="preview-error" class="preview-error" role="alert" hidden></p>
+    </section>
   </main>
 `
+
+const sketchView = document.querySelector<HTMLElement>('#sketch-view')!
+const modelView = document.querySelector<HTMLElement>('#model-view')!
+const sketchMode = document.querySelector<HTMLButtonElement>('#sketch-mode')!
+const modelMode = document.querySelector<HTMLButtonElement>('#model-mode')!
+const switchMode = (mode: 'sketch' | 'model') => {
+  const isSketch = mode === 'sketch'
+  sketchView.hidden = !isSketch
+  modelView.hidden = isSketch
+  sketchMode.classList.toggle('active', isSketch)
+  modelMode.classList.toggle('active', !isSketch)
+  sketchMode.setAttribute('aria-pressed', String(isSketch))
+  modelMode.setAttribute('aria-pressed', String(!isSketch))
+}
+sketchMode.addEventListener('click', () => switchMode('sketch'))
+modelMode.addEventListener('click', () => switchMode('model'))
 
 const input = document.querySelector<HTMLInputElement>('#side-length')!
 const error = document.querySelector<HTMLElement>('#size-error')!

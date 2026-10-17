@@ -19,6 +19,7 @@ export class BasePreview {
   private readonly grid = new THREE.GridHelper(1000, 100, '#3a4050', '#2a2e39')
   private readonly observer: ResizeObserver
   private side = 50
+  private fittedVisibleViewport = false
 
   private readonly host: HTMLElement
 
@@ -88,6 +89,10 @@ export class BasePreview {
     this.camera.aspect = width / height
     this.camera.updateProjectionMatrix()
     this.renderer.setSize(width, height)
+    if (!this.fittedVisibleViewport && this.host.clientWidth > 0 && this.host.clientHeight > 0) {
+      this.fit()
+      this.fittedVisibleViewport = true
+    }
   }
 
   dispose() {
