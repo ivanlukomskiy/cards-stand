@@ -59,13 +59,11 @@ export function baseEndGeometry(params: BaseParameters) {
   // Mid cuts 2 and 3: the right and bottom points of hinge circle 3.
   const midCut2 = { y: hingeCenter3.y - hingeRadius, z: hingeCenter3.z }
   const midCut3 = { y: hingeCenter3.y, z: hingeCenter3.z - hingeRadius }
-  // Mid cut 3 lies on the shared bottom tangent of hinge circles 2 and 3, so the tangent from it touches circle 2 at its bottom.
-  const hinge2Bottom = { y: hingeCenter2.y, z: hingeCenter2.z - hingeRadius }
-  // Circle 2 touches outer 1–outer 2 at the foot of the perpendicular from hinge centre 2.
-  const hinge2Tangent = { y: hingeCenter2.y + hingeRadius * Math.sin(angle), z: hingeCenter2.z - hingeRadius * Math.cos(angle) }
+  // Extend the horizontal lower cut directly to outer 1–outer 2.
+  const cutCorner = { y: start.y + midCut3.z * slope, z: midCut3.z }
   // The pink circle's diameter is reduced by the stand hinge tolerance.
   const holeRadius = (params.baseHeight - params.wallThickness * 2 - params.standHingeTolerance) / 2
-  return { start, atHeight, slope, center, radius, arcRadius, outer5, holeRadius, offsetStart, rest1, rest2, outer3, outer4, hingeCenter, hingeCenter2, hingeCenter3, hingeRadius, midCut1, midCut2, midCut3, hinge2Bottom, hinge2Tangent }
+  return { start, atHeight, slope, center, radius, arcRadius, outer5, holeRadius, offsetStart, rest1, rest2, outer3, outer4, hingeCenter, hingeCenter2, hingeCenter3, hingeRadius, midCut1, midCut2, midCut3, cutCorner }
 }
 
 
@@ -98,14 +96,13 @@ function arcPoints(center: { y: number, z: number }, radius: number, from: numbe
 // The purple outline is shifted toward +Y (left on the sketch) by this many millimetres.
 export const cutOutlineEpsilon = 0.001
 
-// The purple cut outline: outer 2 → mid cut 1 → mid cut 2 → arc → mid cut 3 → hinge 2 bottom → arc → hinge 2 tangent.
+// The purple cut outline: outer 2 → mid cut 1 → mid cut 2 → arc → mid cut 3 → sharp corner on outer 1–outer 2.
 export function baseEndCutPoints(params: BaseParameters): number[][] {
-  const { atHeight, midCut1, hingeCenter2, hingeCenter3, hingeRadius } = baseEndGeometry(params)
-  const angle = params.hingeAngle * Math.PI / 180
+  const { atHeight, midCut1, hingeCenter3, hingeRadius, cutCorner } = baseEndGeometry(params)
   return [
     [atHeight.y, atHeight.z],
     [midCut1.y, midCut1.z],
     ...arcPoints(hingeCenter3, hingeRadius, Math.PI, 1.5 * Math.PI),
-    ...arcPoints(hingeCenter2, hingeRadius, -Math.PI / 2, angle - Math.PI / 2),
+    [cutCorner.y, cutCorner.z],
   ].map(([y, z]) => [y! + cutOutlineEpsilon, z!])
 }

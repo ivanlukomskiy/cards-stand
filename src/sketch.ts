@@ -86,11 +86,26 @@ export function cellMidPoints(params: CellSketchParameters): readonly SketchPoin
 }
 
 export function cellMidCutPoints(params: CellSketchParameters): readonly SketchPoint[] {
-  const right = cellMidPoints(params).slice(2).map((point, index) => ({
+  const mid = cellMidPoints(params)
+  const right = [mid[0]!, mid[3]!].map((point, index) => ({
     ...point, name: `mid cut R ${index + 1}`, x: params.cellMidCutWidth / 2, xFormula: 'cell mid cut width / 2',
+    y: point.y + (index === 0 ? -params.wallThickness : params.wallThickness),
+    yFormula: index === 0 ? `(${point.yFormula}) - wall thickness` : `(${point.yFormula}) + wall thickness`,
   }))
   const left = right.map(point => ({
     ...point, name: point.name.replace(' R ', ' L '), x: -point.x, xFormula: '-cell mid cut width / 2',
+  }))
+  return [...right, ...left.reverse()]
+}
+
+export function cellPadEndPoints(params: CellSketchParameters): readonly SketchPoint[] {
+  const x = params.cellWidth / 2 - 2 * params.wallThickness - params.hingeProfileWidth - params.hingeTolerance
+  const xFormula = 'cell width / 2 - 2 * wall thickness - hinge profile width - hinge tolerance'
+  const right = [cellOuterPoints(params)[0]!, cellInnerPoints(params)[0]!].map((point, index) => ({
+    ...point, name: `pad end ${index + 1} R`, x, xFormula,
+  }))
+  const left = right.map(point => ({
+    ...point, name: point.name.replace(' R', ' L'), x: -point.x, xFormula: `-(${xFormula})`,
   }))
   return [...right, ...left.reverse()]
 }
@@ -102,7 +117,8 @@ export function cellSketch(params: CellSketchParameters = defaultSketchParameter
   const midPoints = cellMidPoints(params)
   const innerMidPoints = midPoints.slice(2)
   const midCutPoints = cellMidCutPoints(params)
-  const points = [...outerPoints, ...innerPoints, ...rimPoints, ...midPoints, ...midCutPoints]
+  const padEndPoints = cellPadEndPoints(params)
+  const points = [...outerPoints, ...innerPoints, ...rimPoints, ...midPoints, ...midCutPoints, ...padEndPoints]
   const minX = Math.min(...points.map(point => point.x), 0)
   const maxX = Math.max(...points.map(point => point.x), 0)
   const bottom = Math.min(...points.map(point => point.y))
@@ -124,8 +140,9 @@ export function cellSketch(params: CellSketchParameters = defaultSketchParameter
       <polygon class="sketch-outline" points="${outerPoints.map(p => `${p.x},${-p.y}`).join(' ')}" />
       <polygon class="sketch-outline sketch-inner-outline" points="${innerPoints.map(p => `${p.x},${-p.y}`).join(' ')}" />
       <polygon class="sketch-outline sketch-hinge-outline" points="${midCutPoints.map(p => `${p.x},${-p.y}`).join(' ')}" />
+      <polygon class="sketch-outline sketch-cut-outline" points="${padEndPoints.map(p => `${p.x},${-p.y}`).join(' ')}" />
       ${points.map(p => `
-        <g data-label-x="${p.x + (p.x < 0 ? 2 : -2) * unit}" data-label-y="${-p.y + (p.y < 0 ? 4 : -2) * unit}" data-label-anchor="${p.x < 0 ? 'start' : 'end'}" data-label-size="${3 * unit}" data-point-name="${p.name}" data-x-formula="${p.xFormula}" data-y-formula="${p.yFormula}" data-x="${p.x}" data-y="${p.y}" class="sketch-vertex${rimPoints.includes(p) ? ' sketch-rim-vertex' : (innerPoints.includes(p) || innerMidPoints.includes(p)) ? ' sketch-inner-vertex' : ''}">
+        <g data-label-x="${p.x + (p.x < 0 ? 2 : -2) * unit}" data-label-y="${-p.y + (p.y < 0 ? 4 : -2) * unit}" data-label-anchor="${p.x < 0 ? 'start' : 'end'}" data-label-size="${3 * unit}" data-point-name="${p.name}" data-x-formula="${p.xFormula}" data-y-formula="${p.yFormula}" data-x="${p.x}" data-y="${p.y}" class="sketch-vertex${padEndPoints.includes(p) ? ' sketch-cut-vertex' : rimPoints.includes(p) ? ' sketch-rim-vertex' : (innerPoints.includes(p) || innerMidPoints.includes(p)) ? ' sketch-inner-vertex' : ''}">
           <title>${p.name}: (${p.x}, ${p.y}) mm</title>
           <circle class="sketch-vertex-dot" cx="${p.x}" cy="${-p.y}" r="${0.7 * unit}" />
         </g>

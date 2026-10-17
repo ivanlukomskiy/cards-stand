@@ -5,7 +5,7 @@ import { baseEndGeometry, cutOutlineEpsilon } from './base-end-geometry.ts'
 export { baseEndGeometry } from './base-end-geometry.ts'
 
 export function baseEndSketch(params: BaseParameters = defaultBaseParameters) {
-  const { start, atHeight, slope, center, radius, arcRadius, outer5, holeRadius, offsetStart, rest1, rest2, outer3, outer4, hingeCenter, hingeCenter2, hingeCenter3, hingeRadius, midCut1, midCut2, midCut3, hinge2Bottom, hinge2Tangent } = baseEndGeometry(params)
+  const { start, atHeight, slope, center, radius, arcRadius, outer5, holeRadius, offsetStart, rest1, rest2, outer3, outer4, hingeCenter, hingeCenter2, hingeCenter3, hingeRadius, midCut1, midCut2, midCut3, cutCorner } = baseEndGeometry(params)
   const beamTop = params.baseHeight * 1.4
   const beamEndY = start.y + beamTop * slope
   const unit = Math.max(beamEndY, beamTop, center.y + radius, outer3.y, rest1.y, hingeCenter.y, hingeCenter2.y, 1) / 40
@@ -56,8 +56,7 @@ export function baseEndSketch(params: BaseParameters = defaultBaseParameters) {
         L ${-midCut1.y} ${-midCut1.z}
         L ${-midCut2.y} ${-midCut2.z}
         A ${hingeRadius} ${hingeRadius} 0 0 1 ${-midCut3.y} ${-midCut3.z}
-        L ${-hinge2Bottom.y} ${-hinge2Bottom.z}
-        A ${hingeRadius} ${hingeRadius} 0 0 1 ${-hinge2Tangent.y} ${-hinge2Tangent.z} Z" />
+        L ${-cutCorner.y} ${-cutCorner.z} Z" />
       <g class="sketch-vertex" data-point-name="outer 1" data-x="${start.y}" data-y="0" data-first-axis="Y" data-second-axis="Z"
         data-x-formula="wall thickness + (hinge thickness + hinge tolerance) / sin(hinge angle)" data-y-formula="0"
         data-label-x="${-start.y - 2 * unit}" data-label-y="${4 * unit}" data-label-anchor="end" data-label-size="${3 * unit}">

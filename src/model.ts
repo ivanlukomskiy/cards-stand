@@ -1,5 +1,5 @@
 import { baseEndCutPoints, baseEndGeometry, baseEndInnerPoints } from './base-end-geometry.ts'
-import { cellMidCutPoints, cellInnerPoints, cellOuterPoints, cellMidPoints, rimRightPoints, defaultSketchParameters } from './sketch.ts'
+import { cellPadEndPoints, cellMidCutPoints, cellInnerPoints, cellOuterPoints, cellMidPoints, rimRightPoints, defaultSketchParameters } from './sketch.ts'
 import type { CellSketchParameters } from './sketch.ts'
 
 export interface BaseParameters extends CellSketchParameters {
@@ -96,6 +96,7 @@ export function baseDefinitions(params: BaseParameters): string[] {
     semi_raised_profiles: cellSemiRaisedProfiles(params),
     base_height: params.baseHeight,
     semi_raised_height: params.baseHeight - params.wallThickness - params.hingeThickness - params.hingeTolerance,
+    cell_pad_end_points: cellPadEndPoints(params).map(({ x, y }) => [x, y]),
     cell_mid_cut_points: cellMidCutPoints(params).map(({ x, y }) => [x, y]),
     cell_mid_cut_width: params.cellMidCutWidth,
     cell_outer_points: cellOuterPoints(params).map(({ x, y }) => [x, y]),

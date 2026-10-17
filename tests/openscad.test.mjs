@@ -5,7 +5,7 @@ import { DoubleSide, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three'
 import { baseEndCutPoints, baseEndGeometry, baseEndInnerPoints } from '../src/base-end-geometry.ts'
 import { STLLoader } from 'three/addons/loaders/STLLoader.js'
 import { baseDefinitions, defaultBaseParameters, cellFullRaisedProfiles, cellSemiRaisedProfiles } from '../src/model.ts'
-import { cellMidCutPoints, cellMidPoints, cellOuterPoints } from '../src/sketch.ts'
+import { cellPadEndPoints, cellMidCutPoints, cellMidPoints, cellOuterPoints } from '../src/sketch.ts'
 
 const wasmBinary = await fs.readFile(new URL('../public/vendor/openscad/openscad.wasm', import.meta.url))
 const source = await fs.readFile(new URL('../src/models/base.scad', import.meta.url), 'utf8')
@@ -54,7 +54,7 @@ for (const changes of [
     assert.deepEqual(profiles[1], profiles[0].map(([x,y]) => [-x,y]).reverse())
     const fullProfiles = cellFullRaisedProfiles(params)
     assert.deepEqual(fullProfiles[1], fullProfiles[0].map(([x,y]) => [-x,y]).reverse())
-    const expectedVolume = fullProfiles.reduce((sum, profile) => sum + area(profile), 0) * (params.baseHeight - params.wallThickness) + profiles.reduce((sum, profile) => sum + area(profile), 0) * (raisedHeight - params.wallThickness) + (area(cellOuterPoints(params).map(({x, y}) => [x, y])) - params.cellMidCutWidth * params.cellLength) * params.wallThickness
+    const expectedVolume = (fullProfiles.reduce((sum, profile) => sum + area(profile), 0) - area(cellPadEndPoints(params).map(({x, y}) => [x, y]))) * (params.baseHeight - params.wallThickness) + profiles.reduce((sum, profile) => sum + area(profile), 0) * (raisedHeight - params.wallThickness) + (area(cellOuterPoints(params).map(({x, y}) => [x, y])) - params.cellMidCutWidth * (params.cellLength - params.wallThickness + hingeSpanY)) * params.wallThickness
     const position = geometry.attributes.position
     let volume = 0
     for (let i = 0; i < position.count; i += 3) {
@@ -78,10 +78,14 @@ assert.deepEqual(cellMidPoints(defaultBaseParameters).map(({ name, x, y }) => [n
   ['cell inner mid 1', 0, 0], ['cell inner mid 2', 0, -24],
 ])
 assert.deepEqual(cellMidCutPoints(defaultBaseParameters).map(({name, x, y}) => [name, x, y]), [
-  ['mid cut R 1', 16, 0], ['mid cut R 2', 16, -24],
-  ['mid cut L 2', -16, -24], ['mid cut L 1', -16, 0],
+  ['mid cut R 1', 16, topY - 2], ['mid cut R 2', 16, -22],
+  ['mid cut L 2', -16, -22], ['mid cut L 1', -16, topY - 2],
 ])
-console.log('PASS: midpoint and mid cut coordinates and invalid parameter rejection')
+assert.deepEqual(cellPadEndPoints(defaultBaseParameters).map(({name, x, y}) => [name, x, y]), [
+  ['pad end 1 R', 20.75, topY], ['pad end 2 R', 20.75, 0],
+  ['pad end 2 L', -20.75, 0], ['pad end 1 L', -20.75, topY],
+])
+console.log('PASS: midpoint, mid cut, and pad end coordinates and invalid parameter rejection')
 
 assert.deepEqual(cellFullRaisedProfiles(defaultBaseParameters)[0], [[0,topY],[34,topY],[34,-26],[25,-26],[25,-24],[32,-24],[32,0],[0,0]])
 console.log('PASS: full raised right profile coordinates and ordering')
@@ -114,9 +118,11 @@ for (const columns of [1, 3]) {
     const y = hingeCenter.y + (z-hingeCenter.z)/Math.tan(params.hingeAngle*Math.PI/180) - row*rowPitch
     const hits = new Raycaster(new Vector3(-1000,y,z),new Vector3(1,0,0)).intersectObject(mesh)
     const xs = hits.map(hit=>hit.point.x).filter((x,i,all)=>i===0 || Math.abs(x-all[i-1])>1e-5)
-    // Each cell keeps material only between its two cuts.
+    // Each cell keeps two pads between the side grooves and the central pad end opening.
     const expected = Array.from({length: columns}, (_, column) => [
       column*colPitch - params.cellWidth/2 - params.wallThickness + cutLength,
+      column*colPitch - cellPadEndPoints(params)[0].x,
+      column*colPitch + cellPadEndPoints(params)[0].x,
       column*colPitch + params.cellWidth/2 + params.wallThickness - cutLength,
     ]).flat()
     assert.deepEqual(xs.map(x => Math.round(x*1e4)/1e4), expected.map(x => Math.round(x*1e4)/1e4), `Row ${row}: hinge cuts must reach the cut length from each cell side`)
@@ -163,7 +169,7 @@ for (const changes of [{ rows: 1, columns: 1, hingeAngle: 45 }, { rows: 3, colum
   assert.deepEqual(xsAt(center.y, center.z), [], 'Hole must cut through the yellow extrusion')
   assert.deepEqual(xsAt(center.y, center.z + holeRadius + chamfer / 2), round([innerMin + chamfer / 2, innerMax - chamfer / 2]), 'Hole ends must have 45° chamfers of wall thickness / 2')
   const hits = new Raycaster(new Vector3(0,faceY-0.5,z),new Vector3(0,1,0)).intersectObject(mesh).filter(hit=>Math.abs(hit.point.y-faceY)<1e-4)
-  assert.equal(hits.length, 0, 'No internal face between row 0 and the base end')
+  assert.equal(hits.length, 1, 'Pad end opening exposes the base end face above the floor')
   material.dispose()
   geometry.dispose()
   console.log(`PASS: ${params.rows} × ${params.columns} cells, ${params.hingeAngle}°: base end spans full width, fuses to row 0, with inset yellow extrusion and chamfered hole`)

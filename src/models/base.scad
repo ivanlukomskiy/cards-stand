@@ -20,14 +20,23 @@ module cell() {
                 if (cell_mid_cut_width > 0)
                     polygon(points = cell_mid_cut_points);
             }
-        // Full raised: right side wall and front strip, plus its Y-axis mirror, at the full base height.
+        // Full raised: side walls and front strip, excluding the pad end rectangle above the floor.
         for (profile = full_raised_profiles)
             angled_extrusion(base_height)
-                polygon(points = profile);
+                difference() {
+                    polygon(points = profile);
+                    polygon(points = cell_pad_end_points);
+                    if (cell_mid_cut_width > 0)
+                        polygon(points = cell_mid_cut_points);
+                }
         // Semi raised: back strip between the rims, plus its mirror, lowered by the wall thickness, hinge thickness, and hinge tolerance.
         for (profile = semi_raised_profiles)
             angled_extrusion(semi_raised_height)
-                polygon(points = profile);
+                difference() {
+                    polygon(points = profile);
+                    if (cell_mid_cut_width > 0)
+                        polygon(points = cell_mid_cut_points);
+                }
     }
 }
 

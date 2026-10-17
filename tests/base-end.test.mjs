@@ -80,17 +80,12 @@ for (const hingeAngle of [15,45,90]) {
 console.log('PASS: mid cuts 2 and 3 on the right and bottom of hinge circle 3')
 
 for (const hingeAngle of [15,45,90]) {
-  const {start, slope, hingeCenter2, hingeCenter3, hingeRadius, midCut3, hinge2Bottom, hinge2Tangent} = baseEndGeometry({...defaultBaseParameters, hingeAngle})
-  // Mid cut 3 → hinge 2 bottom is the shared horizontal tangent of circles 3 and 2.
+  const {start, slope, midCut3, cutCorner} = baseEndGeometry({...defaultBaseParameters, hingeAngle})
   near(midCut3.z, defaultBaseParameters.baseHeight - defaultBaseParameters.wallThickness - defaultBaseParameters.hingeThickness - defaultBaseParameters.hingeTolerance)
-  near(midCut3.z, hinge2Bottom.z)
-  near(Math.hypot(hinge2Bottom.y - hingeCenter2.y, hinge2Bottom.z - hingeCenter2.z), hingeRadius)
-  near(hingeCenter3.z, hingeCenter2.z)
-  // The final arc ends where circle 2 touches outer 1–outer 2.
-  near(hinge2Tangent.y, start.y + hinge2Tangent.z * slope)
-  near(Math.hypot(hinge2Tangent.y - hingeCenter2.y, hinge2Tangent.z - hingeCenter2.z), hingeRadius)
+  near(cutCorner.z, midCut3.z)
+  near(cutCorner.y, start.y + cutCorner.z * slope)
 }
-console.log('PASS: purple cut outline tangent points on hinge circle 2')
+console.log('PASS: purple cut lower line meets outer 1–outer 2 at a sharp corner')
 
 {
   const params = defaultBaseParameters
