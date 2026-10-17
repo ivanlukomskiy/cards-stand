@@ -14,9 +14,9 @@ import { assemblyParts, assemblyPlacements } from './assembly'
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <aside class="sidebar" aria-label="Model parameters">
     <div class="segmented-control" role="group" aria-label="View mode">
-      <button id="sketch-mode" class="active" type="button" aria-pressed="true" aria-controls="sketch-view">Sketch</button>
-      <button id="model-mode" type="button" aria-pressed="false" aria-controls="model-view">3D</button>
-      <button id="assembly-mode" type="button" aria-pressed="false" aria-controls="assembly-view">Assembly</button>
+      <button id="assembly-mode" class="active" type="button" aria-pressed="true" aria-controls="assembly-view">Assembly</button>
+      <button id="model-mode" type="button" aria-pressed="false" aria-controls="model-view">Parts</button>
+      <button id="sketch-mode" type="button" aria-pressed="false" aria-controls="sketch-view">Sketches</button>
     </div>
     <details id="assembly-section" class="sidebar-section" open hidden>
       <summary>Assembly</summary>
@@ -25,7 +25,32 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         <label class="checkbox-field"><input id="hinge-extended" type="checkbox" /> Hinge extended</label>
       </div>
     </details>
-    <details class="sidebar-section" open>
+    <details id="parts-section" class="sidebar-section" open hidden>
+      <summary>Parts</summary>
+      <div class="sidebar-section-content">
+          <div class="choice-list" role="group" aria-label="Part">
+            <button id="base-model" class="active" type="button" aria-pressed="true">Base</button>
+            <button id="hinge-model" type="button" aria-pressed="false">Hinge</button>
+            <button id="bolt-model" type="button" aria-pressed="false">Bolt</button>
+            <button id="stand-model" type="button" aria-pressed="false">Stand</button>
+          </div>
+      </div>
+    </details>
+    <details id="sketches-section" class="sidebar-section" open hidden>
+      <summary>Sketches</summary>
+      <div class="sidebar-section-content">
+          <div class="choice-list" role="tablist" aria-label="Sketch" aria-orientation="vertical">
+            <button id="cell-tab" class="active" type="button" role="tab" aria-selected="true" aria-controls="cell-sketch-panel">Cell top</button>
+            <button id="base-end-tab" type="button" role="tab" aria-selected="false" aria-controls="base-end-sketch-panel" tabindex="-1">Cell side</button>
+            <button id="hinge-top-tab" type="button" role="tab" aria-selected="false" aria-controls="hinge-top-sketch-panel" tabindex="-1">Hinge top</button>
+            <button id="hinge-side-tab" type="button" role="tab" aria-selected="false" aria-controls="hinge-side-sketch-panel" tabindex="-1">Hinge side</button>
+            <button id="bolt-tab" type="button" role="tab" aria-selected="false" aria-controls="bolt-sketch-panel" tabindex="-1">Bolt</button>
+            <button id="stand-top-tab" type="button" role="tab" aria-selected="false" aria-controls="stand-top-sketch-panel" tabindex="-1">Stand top</button>
+            <button id="stand-side-tab" type="button" role="tab" aria-selected="false" aria-controls="stand-side-sketch-panel" tabindex="-1">Stand side</button>
+          </div>
+      </div>
+    </details>
+    <details id="parameters-section" class="sidebar-section" open>
       <summary>Parameters</summary>
       <div class="sidebar-section-content">
         <div class="transform-field">
@@ -115,15 +140,6 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   </aside>
   <main class="viewport" aria-label="Constructor preview">
     <section id="sketch-view" class="preview-view" aria-label="2D sketch preview">
-      <div class="segmented-control sketch-tabs" role="tablist" aria-label="Sketch">
-        <button id="cell-tab" class="active" type="button" role="tab" aria-selected="true" aria-controls="cell-sketch-panel">Cell top</button>
-        <button id="base-end-tab" type="button" role="tab" aria-selected="false" aria-controls="base-end-sketch-panel" tabindex="-1">Cell side</button>
-        <button id="hinge-top-tab" type="button" role="tab" aria-selected="false" aria-controls="hinge-top-sketch-panel" tabindex="-1">Hinge top</button>
-        <button id="hinge-side-tab" type="button" role="tab" aria-selected="false" aria-controls="hinge-side-sketch-panel" tabindex="-1">Hinge side</button>
-        <button id="bolt-tab" type="button" role="tab" aria-selected="false" aria-controls="bolt-sketch-panel" tabindex="-1">Bolt</button>
-        <button id="stand-top-tab" type="button" role="tab" aria-selected="false" aria-controls="stand-top-sketch-panel" tabindex="-1">Stand top</button>
-        <button id="stand-side-tab" type="button" role="tab" aria-selected="false" aria-controls="stand-side-sketch-panel" tabindex="-1">Stand side</button>
-      </div>
       <div id="cell-sketch-panel" class="sketch-panel" role="tabpanel" aria-labelledby="cell-tab">
         ${cellSketch()}
       </div>
@@ -148,14 +164,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     </section>
     <section id="model-view" class="preview-view" aria-label="Interactive 3D model preview" hidden>
     <div class="viewport-actions">
-      <div class="segmented-control model-tabs" role="group" aria-label="Model">
-        <button id="base-model" class="active" type="button" aria-pressed="true">Base</button>
-        <button id="hinge-model" type="button" aria-pressed="false">Hinge</button>
-        <button id="bolt-model" type="button" aria-pressed="false">Bolt</button>
-        <button id="stand-model" type="button" aria-pressed="false">Stand</button>
-      </div>
       <button id="fit" class="viewport-action" type="button">Fit model</button>
-      <button id="redraw" class="viewport-action" type="button">Redraw</button>
     </div>
     <div class="hud"><span id="model-name">Base</span><br><span id="dimensions" role="status">Building…</span></div>
     <div id="canvas-host"></div>
@@ -164,7 +173,6 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <section id="assembly-view" class="preview-view" aria-label="Interactive assembly preview" hidden>
     <div class="viewport-actions">
       <button id="assembly-fit" class="viewport-action" type="button">Fit model</button>
-      <button id="assembly-redraw" class="viewport-action" type="button">Redraw</button>
     </div>
     <div class="hud"><span>Assembly</span><br><span id="assembly-dimensions" role="status">Building…</span></div>
     <div id="assembly-canvas-host" class="canvas-host"></div>
@@ -209,8 +217,8 @@ sketchTabs.forEach((tab, index) => {
   tab.addEventListener('keydown', event => {
     const last = sketchTabs.length - 1
     const next = event.key === 'Home' ? 0 : event.key === 'End' ? last :
-      event.key === 'ArrowRight' ? (index + 1) % sketchTabs.length :
-      event.key === 'ArrowLeft' ? (index + last) % sketchTabs.length : null
+      event.key === 'ArrowDown' || event.key === 'ArrowRight' ? (index + 1) % sketchTabs.length :
+      event.key === 'ArrowUp' || event.key === 'ArrowLeft' ? (index + last) % sketchTabs.length : null
     if (next === null) return
     event.preventDefault()
     selectSketch(next)
@@ -328,14 +336,36 @@ document.querySelector('#reset-parameters')!.addEventListener('click', () => {
   // One input event saves, redraws the sketches, and schedules a rebuild.
   parameterFields[0]![1].dispatchEvent(new Event('input'))
 })
+// Remember which sidebar sections are expanded.
+const sectionsKey = 'cards-stand:sections'
+const sidebarSections = [...document.querySelectorAll<HTMLDetailsElement>('.sidebar-section[id]')]
+try {
+  const stored: unknown = JSON.parse(recall(sectionsKey) ?? '{}')
+  if (stored && typeof stored === 'object') {
+    for (const section of sidebarSections) {
+      const open = (stored as Record<string, unknown>)[section.id]
+      if (typeof open === 'boolean') section.open = open
+    }
+  }
+} catch { /* ignore unreadable stored sections */ }
+for (const section of sidebarSections) {
+  section.addEventListener('toggle', () => remember(sectionsKey, JSON.stringify(
+    Object.fromEntries(sidebarSections.map(other => [other.id, other.open])))))
+}
+
 type ViewMode = 'sketch' | 'model' | 'assembly'
 const modeViews: Record<ViewMode, { button: HTMLButtonElement; view: HTMLElement }> = {
   sketch: { button: document.querySelector<HTMLButtonElement>('#sketch-mode')!, view: sketchView },
   model: { button: document.querySelector<HTMLButtonElement>('#model-mode')!, view: document.querySelector<HTMLElement>('#model-view')! },
   assembly: { button: document.querySelector<HTMLButtonElement>('#assembly-mode')!, view: document.querySelector<HTMLElement>('#assembly-view')! },
 }
-const assemblySection = document.querySelector<HTMLElement>('#assembly-section')!
-let currentMode: ViewMode = 'sketch'
+// Each view has its own sidebar section, shown only with that view.
+const modeSections: Record<ViewMode, HTMLElement> = {
+  assembly: document.querySelector<HTMLElement>('#assembly-section')!,
+  model: document.querySelector<HTMLElement>('#parts-section')!,
+  sketch: document.querySelector<HTMLElement>('#sketches-section')!,
+}
+let currentMode: ViewMode = 'assembly'
 const isAssemblyMode = () => currentMode === 'assembly'
 // Set once the assembly preview exists; builds the assembly if it is out of date.
 let onAssemblyShown = () => {}
@@ -347,14 +377,14 @@ const switchMode = (mode: ViewMode) => {
     button.classList.toggle('active', name === mode)
     button.setAttribute('aria-pressed', String(name === mode))
   }
-  assemblySection.hidden = mode !== 'assembly'
+  for (const [name, section] of Object.entries(modeSections)) section.hidden = name !== mode
   if (mode === 'assembly') onAssemblyShown()
 }
 for (const [name, { button }] of Object.entries(modeViews) as [ViewMode, { button: HTMLButtonElement }][]) {
   button.addEventListener('click', () => switchMode(name))
 }
 const storedMode = recall('cards-stand:mode')
-switchMode(storedMode !== null && storedMode in modeViews ? storedMode as ViewMode : 'sketch')
+switchMode(storedMode !== null && storedMode in modeViews ? storedMode as ViewMode : 'assembly')
 
 // Assembly options persist like the other sidebar state.
 const assemblyKey = 'cards-stand:assembly'
@@ -385,7 +415,7 @@ const renderStl = (model: ModelName, params: BaseParameters) => {
       else reject(new Error(data.error || 'OpenSCAD returned no mesh.'))
     }
     worker.onerror = event => { event.preventDefault(); reject(new Error(event.message || 'OpenSCAD could not start.')) }
-    timeout = setTimeout(() => reject(new Error('Rendering timed out. Try Redraw.')), 60000)
+    timeout = setTimeout(() => reject(new Error('Rendering timed out. Change a parameter to try again.')), 60000)
     worker.postMessage({ model, params, runtimeUrl: runtimeUrl() })
   })
   promise.then(cancel, cancel)
@@ -395,10 +425,8 @@ const formatSize = (size: { toArray(): number[] }) => `${size.toArray().map(valu
 
 const message = document.querySelector<HTMLElement>('#preview-error')!
 const dimensions = document.querySelector<HTMLElement>('#dimensions')!
-const redraw = document.querySelector<HTMLButtonElement>('#redraw')!
 const assemblyMessage = document.querySelector<HTMLElement>('#assembly-error')!
 const assemblyDimensions = document.querySelector<HTMLElement>('#assembly-dimensions')!
-const assemblyRedraw = document.querySelector<HTMLButtonElement>('#assembly-redraw')!
 let job: { cancel(): void } | undefined
 let timer: ReturnType<typeof setTimeout> | undefined
 let generation = 0
@@ -430,8 +458,6 @@ try {
     clearTimeout(timer)
     job?.cancel()
     job = undefined
-    redraw.textContent = 'Redraw'
-    redraw.removeAttribute('aria-busy')
   }
   const build = () => {
     cancel()
@@ -440,8 +466,6 @@ try {
     const request = generation
     message.hidden = true
     dimensions.textContent = 'Building…'
-    redraw.textContent = 'Building…'
-    redraw.setAttribute('aria-busy', 'true')
     const fail = (text: string) => {
       if (request !== generation) return
       cancel()
@@ -476,8 +500,6 @@ try {
     clearTimeout(assemblyTimer)
     assemblyJobs.forEach(render => render.cancel())
     assemblyJobs = []
-    assemblyRedraw.textContent = 'Redraw'
-    assemblyRedraw.removeAttribute('aria-busy')
   }
   const buildAssembly = () => {
     cancelAssembly()
@@ -487,8 +509,6 @@ try {
     const request = assemblyGeneration
     assemblyMessage.hidden = true
     assemblyDimensions.textContent = 'Building…'
-    assemblyRedraw.textContent = 'Building…'
-    assemblyRedraw.setAttribute('aria-busy', 'true')
     const parts = assemblyParts
     const placements = assemblyPlacements(params, {
       standExtended: assemblyOptions.standExtended.checked,
@@ -524,7 +544,6 @@ try {
   Object.values(assemblyOptions).forEach(field => field.addEventListener('change', () => { saveAssemblyOptions(); onAssemblyChanged() }))
   Object.values(parameterInputs).forEach(field => field.addEventListener('input', onAssemblyChanged))
   document.querySelector('#assembly-fit')!.addEventListener('click', () => assemblyPreview.fit())
-  assemblyRedraw.addEventListener('click', buildAssembly)
   if (isAssemblyMode()) buildAssembly()
   const onParametersChanged = () => {
     cancel()
@@ -536,7 +555,6 @@ try {
   }
   Object.values(parameterInputs).forEach(field => field.addEventListener('input', onParametersChanged))
   document.querySelector('#fit')!.addEventListener('click', () => preview.fit())
-  redraw.addEventListener('click', build)
   for (const [name, button] of Object.entries(modelButtons) as [ModelName, HTMLButtonElement][]) {
     button.addEventListener('click', () => {
       if (name === currentModel) return

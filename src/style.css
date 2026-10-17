@@ -37,7 +37,6 @@ canvas { display: block; touch-action: none; }
 .viewport-action { padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; background: rgba(24, 26, 32, 0.9); color: var(--text); cursor: pointer; }
 .viewport-action:hover { border-color: var(--accent); }
 .reset-parameters { width: 100%; margin-top: 8px; }
-.model-tabs { margin: 0; background: rgba(24, 26, 32, 0.9); }
 .hud { position: absolute; top: 16px; right: 16px; text-align: right; font-size: 12px; line-height: 1.6; color: rgba(255, 255, 255, 0.75); pointer-events: none; user-select: none; z-index: 1; }
 .preview-error { position: absolute; top: 80px; left: 16px; right: 16px; padding: 12px; background: #2d1c20; color: #ffe5e5; border: 1px solid #9f5353; border-radius: 6px; }
 @media (max-width: 640px) {
@@ -52,6 +51,10 @@ canvas { display: block; touch-action: none; }
 .segmented-control button:last-child { border-right: none; }
 .segmented-control button:hover:not(.active) { color: var(--text); }
 .segmented-control button.active { color: #fff; background: var(--accent); }
+.choice-list { display: flex; flex-direction: column; gap: 2px; }
+.choice-list button { padding: 6px 8px; font-size: 12px; text-align: left; color: var(--text-dim); background: none; border: none; border-radius: 4px; cursor: pointer; }
+.choice-list button:hover:not(.active) { color: var(--text); background: #21242c; }
+.choice-list button.active { color: #fff; background: var(--accent); }
 .preview-view { position: absolute; inset: 0; }
 [hidden] { display: none !important; }
 .sketch-canvas { display: block; width: 100%; height: 100%; }
@@ -82,7 +85,6 @@ canvas { display: block; touch-action: none; }
 .sketch-rest-vertex .sketch-vertex-dot { fill: #73d6ac; }
 .sketch-vertex:hover .sketch-vertex-dot { fill: #fff; }
 
-.sketch-tabs { position: absolute; top: 16px; left: 16px; width: min(640px, calc(100% - 32px)); z-index: 2; margin: 0; }
 .sketch-panel { position: absolute; inset: 56px 0 0; }
 
 .sketch-helper { pointer-events: none; }
