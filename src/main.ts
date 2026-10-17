@@ -1,6 +1,7 @@
 import './style.css'
 import { BasePreview } from './preview'
 import { cellSketch } from './sketch'
+import { baseEndSketch } from './base-end-sketch'
 import { validateBaseParameters } from './model'
 import type { BaseParameters } from './model'
 
@@ -63,7 +64,16 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   </aside>
   <main class="viewport" aria-label="Constructor preview">
     <section id="sketch-view" class="preview-view" aria-label="2D sketch preview">
-      ${cellSketch()}
+      <div class="segmented-control sketch-tabs" role="tablist" aria-label="Sketch">
+        <button id="cell-tab" class="active" type="button" role="tab" aria-selected="true" aria-controls="cell-sketch-panel">Cell</button>
+        <button id="base-end-tab" type="button" role="tab" aria-selected="false" aria-controls="base-end-sketch-panel" tabindex="-1">Base end</button>
+      </div>
+      <div id="cell-sketch-panel" class="sketch-panel" role="tabpanel" aria-labelledby="cell-tab">
+        ${cellSketch()}
+      </div>
+      <div id="base-end-sketch-panel" class="sketch-panel" role="tabpanel" aria-labelledby="base-end-tab" hidden>
+        ${baseEndSketch()}
+      </div>
     </section>
     <section id="model-view" class="preview-view" aria-label="Interactive 3D model preview" hidden>
     <div class="viewport-actions">
@@ -78,30 +88,58 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 `
 
 const sketchView = document.querySelector<HTMLElement>('#sketch-view')!
+const cellPanel = document.querySelector<HTMLElement>('#cell-sketch-panel')!
+const baseEndPanel = document.querySelector<HTMLElement>('#base-end-sketch-panel')!
+const sketchTabs = [
+  document.querySelector<HTMLButtonElement>('#cell-tab')!,
+  document.querySelector<HTMLButtonElement>('#base-end-tab')!,
+]
+const selectSketch = (index: number) => {
+  cellPanel.hidden = index !== 0
+  baseEndPanel.hidden = index !== 1
+  sketchTabs.forEach((tab, i) => {
+    tab.classList.toggle('active', i === index)
+    tab.setAttribute('aria-selected', String(i === index))
+    tab.tabIndex = i === index ? 0 : -1
+  })
+}
+sketchTabs.forEach((tab, index) => {
+  tab.addEventListener('click', () => selectSketch(index))
+  tab.addEventListener('keydown', event => {
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? 1 :
+      event.key === 'ArrowRight' || event.key === 'ArrowLeft' ? 1 - index : null
+    if (next === null) return
+    event.preventDefault()
+    selectSketch(next)
+    sketchTabs[next]!.focus()
+  })
+})
 const hoveredPoint = (target: EventTarget | null) => target instanceof Element
   ? target.closest<SVGElement>('.sketch-vertex') : null
 sketchView.addEventListener('pointerover', event => {
   const point = hoveredPoint(event.target)
   if (!point) return
-  const label = sketchView.querySelector<SVGTextElement>('.sketch-point-label')!
+  const panel = point.closest<HTMLElement>('.sketch-panel')!
+  const label = panel.querySelector<SVGTextElement>('.sketch-point-label')!
   label.setAttribute('x', point.dataset.labelX!)
   label.setAttribute('y', point.dataset.labelY!)
   label.setAttribute('text-anchor', point.dataset.labelAnchor!)
   label.style.fontSize = `${point.dataset.labelSize}px`
   label.textContent = point.dataset.pointName!
   label.removeAttribute('hidden')
-  const hud = sketchView.querySelector<HTMLElement>('.sketch-point-hud')!
+  const hud = panel.querySelector<HTMLElement>('.sketch-point-hud')!
   const formatCoordinate = (value: string | undefined) => Number(Number(value).toFixed(6))
   hud.querySelector('.point-name')!.textContent = point.dataset.pointName!
-  hud.querySelector('.point-x')!.textContent = `X = ${point.dataset.xFormula} = ${formatCoordinate(point.dataset.x)} mm`
-  hud.querySelector('.point-y')!.textContent = `Y = ${point.dataset.yFormula} = ${formatCoordinate(point.dataset.y)} mm`
+  hud.querySelector('.point-x')!.textContent = `${point.dataset.firstAxis || 'X'} = ${point.dataset.xFormula} = ${formatCoordinate(point.dataset.x)} mm`
+  hud.querySelector('.point-y')!.textContent = `${point.dataset.secondAxis || 'Y'} = ${point.dataset.yFormula} = ${formatCoordinate(point.dataset.y)} mm`
   hud.hidden = false
 })
 sketchView.addEventListener('pointerout', event => {
   const point = hoveredPoint(event.target)
   if (point && point !== hoveredPoint(event.relatedTarget)) {
-    sketchView.querySelector<HTMLElement>('.sketch-point-hud')!.hidden = true
-    sketchView.querySelector('.sketch-point-label')!.setAttribute('hidden', '')
+    const panel = point.closest<HTMLElement>('.sketch-panel')!
+    panel.querySelector<HTMLElement>('.sketch-point-hud')!.hidden = true
+    panel.querySelector('.sketch-point-label')!.setAttribute('hidden', '')
   }
 })
 const parameterInputs = {
@@ -221,7 +259,8 @@ try {
     const params = readParameters()
     dimensions.textContent = params ? 'Parameters changed' : 'Invalid parameters'
     if (!params) return
-    sketchView.innerHTML = cellSketch(params)
+    cellPanel.innerHTML = cellSketch(params)
+    baseEndPanel.innerHTML = baseEndSketch(params)
     timer = setTimeout(build, 250)
   }
   Object.values(parameterInputs).forEach(field => field.addEventListener('input', onParametersChanged))

@@ -72,4 +72,14 @@ canvas { display: block; touch-action: none; }
 .sketch-point-label { fill: var(--text); font-family: system-ui, sans-serif; pointer-events: none; paint-order: stroke fill; stroke: #12141a; stroke-width: 3px; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 
 .sketch-rim-vertex .sketch-vertex-dot { fill: #f28b94; }
+.sketch-circle-center .sketch-vertex-dot { fill: #c49bff; }
+.sketch-rest-vertex .sketch-vertex-dot { fill: #73d6ac; }
 .sketch-vertex:hover .sketch-vertex-dot { fill: #fff; }
+
+.sketch-tabs { position: absolute; top: 16px; left: 16px; width: 200px; z-index: 2; margin: 0; }
+.sketch-panel { position: absolute; inset: 56px 0 0; }
+
+.sketch-helper { pointer-events: none; }
+.sketch-helper line { stroke: var(--text-dim); stroke-width: 1; stroke-dasharray: 6 4; vector-effect: non-scaling-stroke; }
+
+.sketch-helper-circle { fill: none; stroke: var(--text-dim); stroke-width: 1; stroke-dasharray: 6 4; vector-effect: non-scaling-stroke; pointer-events: none; }
