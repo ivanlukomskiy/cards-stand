@@ -4,7 +4,7 @@ A parametric cards stand constructor with a named 2D sketch and an OpenSCAD-gene
 
 Use Node.js 24, then run `npm install` and `npm run dev`. Run `npm run build` for production and `npm test` to verify the actual OpenSCAD mesh geometry.
 
-The sidebar and viewport styles follow the sibling dome-builder project. Sketch shows one cell, with named points, hover formulas, and dash-dot axes. 3D shows the repeated cell layout. Drag to orbit, scroll/pinch to zoom, and right-drag to pan. Fit model frames the generated mesh; Redraw rebuilds it.
+The sidebar and viewport styles follow the sibling dome-builder project. Sketch has three tabs: Cell top (one cell in XOY), Cell side (the base end in YOZ), and Hinge top (XOY: outer 1–4 from hinge top width, hinge height, cell width, and the hinge centre 1–2 distance). Sketches show named points, hover formulas, and dash-dot axes. 3D shows the repeated cell layout. Drag to orbit, scroll/pinch to zoom, and right-drag to pan. Fit model frames the generated mesh; Redraw rebuilds it.
 
 The first cell keeps its sketch coordinates. Columns advance in +X by `cell width + wall thickness`; rows advance in -Y by `cell length + 2 * wall thickness + (hinge thickness + hinge tolerance) / sin(base angle)`.
 

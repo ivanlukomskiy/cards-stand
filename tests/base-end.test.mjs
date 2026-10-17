@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { baseEndGeometry } from '../src/base-end-sketch.ts'
 import { defaultBaseParameters, validateBaseParameters } from '../src/model.ts'
+import { hingeInnerPoints, hingeOuterPoints } from '../src/hinge-top-sketch.ts'
 
 const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-8, `${a} != ${b}`)
 for (const standAngle of [15, 45, 80, 90, 120, 170]) {
@@ -79,3 +80,28 @@ for (const baseAngle of [15,45,90]) {
   near(Math.hypot(hinge2Tangent.y - hingeCenter2.y, hinge2Tangent.z - hingeCenter2.z), hingeRadius)
 }
 console.log('PASS: purple cut outline tangent points on hinge circle 2')
+
+{
+  const params = defaultBaseParameters
+  const {hingeCenter, hingeCenter2} = baseEndGeometry(params)
+  const distance = Math.hypot(hingeCenter2.y - hingeCenter.y, hingeCenter2.z - hingeCenter.z)
+  assert.deepEqual(hingeOuterPoints(params).map(({name, x, y}) => [name, x, y]), [
+    ['outer 1', 0, 58], ['outer 2', 11, 58], ['outer 3', 32, distance], ['outer 4', 32, 0],
+  ])
+}
+console.log('PASS: hinge top outer points')
+
+for (const changes of [{}, { hingeHeight: 40, hingeTopWidth: 10 }, { hingeWidthBottom: 4 }]) {
+  const params = {...defaultBaseParameters, ...changes}
+  const [, outer2, outer3] = hingeOuterPoints(params)
+  const [inner1, inner2] = hingeInnerPoints(params)
+  near(inner1.x, 0)
+  near(inner1.y, params.hingeHeight - params.hingeWidthBottom)
+  near(inner2.y, inner1.y)
+  // Inner 2 is hinge width bottom from the outer 2–outer 3 line, on the side of O.
+  const cross = (p) => ((outer3.x - outer2.x) * (p.y - outer2.y) - (outer3.y - outer2.y) * (p.x - outer2.x)) / Math.hypot(outer3.x - outer2.x, outer3.y - outer2.y)
+  near(Math.abs(cross(inner2)), params.hingeWidthBottom)
+  assert.ok(Math.sign(cross(inner2)) === Math.sign(cross({x: 0, y: 0})))
+}
+assert.deepEqual(hingeInnerPoints(defaultBaseParameters)[2], { name: 'inner 3', x: 25, y: 0, xFormula: 'cell width / 2 - hinge width bottom', yFormula: '0' })
+console.log('PASS: hinge top inner 1, inner 2 offset intersection, and inner 3')

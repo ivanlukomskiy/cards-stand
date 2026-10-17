@@ -2,6 +2,7 @@ import './style.css'
 import { BasePreview } from './preview'
 import { cellSketch } from './sketch'
 import { baseEndSketch } from './base-end-sketch'
+import { hingeTopSketch } from './hinge-top-sketch'
 import { validateBaseParameters } from './model'
 import type { BaseParameters } from './model'
 
@@ -51,6 +52,14 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           <input id="hinge-tolerance" name="hinge-tolerance" type="number" min="0" step="0.01" value="0.1" />
         </div>
         <div class="transform-field">
+          <label for="hinge-top-width">Hinge top width (mm)</label>
+          <input id="hinge-top-width" name="hinge-top-width" type="number" min="0" step="0.1" value="22" />
+        </div>
+        <div class="transform-field">
+          <label for="hinge-height">Hinge height (mm)</label>
+          <input id="hinge-height" name="hinge-height" type="number" min="0" step="0.1" value="58" />
+        </div>
+        <div class="transform-field">
           <label for="rim-width">Rim width (mm)</label>
           <input id="rim-width" name="rim-width" type="number" min="0" step="0.1" value="7" />
         </div>
@@ -73,14 +82,18 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <main class="viewport" aria-label="Constructor preview">
     <section id="sketch-view" class="preview-view" aria-label="2D sketch preview">
       <div class="segmented-control sketch-tabs" role="tablist" aria-label="Sketch">
-        <button id="cell-tab" class="active" type="button" role="tab" aria-selected="true" aria-controls="cell-sketch-panel">Cell</button>
-        <button id="base-end-tab" type="button" role="tab" aria-selected="false" aria-controls="base-end-sketch-panel" tabindex="-1">Base end</button>
+        <button id="cell-tab" class="active" type="button" role="tab" aria-selected="true" aria-controls="cell-sketch-panel">Cell top</button>
+        <button id="base-end-tab" type="button" role="tab" aria-selected="false" aria-controls="base-end-sketch-panel" tabindex="-1">Cell side</button>
+        <button id="hinge-top-tab" type="button" role="tab" aria-selected="false" aria-controls="hinge-top-sketch-panel" tabindex="-1">Hinge top</button>
       </div>
       <div id="cell-sketch-panel" class="sketch-panel" role="tabpanel" aria-labelledby="cell-tab">
         ${cellSketch()}
       </div>
       <div id="base-end-sketch-panel" class="sketch-panel" role="tabpanel" aria-labelledby="base-end-tab" hidden>
         ${baseEndSketch()}
+      </div>
+      <div id="hinge-top-sketch-panel" class="sketch-panel" role="tabpanel" aria-labelledby="hinge-top-tab" hidden>
+        ${hingeTopSketch()}
       </div>
     </section>
     <section id="model-view" class="preview-view" aria-label="Interactive 3D model preview" hidden>
@@ -98,13 +111,15 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 const sketchView = document.querySelector<HTMLElement>('#sketch-view')!
 const cellPanel = document.querySelector<HTMLElement>('#cell-sketch-panel')!
 const baseEndPanel = document.querySelector<HTMLElement>('#base-end-sketch-panel')!
+const hingeTopPanel = document.querySelector<HTMLElement>('#hinge-top-sketch-panel')!
+const sketchPanels = [cellPanel, baseEndPanel, hingeTopPanel]
 const sketchTabs = [
   document.querySelector<HTMLButtonElement>('#cell-tab')!,
   document.querySelector<HTMLButtonElement>('#base-end-tab')!,
+  document.querySelector<HTMLButtonElement>('#hinge-top-tab')!,
 ]
 const selectSketch = (index: number) => {
-  cellPanel.hidden = index !== 0
-  baseEndPanel.hidden = index !== 1
+  sketchPanels.forEach((panel, i) => { panel.hidden = i !== index })
   sketchTabs.forEach((tab, i) => {
     tab.classList.toggle('active', i === index)
     tab.setAttribute('aria-selected', String(i === index))
@@ -114,8 +129,10 @@ const selectSketch = (index: number) => {
 sketchTabs.forEach((tab, index) => {
   tab.addEventListener('click', () => selectSketch(index))
   tab.addEventListener('keydown', event => {
-    const next = event.key === 'Home' ? 0 : event.key === 'End' ? 1 :
-      event.key === 'ArrowRight' || event.key === 'ArrowLeft' ? 1 - index : null
+    const last = sketchTabs.length - 1
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? last :
+      event.key === 'ArrowRight' ? (index + 1) % sketchTabs.length :
+      event.key === 'ArrowLeft' ? (index + last) % sketchTabs.length : null
     if (next === null) return
     event.preventDefault()
     selectSketch(next)
@@ -163,6 +180,8 @@ const parameterInputs = {
   hingeThickness: document.querySelector<HTMLInputElement>('#hinge-thickness')!,
   hingeWidthBottom: document.querySelector<HTMLInputElement>('#hinge-width-bottom')!,
   hingeTolerance: document.querySelector<HTMLInputElement>('#hinge-tolerance')!,
+  hingeTopWidth: document.querySelector<HTMLInputElement>('#hinge-top-width')!,
+  hingeHeight: document.querySelector<HTMLInputElement>('#hinge-height')!,
   rimWidth: document.querySelector<HTMLInputElement>('#rim-width')!,
 }
 const parameterError = document.querySelector<HTMLElement>('#parameters-error')!
@@ -271,6 +290,7 @@ try {
     if (!params) return
     cellPanel.innerHTML = cellSketch(params)
     baseEndPanel.innerHTML = baseEndSketch(params)
+    hingeTopPanel.innerHTML = hingeTopSketch(params)
     timer = setTimeout(build, 250)
   }
   Object.values(parameterInputs).forEach(field => field.addEventListener('input', onParametersChanged))
