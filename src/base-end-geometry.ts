@@ -84,6 +84,9 @@ function arcPoints(center: { y: number, z: number }, radius: number, from: numbe
   })
 }
 
+// The purple outline is shifted toward +Y (left on the sketch) by this many millimetres.
+export const cutOutlineEpsilon = 0.001
+
 // The purple cut outline: outer 2 → mid cut 1 → mid cut 2 → arc → mid cut 3 → hinge 2 bottom → arc → hinge 2 tangent.
 export function baseEndCutPoints(params: BaseParameters): number[][] {
   const { atHeight, midCut1, hingeCenter2, hingeCenter3, hingeRadius } = baseEndGeometry(params)
@@ -93,5 +96,5 @@ export function baseEndCutPoints(params: BaseParameters): number[][] {
     [midCut1.y, midCut1.z],
     ...arcPoints(hingeCenter3, hingeRadius, Math.PI, 1.5 * Math.PI),
     ...arcPoints(hingeCenter2, hingeRadius, -Math.PI / 2, angle - Math.PI / 2),
-  ]
+  ].map(([y, z]) => [y! + cutOutlineEpsilon, z!])
 }

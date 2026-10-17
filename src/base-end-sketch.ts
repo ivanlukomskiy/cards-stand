@@ -1,7 +1,7 @@
 import { defaultBaseParameters } from './model.ts'
 import type { BaseParameters } from './model.ts'
 
-import { baseEndGeometry } from './base-end-geometry.ts'
+import { baseEndGeometry, cutOutlineEpsilon } from './base-end-geometry.ts'
 export { baseEndGeometry } from './base-end-geometry.ts'
 
 export function baseEndSketch(params: BaseParameters = defaultBaseParameters) {
@@ -52,7 +52,7 @@ export function baseEndSketch(params: BaseParameters = defaultBaseParameters) {
         L ${-outer3.y} ${-outer3.z}
         L ${-rest1.y} ${-rest1.z}" />
       ${hingeOutline}
-      <path class="sketch-outline sketch-cut-outline" d="M ${-atHeight.y} ${-atHeight.z}
+      <path class="sketch-outline sketch-cut-outline" transform="translate(${-cutOutlineEpsilon} 0)" d="M ${-atHeight.y} ${-atHeight.z}
         L ${-midCut1.y} ${-midCut1.z}
         L ${-midCut2.y} ${-midCut2.z}
         A ${hingeRadius} ${hingeRadius} 0 0 1 ${-midCut3.y} ${-midCut3.z}
