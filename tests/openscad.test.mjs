@@ -1,12 +1,15 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs/promises'
 import OpenSCAD from '../public/vendor/openscad/openscad.js'
+import { DoubleSide, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three'
+import { baseEndGeometry } from '../src/base-end-geometry.ts'
 import { STLLoader } from 'three/addons/loaders/STLLoader.js'
-import { baseDefinitions, defaultBaseParameters, cellRaisedProfiles, cellRimProfiles } from '../src/model.ts'
+import { baseDefinitions, defaultBaseParameters, cellRaisedProfiles, cellFullHeightProfiles } from '../src/model.ts'
 import { cellMidPoints, hingeCutRightPoints, cellOuterPoints } from '../src/sketch.ts'
 
 const wasmBinary = await fs.readFile(new URL('../public/vendor/openscad/openscad.wasm', import.meta.url))
 const source = await fs.readFile(new URL('../src/models/base.scad', import.meta.url), 'utf8')
+const solidSource = source.replace(/difference\(\) \{\s*base_solid\(\);\s*edge_hinge_cuts\(\);\s*\}/, 'base_solid();')
 const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 0.0001, `${actual} != ${expected}`)
 
 for (const changes of [
@@ -23,7 +26,7 @@ for (const changes of [
     noInitialRun: true, wasmBinary,
     print: text => diagnostics.push(text), printErr: text => diagnostics.push(text),
   })
-  instance.FS.writeFile('/base.scad', source)
+  instance.FS.writeFile('/base.scad', solidSource)
   const code = instance.callMain(['/base.scad', ...baseDefinitions(params), '--export-format', 'binstl', '-o', '/base.stl'])
   assert.equal(code, 0, diagnostics.join('\n'))
   const geometry = new STLLoader().parse(instance.FS.readFile('/base.stl').slice().buffer)
@@ -37,7 +40,7 @@ for (const changes of [
   near(min.x, -params.cellWidth / 2 - params.wallThickness)
   near(max.x, params.cellWidth / 2 + params.wallThickness + (params.columns - 1) * colPitch)
   near(min.y, -params.cellLength - params.wallThickness)
-  near(max.y, (params.rows - 1) * rowPitch + Math.max(params.wallThickness * shear, params.wallThickness + params.hingeThickness + yTolerance + raisedHeight * shear, -params.cellLength + params.baseHeight * shear))
+  near(max.y, (params.rows - 1) * rowPitch + Math.max(params.wallThickness * shear, params.wallThickness + params.hingeThickness + yTolerance + params.baseHeight * shear, -params.cellLength + params.baseHeight * shear))
   near(min.z, 0)
   near(max.z, Math.max(params.wallThickness, params.baseHeight))
   if (params.rows === 1 && params.columns === 1) {
@@ -48,7 +51,7 @@ for (const changes of [
     }, 0)) / 2
     const profiles = cellRaisedProfiles(params)
     assert.deepEqual(profiles.slice(2), profiles.slice(0,2).map(profile => profile.map(([x,y]) => [-x,y]).reverse()))
-    const rimProfiles = cellRimProfiles(params)
+    const rimProfiles = cellFullHeightProfiles(params)
     assert.deepEqual(rimProfiles[1], rimProfiles[0].map(([x,y]) => [-x,y]).reverse())
     const expectedVolume = rimProfiles.reduce((sum, profile) => sum + area(profile), 0) * params.baseHeight + profiles.reduce((sum, profile) => sum + area(profile), 0) * raisedHeight + params.cellWidth * params.cellLength * params.wallThickness
     const position = geometry.attributes.position
@@ -76,13 +79,13 @@ assert.deepEqual(cellMidPoints(defaultBaseParameters).map(({ name, x, y }) => [n
 console.log('PASS: midpoint coordinates and invalid parameter rejection')
 
 assert.deepEqual(cellRaisedProfiles(defaultBaseParameters).slice(0,2), [
-  [[0,topY],[22.9,topY],[22.9,2],[32,2],[32,topY],[34,topY],[34,-24],[32,-24],[32,0],[0,0]],
+  [[0,topY],[22.9,topY],[22.9,2],[32,2],[32,0],[0,0]],
   [[0,-24],[25,-24],[25,-26],[0,-26]],
 ])
 console.log('PASS: exact right-side profile coordinates and ordering')
 
-assert.deepEqual(cellRimProfiles(defaultBaseParameters)[0], [[25,-24],[34,-24],[34,-26],[25,-26]])
-console.log('PASS: full-height rim profile point ordering')
+assert.deepEqual(cellFullHeightProfiles(defaultBaseParameters)[0], [[32,topY],[34,topY],[34,-26],[25,-26],[25,-24],[32,-24]])
+console.log('PASS: full-height side profile point ordering')
 
 for (const baseAngle of [30, 45, 90]) {
   const params = {...defaultBaseParameters, baseAngle}
@@ -92,3 +95,33 @@ for (const baseAngle of [30, 45, 90]) {
   near(hinge[2].x, 22.9) // X tolerance must remain unprojected.
 }
 console.log('PASS: projected Y tolerance and unchanged X tolerance')
+
+// Check real cut meshes by probing the capsule centreline across all columns.
+for (const columns of [1, 3]) {
+  const params = {...defaultBaseParameters, rows: 2, columns}
+  const {hingeCenter, hingeCenter2} = baseEndGeometry(params)
+  const instance = await OpenSCAD({noInitialRun:true, wasmBinary, print:()=>{}, printErr:()=>{}})
+  instance.FS.writeFile('/base.scad', source)
+  assert.equal(instance.callMain(['/base.scad', ...baseDefinitions(params), '--export-format', 'binstl', '-o', '/base.stl']), 0)
+  const geometry = new STLLoader().parse(instance.FS.readFile('/base.stl').slice().buffer)
+  const material = new MeshBasicMaterial({side:DoubleSide})
+  const mesh = new Mesh(geometry,material)
+  mesh.updateMatrixWorld()
+  const colPitch = params.cellWidth + params.wallThickness
+  const rowPitch = params.cellLength + 2*params.wallThickness + params.hingeThickness + params.hingeTolerance*Math.sin(params.baseAngle*Math.PI/180)
+  for (let row=0;row<params.rows;row++) {
+    const z = (hingeCenter.z + hingeCenter2.z)/2 + 0.123
+    const y = hingeCenter.y + (z-hingeCenter.z)/Math.tan(params.baseAngle*Math.PI/180) + row*rowPitch
+    const hits = new Raycaster(new Vector3(-1000,y,z),new Vector3(1,0,0)).intersectObject(mesh)
+    const xs = hits.map(hit=>hit.point.x).filter((x,i,all)=>i===0 || Math.abs(x-all[i-1])>1e-5)
+    const inside = x => xs.filter(hitX=>hitX<x).length%2===1
+    assert.equal(inside(-params.cellWidth/2-params.wallThickness/2),false,'Left exterior must be cut')
+    assert.equal(inside((columns-1)*colPitch+params.cellWidth/2+params.wallThickness/2),false,'Right exterior must be cut')
+    for(let column=0;column<columns-1;column++) {
+      assert.equal(inside(column*colPitch+params.cellWidth/2+params.wallThickness/2),true,'Interior wall must remain solid')
+    }
+  }
+  material.dispose()
+  geometry.dispose()
+  console.log(`PASS: ${columns} columns, two rows: capsules cut only exterior walls`)
+}

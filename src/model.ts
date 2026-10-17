@@ -1,3 +1,4 @@
+import { baseEndGeometry } from './base-end-geometry.ts'
 import { cellInnerPoints, cellOuterPoints, cellMidPoints, hingeCutRightPoints, rimRightPoints, defaultSketchParameters } from './sketch.ts'
 import type { CellSketchParameters } from './sketch.ts'
 
@@ -35,24 +36,25 @@ export function validateBaseParameters(params: BaseParameters) {
 }
 
 export function cellRaisedProfiles(params: BaseParameters): number[][][] {
-  const outer = cellOuterPoints(params)
   const inner = cellInnerPoints(params)
   const mid = cellMidPoints(params)
   const hinge = hingeCutRightPoints(params)
   const rim = rimRightPoints(params)
   // Profiles close automatically back to their first point.
   const right = [
-    [mid[0]!, hinge[3]!, hinge[2]!, hinge[1]!, hinge[0]!, outer[0]!, rim[0]!, inner[1]!, inner[0]!, mid[2]!],
+    [mid[0]!, hinge[3]!, hinge[2]!, hinge[1]!, inner[0]!, mid[2]!],
     [mid[3]!, rim[1]!, rim[2]!, mid[1]!],
   ].map(profile => profile.map(({ x, y }) => [x, y]))
   const left = right.map(profile => profile.map(([x, y]) => [-x!, y!]).reverse())
   return [...right, ...left]
 }
 
-export function cellRimProfiles(params: BaseParameters): number[][][] {
+export function cellFullHeightProfiles(params: BaseParameters): number[][][] {
   const rim = rimRightPoints(params)
   const outer = cellOuterPoints(params)
-  const right = [rim[1]!, rim[0]!, outer[1]!, rim[2]!].map(({ x, y }) => [x, y])
+  const hinge = hingeCutRightPoints(params)
+  const inner = cellInnerPoints(params)
+  const right = [hinge[0]!, outer[0]!, outer[1]!, rim[2]!, rim[1]!, inner[1]!].map(({ x, y }) => [x, y])
   const left = right.map(([x, y]) => [-x!, y!]).reverse()
   return [right, left]
 }
@@ -60,9 +62,13 @@ export function cellRimProfiles(params: BaseParameters): number[][][] {
 // Pass the same sketch coordinates to OpenSCAD that the SVG uses.
 export function baseDefinitions(params: BaseParameters): string[] {
   validateBaseParameters(params)
+  const { hingeCenter, hingeCenter2, hingeRadius } = baseEndGeometry(params)
   const definitions = {
+    hinge_centres: [[hingeCenter.y, hingeCenter.z], [hingeCenter2.y, hingeCenter2.z]],
+    hinge_radius: hingeRadius,
+    cell_width: params.cellWidth,
     raised_profiles: cellRaisedProfiles(params),
-    rim_profiles: cellRimProfiles(params),
+    full_height_profiles: cellFullHeightProfiles(params),
     base_height: params.baseHeight,
     raised_height: params.baseHeight - params.hingeThickness - params.hingeTolerance,
     cell_inner_points: cellInnerPoints(params).map(({ x, y }) => [x, y]),

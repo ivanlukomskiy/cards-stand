@@ -23,15 +23,15 @@ for (const baseAngle of [15, 45, 90]) {
   const {start, slope, hingeCenter} = baseEndGeometry(params)
   near(hingeCenter.z, params.wallThickness + params.hingeThickness / 2)
   const distance = (hingeCenter.y - start.y - hingeCenter.z * slope) / Math.hypot(1, slope)
-  near(distance, -params.hingeThickness / 2)
+  near(distance, -(params.hingeThickness + params.hingeTolerance) / 2)
 }
 console.log('PASS: hinge centre Z and tangency to outer 1–outer 2')
 
 for (const baseAngle of [15,45,90]) {
   const params = {...defaultBaseParameters, baseAngle}
   const {start, hingeCenter, hingeCenter2, slope} = baseEndGeometry(params)
-  near((hingeCenter2.y - start.y - hingeCenter2.z * slope) / Math.hypot(1, slope), -params.hingeThickness / 2)
-  near(hingeCenter2.z, params.baseHeight - params.hingeThickness / 2 - params.wallThickness)
+  near((hingeCenter2.y - start.y - hingeCenter2.z * slope) / Math.hypot(1, slope), -(params.hingeThickness + params.hingeTolerance) / 2)
+  near(hingeCenter2.z, params.baseHeight - params.wallThickness - params.hingeThickness / 2)
   near(hingeCenter2.y - hingeCenter.y, (hingeCenter2.z - hingeCenter.z) * slope)
 }
 console.log('PASS: hinge centre 2 target Z and beam-parallel translation')

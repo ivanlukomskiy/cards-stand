@@ -20,16 +20,47 @@ module cell() {
         for (profile = raised_profiles)
             angled_extrusion(raised_height)
                 polygon(points = profile);
-        // Outer rim segments use the full base height.
-        for (profile = rim_profiles)
+        // Side and outer rim profiles use the full base height.
+        for (profile = full_height_profiles)
             angled_extrusion(base_height)
                 polygon(points = profile);
     }
 }
 
-union() {
+module base_solid() {
+    union() {
+        for (row = [0 : rows - 1])
+            for (column = [0 : columns - 1])
+                translate([column * column_pitch, row * row_pitch, 0])
+                    cell();
+    }
+}
+
+module hinge_capsule_cut(x_start) {
+    // The sketch's (Y,Z) capsule is extruded along X through one outside wall.
+    multmatrix([
+        [0, 0, 1, x_start],
+        [1, 0, 0, 0],
+        [0, 1, 0, 0],
+        [0, 0, 0, 1]
+    ])
+        linear_extrude(height = wall_thickness)
+            hull() {
+                for (centre = hinge_centres)
+                    translate(centre)
+                        circle(r = hinge_radius, $fn = 64);
+            }
+}
+
+module edge_hinge_cuts() {
     for (row = [0 : rows - 1])
-        for (column = [0 : columns - 1])
-            translate([column * column_pitch, row * row_pitch, 0])
-                cell();
+        translate([0, row * row_pitch, 0]) {
+            hinge_capsule_cut(-cell_width / 2 - wall_thickness);
+            hinge_capsule_cut((columns - 1) * column_pitch + cell_width / 2);
+        }
+}
+
+difference() {
+    base_solid();
+    edge_hinge_cuts();
 }
