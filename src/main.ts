@@ -1,4 +1,5 @@
 import './style.css'
+import { setupSidebarTooltips } from './sidebar-tooltips'
 import { BasePreview } from './preview'
 import { cellSketch } from './sketch'
 import { baseEndSketch } from './base-end-sketch'
@@ -54,94 +55,114 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <details id="parameters-section" class="sidebar-section" open>
       <summary>Parameters</summary>
       <div class="sidebar-section-content">
-        <div class="transform-field">
-          <label for="cells-rows">Cells rows</label>
-          <input id="cells-rows" name="cells-rows" type="number" min="1" step="1" value="2" />
-        </div>
-        <div class="transform-field">
-          <label for="cell-columns">Cell columns</label>
-          <input id="cell-columns" name="cell-columns" type="number" min="1" step="1" value="2" />
-        </div>
-        <div class="transform-field">
-          <label for="cell-width">Cell width (mm)</label>
-          <input id="cell-width" name="cell-width" type="number" min="0.1" step="0.1" value="64" />
-        </div>
-        <div class="transform-field">
-          <label for="cell-mid-cut-width">Cell mid cut width (mm)</label>
-          <input id="cell-mid-cut-width" name="cell-mid-cut-width" type="number" min="0" step="0.1" value="32" />
-        </div>
-        <div class="transform-field">
-          <label for="cell-length">Cell length (mm)</label>
-          <input id="cell-length" name="cell-length" type="number" min="0.1" step="0.1" value="24" />
-        </div>
-        <div class="transform-field">
-          <label for="base-height">Base height (mm)</label>
-          <input id="base-height" name="base-height" type="number" min="0.1" step="0.1" value="12" />
-        </div>
-        <div class="transform-field">
-          <label for="wall-thickness">Wall thickness (mm)</label>
-          <input id="wall-thickness" name="wall-thickness" type="number" min="0.1" step="0.1" value="2" />
-        </div>
-        <div class="transform-field">
-          <label for="hinge-thickness">Hinge thickness (mm)</label>
-          <input id="hinge-thickness" name="hinge-thickness" type="number" min="0.1" step="0.1" value="3" />
-        </div>
-        <div class="transform-field">
-          <label for="hinge-profile-width">Hinge profile width (mm)</label>
-          <input id="hinge-profile-width" name="hinge-profile-width" type="number" min="0.1" step="0.1" value="7" />
-        </div>
-        <div class="transform-field">
-          <label for="hinge-pin-extension">Hinge pin extension (mm)</label>
-          <input id="hinge-pin-extension" name="hinge-pin-extension" type="number" min="0" step="0.1" value="2" />
-        </div>
-        <div class="transform-field">
-          <label for="hinge-tolerance">Hinge tolerance (mm)</label>
-          <input id="hinge-tolerance" name="hinge-tolerance" type="number" min="0" step="0.01" value="0.25" />
-        </div>
-        <div class="transform-field">
-          <label for="hinge-top-width">Hinge top width (mm)</label>
-          <input id="hinge-top-width" name="hinge-top-width" type="number" min="0" step="0.1" value="22" />
-        </div>
-        <div class="transform-field">
-          <label for="hinge-height">Hinge height (mm)</label>
-          <input id="hinge-height" name="hinge-height" type="number" min="0" step="0.1" value="58" />
-        </div>
-        <div class="transform-field">
-          <label for="rim-width">Rim width (mm)</label>
-          <input id="rim-width" name="rim-width" type="number" min="0" step="0.1" value="7" />
-        </div>
-        <div class="transform-field">
-          <label for="hinge-angle">Hinge angle (°)</label>
-          <input id="hinge-angle" name="hinge-angle" type="number" min="0.1" step="0.1" value="45" max="90" />
-        </div>
-        <div class="transform-field">
-          <label for="stand-angle">Stand angle (°)</label>
-          <input id="stand-angle" name="stand-angle" type="number" min="0.1" max="179.9" step="0.1" value="80" />
-        </div>
-        <div class="transform-field">
-          <label for="stand-hinge-tolerance">Stand hinge tolerance (mm)</label>
-          <input id="stand-hinge-tolerance" name="stand-hinge-tolerance" type="number" min="0" step="0.01" value="0.1" />
-        </div>
-        <div class="transform-field">
-          <label for="stand-tolerance">Stand tolerance (mm)</label>
-          <input id="stand-tolerance" name="stand-tolerance" type="number" min="0" step="0.01" value="0.5" />
-        </div>
-        <div class="transform-field">
-          <label for="base-tilt-angle">Base tilt angle (°)</label>
-          <input id="base-tilt-angle" name="base-tilt-angle" type="number" min="0" max="179.9" step="0.1" value="30" />
-        </div>
-        <div class="transform-field">
-          <label for="stand-profile-width">Stand profile width (mm)</label>
-          <input id="stand-profile-width" name="stand-profile-width" type="number" min="0" step="0.1" value="18" />
-        </div>
-        <div class="transform-field">
-          <label for="bolt-tolerance">Bolt tolerance (mm)</label>
-          <input id="bolt-tolerance" name="bolt-tolerance" type="number" min="0" step="0.01" value="0.2" />
-        </div>
-        <div class="transform-field">
-          <label for="bolt-length">Bolt length (mm)</label>
-          <input id="bolt-length" name="bolt-length" type="number" min="0" step="0.1" value="10" />
-        </div>
+        <details id="base-parameters" class="sidebar-section" open>
+          <summary>Base</summary>
+          <div class="sidebar-section-content">
+            <div class="transform-field">
+              <label for="cells-rows">Cells rows</label>
+              <input id="cells-rows" name="cells-rows" type="number" min="1" step="1" value="2" />
+            </div>
+            <div class="transform-field">
+              <label for="cell-columns">Cells columns</label>
+              <input id="cell-columns" name="cell-columns" type="number" min="1" step="1" value="2" />
+            </div>
+            <div class="transform-field">
+              <label for="base-tilt-angle">Base tilt angle, <em>°</em></label>
+              <input id="base-tilt-angle" name="base-tilt-angle" type="number" min="0" max="179.9" step="0.1" value="30" />
+            </div>
+            <div class="transform-field">
+              <label for="base-height">Base height, <em>mm</em></label>
+              <input id="base-height" name="base-height" type="number" min="0.1" step="0.1" value="12" />
+            </div>
+            <div class="transform-field">
+              <label for="wall-thickness">Wall thickness, <em>mm</em></label>
+              <input id="wall-thickness" name="wall-thickness" type="number" min="0.1" step="0.1" value="2" />
+            </div>
+            <div class="transform-field">
+              <label for="cell-width">Cell width, <em>mm</em></label>
+              <input id="cell-width" name="cell-width" type="number" min="0.1" step="0.1" value="64" />
+            </div>
+            <div class="transform-field">
+              <label for="cell-length">Cell length, <em>mm</em></label>
+              <input id="cell-length" name="cell-length" type="number" min="0.1" step="0.1" value="24" />
+            </div>
+            <div class="transform-field">
+              <label for="cell-mid-cut-width">Cell mid cut width, <em>mm</em></label>
+              <input id="cell-mid-cut-width" name="cell-mid-cut-width" type="number" min="0" step="0.1" value="32" />
+            </div>
+            <div class="transform-field">
+              <label for="rim-width">Rim width, <em>mm</em></label>
+              <input id="rim-width" name="rim-width" type="number" min="0" step="0.1" value="7" />
+            </div>
+          </div>
+        </details>
+        <details id="hinge-parameters" class="sidebar-section" open>
+          <summary>Hinge</summary>
+          <div class="sidebar-section-content">
+            <div class="transform-field">
+              <label for="hinge-height">Hinge height, <em>mm</em></label>
+              <input id="hinge-height" name="hinge-height" type="number" min="0" step="0.1" value="58" />
+            </div>
+            <div class="transform-field">
+              <label for="hinge-top-width">Hinge top width, <em>mm</em></label>
+              <input id="hinge-top-width" name="hinge-top-width" type="number" min="0" step="0.1" value="22" />
+            </div>
+            <div class="transform-field">
+              <label for="hinge-thickness">Hinge thickness, <em>mm</em></label>
+              <input id="hinge-thickness" name="hinge-thickness" type="number" min="0.1" step="0.1" value="3" />
+            </div>
+            <div class="transform-field">
+              <label for="hinge-profile-width">Hinge profile width, <em>mm</em></label>
+              <input id="hinge-profile-width" name="hinge-profile-width" type="number" min="0.1" step="0.1" value="7" />
+            </div>
+            <div class="transform-field">
+              <label for="hinge-angle">Hinge angle, <em>°</em></label>
+              <input id="hinge-angle" name="hinge-angle" type="number" min="0.1" step="0.1" value="45" max="90" />
+            </div>
+            <div class="transform-field">
+              <label for="hinge-pin-extension">Hinge pin extension, <em>mm</em></label>
+              <input id="hinge-pin-extension" name="hinge-pin-extension" type="number" min="0" step="0.1" value="2" />
+            </div>
+            <div class="transform-field">
+              <label for="hinge-tolerance">Hinge tolerance, <em>mm</em></label>
+              <input id="hinge-tolerance" data-tooltip="higher values means looser" name="hinge-tolerance" type="number" min="0" step="0.01" value="0.25" />
+            </div>
+          </div>
+        </details>
+        <details id="stand-parameters" class="sidebar-section" open>
+          <summary>Stand</summary>
+          <div class="sidebar-section-content">
+            <div class="transform-field">
+              <label for="stand-angle">Stand angle, <em>°</em></label>
+              <input id="stand-angle" name="stand-angle" type="number" min="0.1" max="179.9" step="0.1" value="80" />
+            </div>
+            <div class="transform-field">
+              <label for="stand-profile-width">Stand profile width, <em>mm</em></label>
+              <input id="stand-profile-width" name="stand-profile-width" type="number" min="0" step="0.1" value="18" />
+            </div>
+            <div class="transform-field">
+              <label for="stand-hinge-tolerance">Stand hinge tolerance, <em>mm</em></label>
+              <input id="stand-hinge-tolerance" data-tooltip="higher values means looser" name="stand-hinge-tolerance" type="number" min="0" step="0.01" value="0.1" />
+            </div>
+            <div class="transform-field">
+              <label for="stand-tolerance">Stand tolerance, <em>mm</em></label>
+              <input id="stand-tolerance" data-tooltip="higher values means looser" name="stand-tolerance" type="number" min="0" step="0.01" value="0.5" />
+            </div>
+          </div>
+        </details>
+        <details id="bolt-parameters" class="sidebar-section" open>
+          <summary>Bolt</summary>
+          <div class="sidebar-section-content">
+            <div class="transform-field">
+              <label for="bolt-length">Bolt length, <em>mm</em></label>
+              <input id="bolt-length" name="bolt-length" type="number" min="0" step="0.1" value="10" />
+            </div>
+            <div class="transform-field">
+              <label for="bolt-tolerance">Bolt tolerance, <em>mm</em></label>
+              <input id="bolt-tolerance" data-tooltip="higher values means looser" name="bolt-tolerance" type="number" min="0" step="0.01" value="0.2" />
+            </div>
+          </div>
+        </details>
         <p id="parameters-error" class="error" role="status"></p>
         <button id="reset-parameters" class="sidebar-button reset-parameters" type="button">Reset to defaults</button>
       </div>
@@ -197,6 +218,9 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     </section>
   </main>
 `
+
+const disposeSidebarTooltips = setupSidebarTooltips()
+import.meta.hot?.dispose(disposeSidebarTooltips)
 
 const sketchView = document.querySelector<HTMLElement>('#sketch-view')!
 const cellPanel = document.querySelector<HTMLElement>('#cell-sketch-panel')!

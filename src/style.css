@@ -111,3 +111,23 @@ canvas { display: block; touch-action: none; }
 .sketch-inner-circle { fill: none; stroke: #f28b94; stroke-width: 1.5; vector-effect: non-scaling-stroke; pointer-events: none; }
 
 .sketch-cut-vertex .sketch-vertex-dot { fill: #b48ce6; }
+
+.sidebar-section .sidebar-section > summary { padding: 8px; font-size: 12px; }
+
+.help-tooltip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: min(300px, calc(100vw - 16px));
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  padding: 10px;
+  background: #272b35;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 14px #0008;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.5;
+  z-index: 10;
+}
