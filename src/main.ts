@@ -87,8 +87,12 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           <input id="hinge-profile-width" name="hinge-profile-width" type="number" min="0.1" step="0.1" value="7" />
         </div>
         <div class="transform-field">
+          <label for="hinge-pin-extension">Hinge pin extension (mm)</label>
+          <input id="hinge-pin-extension" name="hinge-pin-extension" type="number" min="0" step="0.1" value="2" />
+        </div>
+        <div class="transform-field">
           <label for="hinge-tolerance">Hinge tolerance (mm)</label>
-          <input id="hinge-tolerance" name="hinge-tolerance" type="number" min="0" step="0.01" value="0.1" />
+          <input id="hinge-tolerance" name="hinge-tolerance" type="number" min="0" step="0.01" value="0.25" />
         </div>
         <div class="transform-field">
           <label for="hinge-top-width">Hinge top width (mm)</label>
@@ -128,7 +132,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         </div>
         <div class="transform-field">
           <label for="bolt-tolerance">Bolt tolerance (mm)</label>
-          <input id="bolt-tolerance" name="bolt-tolerance" type="number" min="0" step="0.01" value="0.1" />
+          <input id="bolt-tolerance" name="bolt-tolerance" type="number" min="0" step="0.01" value="0.2" />
         </div>
         <div class="transform-field">
           <label for="bolt-length">Bolt length (mm)</label>
@@ -280,6 +284,7 @@ const parameterInputs = {
   wallThickness: document.querySelector<HTMLInputElement>('#wall-thickness')!,
   hingeThickness: document.querySelector<HTMLInputElement>('#hinge-thickness')!,
   hingeProfileWidth: document.querySelector<HTMLInputElement>('#hinge-profile-width')!,
+  hingePinExtension: document.querySelector<HTMLInputElement>('#hinge-pin-extension')!,
   hingeTolerance: document.querySelector<HTMLInputElement>('#hinge-tolerance')!,
   hingeTopWidth: document.querySelector<HTMLInputElement>('#hinge-top-width')!,
   hingeHeight: document.querySelector<HTMLInputElement>('#hinge-height')!,

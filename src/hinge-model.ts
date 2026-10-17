@@ -30,6 +30,7 @@ export function hingeDefinitions(params: BaseParameters): string[] {
     circle_centre: [centre.y, centre.z],
     circle_radius: radius,
     circle_x: inner3.x,
+    pin_extension: params.hingePinExtension,
     circle_length: params.hingeProfileWidth + params.wallThickness,
     // Outer 3 → outer 4 → bridge 2 → bridge 1.
     bridge_points: [outer3!, outer4!, bridge2!, bridge1!].map(({ x, y }) => [x, y]),

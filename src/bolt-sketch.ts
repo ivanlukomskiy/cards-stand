@@ -6,8 +6,8 @@ export function boltGeometry(params: BaseParameters) {
   return {
     // Red circle.
     outerRadius: (params.baseHeight - params.hingeTolerance) / 2,
-    // Green circle: the Cell side red (stand hinge) circle, reduced by the bolt tolerance.
-    innerRadius: baseEndGeometry(params).holeRadius - params.boltTolerance,
+    // Green circle: the Cell side red (stand hinge) circle, with its diameter reduced by the bolt tolerance.
+    innerRadius: baseEndGeometry(params).holeRadius - params.boltTolerance / 2,
   }
 }
 

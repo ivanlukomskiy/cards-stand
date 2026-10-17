@@ -184,8 +184,8 @@ console.log('PASS: hinge side circle')
   const params = {...defaultBaseParameters, boltTolerance: 0.25}
   const bolt = boltGeometry(params)
   near(bolt.outerRadius, (params.baseHeight - params.hingeTolerance) / 2)
-  near(bolt.innerRadius, (params.baseHeight - 2 * params.wallThickness - params.standHingeTolerance) / 2 - 0.25)
-  near(bolt.innerRadius, baseEndGeometry(params).holeRadius - 0.25)
+  near(bolt.innerRadius * 2, params.baseHeight - 2 * params.wallThickness - params.standHingeTolerance - 0.25)
+  near(bolt.innerRadius, baseEndGeometry(params).holeRadius - 0.125)
 }
 console.log('PASS: bolt circles')
 
@@ -194,7 +194,7 @@ console.log('PASS: bolt circles')
   const params = {...defaultBaseParameters, standHingeTolerance: 0.3}
   const stand = standSideGeometry(params)
   near(stand.outerRadius, (params.baseHeight - 0.3) / 2)
-  near(stand.innerRadius, baseEndGeometry(params).holeRadius)
+  near(stand.innerRadius * 2, params.baseHeight - 2 * params.wallThickness)
   assert.deepEqual([stand.outer1, stand.outer2], [{y: stand.outerRadius, z: 0}, {y: -stand.outerRadius, z: 0}])
   // Outer 3 and 4 drop outer 2 and 1 by the Cell side yellow arc's radius.
   const drop = baseEndGeometry(params).arcRadius

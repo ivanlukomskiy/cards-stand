@@ -71,7 +71,7 @@ assert.throws(() => baseDefinitions({ ...defaultBaseParameters, hingeAngle: 0 })
 assert.throws(() => baseDefinitions({ ...defaultBaseParameters, baseHeight: 3.1 }))
 assert.throws(() => baseDefinitions({ ...defaultBaseParameters, rows: 1.5 }))
 assert.throws(() => baseDefinitions({ ...defaultBaseParameters, columns: 0 }))
-const topY = 2 + 3.1 / Math.sin(Math.PI / 4)
+const topY = 2 + 3.25 / Math.sin(Math.PI / 4)
 assert.deepEqual(cellMidPoints(defaultBaseParameters).map(({ name, x, y }) => [name, x, y]), [
   ['cell outer mid 1', 0, topY], ['cell outer mid 2', 0, -26],
   ['cell inner mid 1', 0, 0], ['cell inner mid 2', 0, -24],
@@ -86,7 +86,7 @@ console.log('PASS: semi raised right profile coordinates and ordering')
 
 for (const hingeAngle of [30, 45, 90]) {
   const params = {...defaultBaseParameters, hingeAngle}
-  near(cellOuterPoints(params)[0].y, 2 + 3.1 / Math.sin(hingeAngle * Math.PI / 180))
+  near(cellOuterPoints(params)[0].y, 2 + 3.25 / Math.sin(hingeAngle * Math.PI / 180))
 }
 console.log('PASS: projected Y tolerance at cell outer 1')
 
@@ -200,7 +200,7 @@ for (const changes of [{ rows: 1, columns: 1, hingeAngle: 45 }, { rows: 3, colum
   const { hingeSideGeometry } = await import('../src/hinge-side-sketch.ts')
   const { hingeInnerPoints, hingeOuterPoints } = await import('../src/hinge-top-sketch.ts')
   const hingeSource = await fs.readFile(new URL('../src/models/hinge.scad', import.meta.url), 'utf8')
-  for (const changes of [{ columns: 1 }, { columns: 3, hingeProfileWidth: 4, wallThickness: 3, hingeThickness: 2.5 }, {}]) {
+  for (const changes of [{ columns: 1 }, { columns: 3, hingeProfileWidth: 4, wallThickness: 3, hingeThickness: 2.5, hingePinExtension: 0 }, { hingePinExtension: 3 }, {}]) {
     const params = {...defaultBaseParameters, ...changes}
     const instance = await OpenSCAD({noInitialRun:true, wasmBinary, print:()=>{}, printErr:()=>{}})
     instance.FS.writeFile('/hinge.scad', hingeSource)
@@ -213,8 +213,8 @@ for (const changes of [{ rows: 1, columns: 1, hingeAngle: 45 }, { rows: 3, colum
     const circleLength = params.hingeProfileWidth + params.wallThickness
     const colPitch = params.cellWidth + params.wallThickness
     const last = (params.columns - 1) * colPitch
-    near(min.x, -(circleStart + circleLength))
-    near(max.x, last + circleStart + circleLength)
+    near(min.x, -(circleStart + circleLength + params.hingePinExtension))
+    near(max.x, last + circleStart + circleLength + params.hingePinExtension)
     near(min.y, -radius)
     near(max.y, params.hingeHeight)
     near(min.z, -params.hingeThickness / 2)
@@ -225,7 +225,7 @@ for (const changes of [{ rows: 1, columns: 1, hingeAngle: 45 }, { rows: 3, colum
     mesh.updateMatrixWorld()
     const xs = new Raycaster(new Vector3(-1000, -radius / 2, 0), new Vector3(1,0,0)).intersectObject(mesh)
       .map(hit=>hit.point.x).filter((x,i,all)=>i===0 || Math.abs(x-all[i-1])>1e-5)
-    assert.deepEqual(xs.map(x => Math.round(x*1e4)/1e4), [-(circleStart + circleLength), ...Array.from({length: params.columns}, (_, column) => [column*colPitch - circleStart, column*colPitch + circleStart]).flat(), last + circleStart + circleLength].map(x => Math.round(x*1e4)/1e4))
+    assert.deepEqual(xs.map(x => Math.round(x*1e4)/1e4), [-(circleStart + circleLength + params.hingePinExtension), ...Array.from({length: params.columns}, (_, column) => [column*colPitch - circleStart, column*colPitch + circleStart]).flat(), last + circleStart + circleLength + params.hingePinExtension].map(x => Math.round(x*1e4)/1e4))
     // Through the first hinge's plate near the top, the mirrored halves are fused: only its two outer edges are crossed.
     const topXs = new Raycaster(new Vector3(-colPitch / 2, params.hingeHeight - params.hingeProfileWidth / 2, 0), new Vector3(1,0,0)).intersectObject(mesh)
       .map(hit=>hit.point.x).filter(x => x < colPitch / 2).filter((x,i,all)=>i===0 || Math.abs(x-all[i-1])>1e-5)
@@ -259,7 +259,7 @@ for (const changes of [{ rows: 1, columns: 1, hingeAngle: 45 }, { rows: 3, colum
     const circleArea = 32 * radius ** 2 * Math.sin(2 * Math.PI / 64)
     // Neighbouring hinges' cylinders overlap for one wall thickness; each bridge adds its slab minus the cylinders' +Y half inside it.
     const bridgeVolume = params.wallThickness * hingeOuterPoints(params)[2].y * params.hingeThickness - circleArea / 2 * params.wallThickness
-    const expected = params.columns * 2 * (area * params.hingeThickness + circleArea * circleLength - circleArea / 2 * params.hingeProfileWidth) - (params.columns - 1) * (circleArea * params.wallThickness - bridgeVolume)
+    const expected = params.columns * 2 * (area * params.hingeThickness + circleArea * circleLength - circleArea / 2 * params.hingeProfileWidth) - (params.columns - 1) * (circleArea * params.wallThickness - bridgeVolume) + 2 * circleArea * params.hingePinExtension
     assert.ok(Math.abs(Math.abs(volume) - expected) < expected * 1e-5, `Unexpected hinge volume ${volume}; expected ${expected}`)
     geometry.dispose()
     console.log(`PASS: ${params.columns} hinges, ${params.hingeProfileWidth} mm profile width: symmetric ${params.hingeThickness} mm plate with circle along X from inner 3, mirrored across ZOY, bridged between neighbours`)

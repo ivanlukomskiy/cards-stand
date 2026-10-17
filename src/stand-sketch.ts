@@ -111,8 +111,8 @@ export function standSideGeometry(params: BaseParameters) {
   return {
     // Green: fits the Cell side helper circle (diameter base height) with the stand hinge tolerance.
     outerRadius: (params.baseHeight - params.standHingeTolerance) / 2,
-    // Red: the same as the Cell side red (stand hinge hole) circle.
-    innerRadius: baseEndGeometry(params).holeRadius,
+    // Red: diameter is base height minus two wall thicknesses.
+    innerRadius: (params.baseHeight - 2 * params.wallThickness) / 2,
     // Ends of the green half circle after its bottom half is cut away.
     outer1: { y: halfWidth, z: 0 },
     outer2: { y: -halfWidth, z: 0 },
