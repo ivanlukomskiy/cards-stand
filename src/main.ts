@@ -9,6 +9,7 @@ import { standSideSketch, standTopSketch } from './stand-sketch'
 import { validateBaseParameters } from './model'
 import type { BaseParameters } from './model'
 import type { ModelName } from './openscad.worker'
+import { assemblyParts, assemblyPlacements } from './assembly'
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <aside class="sidebar" aria-label="Model parameters">
@@ -488,14 +489,17 @@ try {
     assemblyDimensions.textContent = 'Building…'
     assemblyRedraw.textContent = 'Building…'
     assemblyRedraw.setAttribute('aria-busy', 'true')
-    // For now the assembly holds only the stand.
-    const parts: ModelName[] = ['stand']
+    const parts = assemblyParts
+    const placements = assemblyPlacements(params, {
+      standExtended: assemblyOptions.standExtended.checked,
+      hingeExtended: assemblyOptions.hingeExtended.checked,
+    })
     try {
       const renders = parts.map(part => renderStl(part, params))
       assemblyJobs = renders
       Promise.all(renders.map(render => render.promise)).then(stls => {
         if (request !== assemblyGeneration) return
-        const size = assemblyPreview.setParts(stls.map((stl, index) => ({ stl, color: partColors[parts[index]!] })))
+        const size = assemblyPreview.setParts(stls.map((stl, index) => ({ stl, color: partColors[parts[index]!], placements: placements[parts[index]!] })))
         if (firstAssembly) { assemblyPreview.fit(); firstAssembly = false }
         assemblyDimensions.textContent = formatSize(size)
         cancelAssembly()

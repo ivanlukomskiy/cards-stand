@@ -368,3 +368,58 @@ for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, column
     console.log(`PASS: stand, ${params.columns} columns × ${params.rows} rows: top plate below outer 3 Z and side, with red circle cut, extruded toward O, mirrored across YOZ`)
   }
 }
+
+// Assembly rules: every part centred on X = 0; one hinge per row with its axis on hinge centre 1 when extended, else hinge centre 2.
+{
+  const { applyPlacement, assemblyParts, assemblyPlacements } = await import('../src/assembly.ts')
+  const { hingeDefinitions } = await import('../src/hinge-model.ts')
+  const { standDefinitions } = await import('../src/stand-model.ts')
+  const { rowPitch } = await import('../src/model.ts')
+  const sources = {
+    base: [source, baseDefinitions],
+    hinge: [await fs.readFile(new URL('../src/models/hinge.scad', import.meta.url), 'utf8'), hingeDefinitions],
+    stand: [await fs.readFile(new URL('../src/models/stand.scad', import.meta.url), 'utf8'), standDefinitions],
+  }
+  for (const [columns, rows] of [[1, 1], [2, 2], [3, 3]]) {
+    const params = {...defaultBaseParameters, columns, rows}
+    for (const hingeExtended of [false, true]) {
+      const placements = assemblyPlacements(params, { standExtended: false, hingeExtended })
+      assert.equal(placements.hinge.length, rows)
+      for (const part of assemblyParts) {
+        const [partSource, definitions] = sources[part]
+        const instance = await OpenSCAD({noInitialRun:true, wasmBinary, print:()=>{}, printErr:()=>{}})
+        instance.FS.writeFile('/part.scad', partSource)
+        assert.equal(instance.callMain(['/part.scad', ...definitions(params), '--export-format', 'binstl', '-o', '/part.stl']), 0)
+        const geometry = new STLLoader().parse(instance.FS.readFile('/part.stl').slice().buffer)
+        for (const placement of placements[part]) {
+          // Transform the way the preview does; it must agree with applyPlacement.
+          const placed = geometry.clone()
+          placed.rotateX(placement.rotationX)
+          placed.translate(...placement.offset)
+          const position = geometry.attributes.position
+          const expected = applyPlacement(placement, [position.getX(0), position.getY(0), position.getZ(0)])
+          near(placed.attributes.position.getX(0), expected[0]); near(placed.attributes.position.getY(0), expected[1]); near(placed.attributes.position.getZ(0), expected[2])
+          placed.computeBoundingBox()
+          near(placed.boundingBox.min.x, -placed.boundingBox.max.x)
+          placed.dispose()
+        }
+        geometry.dispose()
+      }
+      const { hingeCenter, hingeCenter2, start, atHeight, midCut1 } = baseEndGeometry(params)
+      const centre = hingeExtended ? hingeCenter : hingeCenter2
+      // The plate direction follows outer 1 → outer 2 when extended, else outer 2 → mid cut 1.
+      const [ty, tz] = hingeExtended ? [atHeight.y - start.y, atHeight.z - start.z] : [midCut1.y - atHeight.y, midCut1.z - atHeight.z]
+      const length = Math.hypot(ty, tz)
+      placements.hinge.forEach((placement, row) => {
+        const axis = applyPlacement(placement, [0, 0, 0])
+        near(axis[1], centre.y - row * rowPitch(params)); near(axis[2], centre.z)
+        const along = applyPlacement(placement, [0, 1, 0])
+        near(along[1] - axis[1], ty / length); near(along[2] - axis[2], tz / length)
+        // Local Z (the extrusion direction) is perpendicular to that line.
+        const normal = applyPlacement(placement, [0, 0, 1])
+        near((normal[1] - axis[1]) * ty + (normal[2] - axis[2]) * tz, 0)
+      })
+    }
+  }
+  console.log('PASS: assembly centres parts on X = 0 and places one hinge per row on hinge centre 1 (extended) or 2')
+}

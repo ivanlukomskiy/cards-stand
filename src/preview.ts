@@ -5,6 +5,8 @@ import { STLLoader } from 'three/addons/loaders/STLLoader.js'
 export interface PreviewPart {
   stl: ArrayBuffer
   color: string
+  // Copies to show, each rotated about X then translated in OpenSCAD's Z-up axes; one untransformed copy if omitted.
+  placements?: readonly { rotationX: number; offset: readonly [number, number, number] }[]
 }
 
 // OpenSCAD supplies geometry in millimeters; Three.js only displays it.
@@ -55,20 +57,16 @@ export class BasePreview {
   // Replace the displayed meshes; returns the combined size in OpenSCAD's Z-up axes.
   setParts(parts: readonly PreviewPart[]) {
     const bounds = new THREE.Box3()
-    const meshes = parts.map(({ stl, color }) => {
-      const geometry = new STLLoader().parse(stl)
-      geometry.computeBoundingBox()
-      bounds.union(geometry.boundingBox!)
-      // OpenSCAD uses Z-up; this viewport uses Y-up.
-      geometry.rotateX(-Math.PI / 2)
-      geometry.computeVertexNormals()
-      const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color, roughness: 0.65 }))
-      const edgeColor = new THREE.Color(color).lerp(new THREE.Color('#ffffff'), 0.45)
-      mesh.add(new THREE.LineSegments(
-        new THREE.EdgesGeometry(geometry),
-        new THREE.LineBasicMaterial({ color: edgeColor, transparent: true, opacity: 0.55 }),
-      ))
-      return mesh
+    const meshes = parts.flatMap(({ stl, color, placements }) => {
+      const source = new STLLoader().parse(stl)
+      const copies = (placements ?? [{ rotationX: 0, offset: [0, 0, 0] as const }]).map(({ rotationX, offset }) => {
+        const geometry = source.clone()
+        geometry.rotateX(rotationX)
+        geometry.translate(...offset)
+        return geometry
+      })
+      source.dispose()
+      return copies.map(geometry => this.createMesh(geometry, color, bounds))
     })
     this.clearParts()
     this.parts.add(...meshes)
@@ -86,6 +84,22 @@ export class BasePreview {
     this.controls.minDistance = side * 0.03
     this.controls.maxDistance = Math.max(side * 40, 100000)
     return size
+  }
+
+  // Build a coloured mesh with edges from Z-up geometry, adding its extent to `bounds`.
+  private createMesh(geometry: THREE.BufferGeometry, color: string, bounds: THREE.Box3) {
+    geometry.computeBoundingBox()
+    bounds.union(geometry.boundingBox!)
+    // OpenSCAD uses Z-up; this viewport uses Y-up.
+    geometry.rotateX(-Math.PI / 2)
+    geometry.computeVertexNormals()
+    const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color, roughness: 0.65 }))
+    const edgeColor = new THREE.Color(color).lerp(new THREE.Color('#ffffff'), 0.45)
+    mesh.add(new THREE.LineSegments(
+      new THREE.EdgesGeometry(geometry),
+      new THREE.LineBasicMaterial({ color: edgeColor, transparent: true, opacity: 0.55 }),
+    ))
+    return mesh
   }
 
   fit() {

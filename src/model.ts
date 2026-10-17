@@ -71,6 +71,11 @@ export function cellSemiRaisedProfiles(params: BaseParameters): number[][][] {
   return [right, left]
 }
 
+// Rows advance in -Y by this pitch.
+export function rowPitch(params: BaseParameters) {
+  return params.cellLength + params.wallThickness * 2 + (params.hingeThickness + params.hingeTolerance) / Math.sin(params.baseAngle * Math.PI / 180)
+}
+
 // Pass the same sketch coordinates to OpenSCAD that the SVG uses.
 export function baseDefinitions(params: BaseParameters): string[] {
   validateBaseParameters(params)
@@ -94,7 +99,7 @@ export function baseDefinitions(params: BaseParameters): string[] {
     rows: params.rows,
     columns: params.columns,
     column_pitch: params.cellWidth + params.wallThickness,
-    row_pitch: params.cellLength + params.wallThickness * 2 + (params.hingeThickness + params.hingeTolerance) / Math.sin(params.baseAngle * Math.PI / 180),
+    row_pitch: rowPitch(params),
     wall_thickness: params.wallThickness,
     // Computed here so sheared cell faces coincide exactly with base end points built from the same slope.
     shear: slope,
