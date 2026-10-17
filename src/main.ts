@@ -3,6 +3,7 @@ import { BasePreview } from './preview'
 import { cellSketch } from './sketch'
 import { baseEndSketch } from './base-end-sketch'
 import { hingeTopSketch } from './hinge-top-sketch'
+import { hingeSideSketch } from './hinge-side-sketch'
 import { validateBaseParameters } from './model'
 import type { BaseParameters } from './model'
 import type { ModelName } from './openscad.worker'
@@ -86,6 +87,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         <button id="cell-tab" class="active" type="button" role="tab" aria-selected="true" aria-controls="cell-sketch-panel">Cell top</button>
         <button id="base-end-tab" type="button" role="tab" aria-selected="false" aria-controls="base-end-sketch-panel" tabindex="-1">Cell side</button>
         <button id="hinge-top-tab" type="button" role="tab" aria-selected="false" aria-controls="hinge-top-sketch-panel" tabindex="-1">Hinge top</button>
+        <button id="hinge-side-tab" type="button" role="tab" aria-selected="false" aria-controls="hinge-side-sketch-panel" tabindex="-1">Hinge side</button>
       </div>
       <div id="cell-sketch-panel" class="sketch-panel" role="tabpanel" aria-labelledby="cell-tab">
         ${cellSketch()}
@@ -95,6 +97,9 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       </div>
       <div id="hinge-top-sketch-panel" class="sketch-panel" role="tabpanel" aria-labelledby="hinge-top-tab" hidden>
         ${hingeTopSketch()}
+      </div>
+      <div id="hinge-side-sketch-panel" class="sketch-panel" role="tabpanel" aria-labelledby="hinge-side-tab" hidden>
+        ${hingeSideSketch()}
       </div>
     </section>
     <section id="model-view" class="preview-view" aria-label="Interactive 3D model preview" hidden>
@@ -117,11 +122,13 @@ const sketchView = document.querySelector<HTMLElement>('#sketch-view')!
 const cellPanel = document.querySelector<HTMLElement>('#cell-sketch-panel')!
 const baseEndPanel = document.querySelector<HTMLElement>('#base-end-sketch-panel')!
 const hingeTopPanel = document.querySelector<HTMLElement>('#hinge-top-sketch-panel')!
-const sketchPanels = [cellPanel, baseEndPanel, hingeTopPanel]
+const hingeSidePanel = document.querySelector<HTMLElement>('#hinge-side-sketch-panel')!
+const sketchPanels = [cellPanel, baseEndPanel, hingeTopPanel, hingeSidePanel]
 const sketchTabs = [
   document.querySelector<HTMLButtonElement>('#cell-tab')!,
   document.querySelector<HTMLButtonElement>('#base-end-tab')!,
   document.querySelector<HTMLButtonElement>('#hinge-top-tab')!,
+  document.querySelector<HTMLButtonElement>('#hinge-side-tab')!,
 ]
 const selectSketch = (index: number) => {
   sketchPanels.forEach((panel, i) => { panel.hidden = i !== index })
@@ -303,6 +310,7 @@ try {
     cellPanel.innerHTML = cellSketch(params)
     baseEndPanel.innerHTML = baseEndSketch(params)
     hingeTopPanel.innerHTML = hingeTopSketch(params)
+    hingeSidePanel.innerHTML = hingeSideSketch(params)
     timer = setTimeout(build, 250)
   }
   Object.values(parameterInputs).forEach(field => field.addEventListener('input', onParametersChanged))

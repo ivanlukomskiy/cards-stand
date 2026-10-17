@@ -1,4 +1,5 @@
-import { hingeOutline } from './hinge-top-sketch.ts'
+import { hingeBridgePoints, hingeInnerPoints, hingeOuterPoints, hingeOutline } from './hinge-top-sketch.ts'
+import { hingeSideGeometry } from './hinge-side-sketch.ts'
 import type { fillet } from './hinge-top-sketch.ts'
 import { validateBaseParameters } from './model.ts'
 import type { BaseParameters } from './model.ts'
@@ -35,9 +36,21 @@ export function hingeOutlinePoints(params: BaseParameters): number[][] {
 
 export function hingeDefinitions(params: BaseParameters): string[] {
   validateBaseParameters(params)
+  const { radius, centre } = hingeSideGeometry(params)
+  const inner3 = hingeInnerPoints(params)[2]!
+  const [, , outer3, outer4] = hingeOuterPoints(params)
+  const [bridge1, bridge2] = hingeBridgePoints(params)
   const definitions = {
     wall_thickness: params.wallThickness,
     hinge_outline_points: hingeOutlinePoints(params),
+    circle_centre: [centre.y, centre.z],
+    circle_radius: radius,
+    circle_x: inner3.x,
+    circle_length: params.hingeProfileWidth + params.wallThickness,
+    // Outer 3 → outer 4 → bridge 2 → bridge 1.
+    bridge_points: [outer3!, outer4!, bridge2!, bridge1!].map(({ x, y }) => [x, y]),
+    columns: params.columns,
+    column_pitch: params.cellWidth + params.wallThickness,
   }
   return Object.entries(definitions).flatMap(([name, value]) => ['-D', `${name}=${JSON.stringify(value)}`])
 }

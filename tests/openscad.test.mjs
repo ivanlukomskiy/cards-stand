@@ -194,11 +194,13 @@ for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, column
   console.log(`PASS: ${params.rows} × ${params.columns} cells, ${params.baseAngle}°: purple outline cut through every row except outer walls`)
 }
 
-// The hinge is the Hinge top blue outline extruded along Z by wall thickness.
+// The hinge is the Hinge top blue outline extruded symmetrically about Z = 0, plus the Hinge side circle extruded along X from inner 3, both mirrored across ZOY, repeated per column at the cell pitch, with green bridges between neighbours only.
 {
   const { hingeDefinitions, hingeOutlinePoints } = await import('../src/hinge-model.ts')
+  const { hingeSideGeometry } = await import('../src/hinge-side-sketch.ts')
+  const { hingeInnerPoints, hingeOuterPoints } = await import('../src/hinge-top-sketch.ts')
   const hingeSource = await fs.readFile(new URL('../src/models/hinge.scad', import.meta.url), 'utf8')
-  for (const changes of [{}, { hingeProfileWidth: 4, wallThickness: 3 }]) {
+  for (const changes of [{ columns: 1 }, { columns: 3, hingeProfileWidth: 4, wallThickness: 3 }, {}]) {
     const params = {...defaultBaseParameters, ...changes}
     const instance = await OpenSCAD({noInitialRun:true, wasmBinary, print:()=>{}, printErr:()=>{}})
     instance.FS.writeFile('/hinge.scad', hingeSource)
@@ -206,12 +208,40 @@ for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, column
     const geometry = new STLLoader().parse(instance.FS.readFile('/hinge.stl').slice().buffer)
     geometry.computeBoundingBox()
     const { min, max } = geometry.boundingBox
-    near(min.x, 0)
-    near(max.x, params.cellWidth / 2)
-    near(min.y, 0)
+    const radius = hingeSideGeometry(params).radius
+    const circleStart = hingeInnerPoints(params)[2].x
+    const circleLength = params.hingeProfileWidth + params.wallThickness
+    const colPitch = params.cellWidth + params.wallThickness
+    const last = (params.columns - 1) * colPitch
+    near(min.x, -(circleStart + circleLength))
+    near(max.x, last + circleStart + circleLength)
+    near(min.y, -radius)
     near(max.y, params.hingeHeight)
-    near(min.z, 0)
-    near(max.z, params.wallThickness)
+    near(min.z, -params.wallThickness / 2)
+    near(max.z, params.wallThickness / 2)
+    // Below Y = 0 only the circle extrusions remain, from ±inner 3 for hinge profile width + wall thickness; neighbours' cylinders overlap and merge.
+    const material = new MeshBasicMaterial({side:DoubleSide})
+    const mesh = new Mesh(geometry, material)
+    mesh.updateMatrixWorld()
+    const xs = new Raycaster(new Vector3(-1000, -radius / 2, 0), new Vector3(1,0,0)).intersectObject(mesh)
+      .map(hit=>hit.point.x).filter((x,i,all)=>i===0 || Math.abs(x-all[i-1])>1e-5)
+    assert.deepEqual(xs.map(x => Math.round(x*1e4)/1e4), [-(circleStart + circleLength), ...Array.from({length: params.columns}, (_, column) => [column*colPitch - circleStart, column*colPitch + circleStart]).flat(), last + circleStart + circleLength].map(x => Math.round(x*1e4)/1e4))
+    // Through the first hinge's plate near the top, the mirrored halves are fused: only its two outer edges are crossed.
+    const topXs = new Raycaster(new Vector3(-colPitch / 2, params.hingeHeight - params.hingeProfileWidth / 2, 0), new Vector3(1,0,0)).intersectObject(mesh)
+      .map(hit=>hit.point.x).filter(x => x < colPitch / 2).filter((x,i,all)=>i===0 || Math.abs(x-all[i-1])>1e-5)
+    assert.equal(topXs.length, 2, 'Mirrored halves must fuse at X = 0')
+    near(topXs[0], -topXs[1])
+    // Bridges fill the gaps between neighbouring plates, but not the model's outer sides.
+    const bridgeY = hingeOuterPoints(params)[2].y / 2
+    const bridgeXs = new Raycaster(new Vector3(-1000, bridgeY, 0), new Vector3(1,0,0)).intersectObject(mesh)
+      .map(hit=>hit.point.x).filter((x,i,all)=>i===0 || Math.abs(x-all[i-1])>1e-5)
+    const inside = x => bridgeXs.filter(hitX => hitX < x).length % 2 === 1
+    assert.equal(inside(-params.cellWidth/2 - params.wallThickness/2), false, 'No bridge at the left side')
+    assert.equal(inside(last + params.cellWidth/2 + params.wallThickness/2), false, 'No bridge at the right side')
+    for (let column = 0; column < params.columns - 1; column++) {
+      assert.equal(inside(column*colPitch + params.cellWidth/2 + params.wallThickness/2), true, 'Bridge between neighbours')
+    }
+    material.dispose()
     const outline = hingeOutlinePoints(params)
     const area = Math.abs(outline.reduce((sum, p, i) => {
       const q = outline[(i + 1) % outline.length]
@@ -225,8 +255,13 @@ for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, column
       const c = [position.getX(i+2), position.getY(i+2), position.getZ(i+2)]
       volume += (a[0]*(b[1]*c[2]-b[2]*c[1]) + a[1]*(b[2]*c[0]-b[0]*c[2]) + a[2]*(b[0]*c[1]-b[1]*c[0])) / 6
     }
-    assert.ok(Math.abs(Math.abs(volume) - area * params.wallThickness) < area * params.wallThickness * 1e-5, `Unexpected hinge volume ${volume}`)
+    // The plate covers the circle's +Y half between inner 3 and outer 4; the 64-gon stands in for the circle.
+    const circleArea = 32 * radius ** 2 * Math.sin(2 * Math.PI / 64)
+    // Neighbouring hinges' cylinders overlap for one wall thickness; each bridge adds its slab minus the cylinders' +Y half inside it.
+    const bridgeVolume = params.wallThickness * hingeOuterPoints(params)[2].y * params.wallThickness - circleArea / 2 * params.wallThickness
+    const expected = params.columns * 2 * (area * params.wallThickness + circleArea * circleLength - circleArea / 2 * params.hingeProfileWidth) - (params.columns - 1) * (circleArea * params.wallThickness - bridgeVolume)
+    assert.ok(Math.abs(Math.abs(volume) - expected) < expected * 1e-5, `Unexpected hinge volume ${volume}; expected ${expected}`)
     geometry.dispose()
-    console.log(`PASS: hinge, ${params.hingeProfileWidth} mm profile width: blue outline extruded by ${params.wallThickness} mm`)
+    console.log(`PASS: ${params.columns} hinges, ${params.hingeProfileWidth} mm profile width: symmetric ${params.wallThickness} mm plate with circle along X from inner 3, mirrored across ZOY, bridged between neighbours`)
   }
 }
