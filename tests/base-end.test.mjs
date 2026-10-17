@@ -4,20 +4,30 @@ import { defaultBaseParameters, validateBaseParameters } from '../src/model.ts'
 import { hingeBridgePoints, hingeInnerPoints, hingeOuterPoints, hingeOutline, hingeTopSketch } from '../src/hinge-top-sketch.ts'
 
 const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-8, `${a} != ${b}`)
-for (const standAngle of [15, 45, 80, 90, 120, 170]) {
-  const { center, radius, outer3, outer4, rest1, atHeight } = baseEndGeometry({...defaultBaseParameters, standAngle})
+for (const standAngle of [25, 45, 80, 90, 120, 155]) {
+  const params = {...defaultBaseParameters, standAngle}
+  const { center, radius, arcRadius, outer3, outer4, outer5, rest1, atHeight } = baseEndGeometry(params)
+  near(arcRadius, radius + params.standTolerance)
+  // Outer 5 is where the enlarged circle crosses Z = 0, on the +Y side of the centre.
+  near(outer5.z, 0)
+  near(Math.hypot(outer5.y - center.y, outer5.z - center.z), arcRadius)
+  assert.ok(outer5.y > center.y)
   const dy = outer3.y - outer4.y
   const dz = outer3.z - outer4.z
   near(Math.atan2(dz, dy) * 180 / Math.PI, standAngle)
   near(outer3.z, rest1.z)
   near(outer3.z, atHeight.z)
-  near(Math.hypot(outer4.y - center.y, outer4.z - center.z), radius)
+  near(Math.hypot(outer4.y - center.y, outer4.z - center.z), arcRadius)
   // The tangent is perpendicular to the radius at outer 4.
   near(dy * (outer4.y - center.y) + dz * (outer4.z - center.z), 0)
   console.log(`PASS: ${standAngle}° stand tangent and horizontal intersection`)
 }
 assert.throws(() => validateBaseParameters({...defaultBaseParameters, standAngle: 0}))
 assert.throws(() => validateBaseParameters({...defaultBaseParameters, standAngle: 180}))
+// With the default stand tolerance, outer 4 would leave the base below about 22.6° or above about 157.4°.
+assert.throws(() => validateBaseParameters({...defaultBaseParameters, standAngle: 20}))
+assert.throws(() => validateBaseParameters({...defaultBaseParameters, standAngle: 160}))
+validateBaseParameters({...defaultBaseParameters, standAngle: 15, standTolerance: 0})
 
 for (const baseAngle of [15, 45, 90]) {
   const params = {...defaultBaseParameters, baseAngle}

@@ -16,6 +16,8 @@ The 3D tab switches between models: Base, Bolt (the Bolt sketch's red circle ext
 
 In the cell sketch and row layout, the hinge span along Y is `(hinge thickness + hinge tolerance) / sin(base angle)`, with top points at `wall thickness + (hinge thickness + hinge tolerance) / sin(base angle)`. X coordinates retain the original hinge tolerance; extrusion distances along Z are unchanged.
 
+Outer 4 sits on the base end circle with its radius increased by `stand tolerance` (same centre); outer 3 is where the line from outer 4 at the stand angle meets Z = base height, and outer 5 is where the enlarged circle crosses Z = 0 on the +Y side of the centre. The stand angle must keep outer 4 between Z = 0 and base height.
+
 The base end polygon (rest 1 → outer 2 → outer 1 → rest 2) is extruded along X across the full model width and fused to row 0 along its outer 1–outer 2 face. The yellow outline (rest 2 → outer 5 → arc → outer 4 → outer 3 → rest 1, closed back to rest 2) is extruded the same way but inset by `2 * wall thickness` from each side. The pink circle (diameter `base height - 2 * wall thickness - stand hinge tolerance`, concentric with the helper circle) is drilled through the yellow extrusion along X, with 45° chamfers of `wall thickness / 2` at both ends. Neither extrusion is subtracted by the hinge cuts.
 
 The purple outline from the Base end sketch (outer 2 → mid cut 1 → mid cut 2 → arc → mid cut 3 → hinge circle 2 bottom → arc → its tangent point on outer 1–outer 2) is shifted toward +Y by `cutOutlineEpsilon` (0.001 mm) and cut along X through every row, between the inner faces of the two outer side walls, so only those walls remain in that region.

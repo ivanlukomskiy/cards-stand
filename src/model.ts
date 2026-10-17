@@ -7,6 +7,7 @@ export interface BaseParameters extends CellSketchParameters {
   columns: number
   standAngle: number
   standHingeTolerance: number
+  standTolerance: number
   hingeTopWidth: number
   hingeHeight: number
   boltTolerance: number
@@ -15,7 +16,7 @@ export interface BaseParameters extends CellSketchParameters {
 }
 
 export const defaultBaseParameters: BaseParameters = {
-  ...defaultSketchParameters, rows: 2, columns: 2, standAngle: 80, standHingeTolerance: 0.1, hingeTopWidth: 22, hingeHeight: 58, boltTolerance: 0.1, boltLength: 10, baseAngle: 45, baseHeight: 12,
+  ...defaultSketchParameters, rows: 2, columns: 2, standAngle: 80, standHingeTolerance: 0.1, standTolerance: 0.5, hingeTopWidth: 22, hingeHeight: 58, boltTolerance: 0.1, boltLength: 10, baseAngle: 45, baseHeight: 12,
 }
 
 export function validateBaseParameters(params: BaseParameters) {
@@ -34,6 +35,12 @@ export function validateBaseParameters(params: BaseParameters) {
   }
   if (params.standAngle <= 0 || params.standAngle >= 180) {
     throw new Error('Stand angle must be greater than 0° and less than 180°.')
+  }
+  // Outer 4 lies on the base end circle enlarged by the stand tolerance; it must stay between Z = 0 and base height.
+  const radius = params.baseHeight / 2
+  const limit = Math.acos(Math.min(1, radius / (radius + params.standTolerance))) * 180 / Math.PI
+  if (params.standAngle < limit || params.standAngle > 180 - limit) {
+    throw new Error(`Stand angle must be between ${limit.toFixed(1)}° and ${(180 - limit).toFixed(1)}° for this stand tolerance and base height.`)
   }
   if (params.baseAngle <= 0 || params.baseAngle > 90) {
     throw new Error('Base angle must be greater than 0° and at most 90°.')

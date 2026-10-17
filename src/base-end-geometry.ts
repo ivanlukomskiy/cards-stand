@@ -21,13 +21,21 @@ export function baseEndGeometry(params: BaseParameters) {
   // Move the circle and its dependent points left by the rest-line offset.
   center.y += rest1.y - atHeight.y
   const standAngle = params.standAngle * Math.PI / 180
+  // Outer 4 sits on the circle's radius increased by the stand tolerance, about the same centre.
+  const arcRadius = radius + params.standTolerance
   const outer4 = {
-    y: center.y + radius * Math.sin(standAngle),
-    z: center.z - radius * Math.cos(standAngle),
+    y: center.y + arcRadius * Math.sin(standAngle),
+    z: center.z - arcRadius * Math.cos(standAngle),
   }
+  // Outer 3: the line from outer 4 at the stand angle, tangent to the enlarged circle, meets Z = base height.
   const outer3 = {
-    y: center.y + radius / Math.tan(standAngle / 2),
+    y: outer4.y + (atHeight.z - outer4.z) * Math.cos(standAngle) / Math.sin(standAngle),
     z: atHeight.z,
+  }
+  // Outer 5: the enlarged circle crosses Z = 0 on the +Y side of the centre; the arc is no longer tangent there.
+  const outer5 = {
+    y: center.y + Math.sqrt(Math.max(0, arcRadius ** 2 - center.z ** 2)),
+    z: 0,
   }
   // Keep the hinge circles tangent to outer 1–outer 2 on its negative-Y side.
   const hingeRadius = (params.hingeThickness + params.hingeTolerance) / 2
@@ -57,20 +65,23 @@ export function baseEndGeometry(params: BaseParameters) {
   const hinge2Tangent = { y: hingeCenter2.y + hingeRadius * Math.sin(angle), z: hingeCenter2.z - hingeRadius * Math.cos(angle) }
   // The pink circle's diameter is reduced by the stand hinge tolerance.
   const holeRadius = (params.baseHeight - params.wallThickness * 2 - params.standHingeTolerance) / 2
-  return { start, atHeight, slope, center, radius, holeRadius, offsetStart, rest1, rest2, outer3, outer4, hingeCenter, hingeCenter2, hingeCenter3, hingeRadius, midCut1, midCut2, midCut3, hinge2Bottom, hinge2Tangent }
+  return { start, atHeight, slope, center, radius, arcRadius, outer5, holeRadius, offsetStart, rest1, rest2, outer3, outer4, hingeCenter, hingeCenter2, hingeCenter3, hingeRadius, midCut1, midCut2, midCut3, hinge2Bottom, hinge2Tangent }
 }
 
 
 // The yellow outline, closed by rest 1–rest 2, with its arc sampled at 64 segments per turn.
 export function baseEndInnerPoints(params: BaseParameters): number[][] {
-  const { center, radius, outer3, outer4, rest1, rest2 } = baseEndGeometry(params)
-  const sweep = params.standAngle * Math.PI / 180
+  const { center, arcRadius, outer3, outer4, outer5, rest1, rest2 } = baseEndGeometry(params)
+  // The arc runs from outer 5 to outer 4 on the enlarged circle, rising from +Y toward +Z.
+  const from = Math.atan2(outer5.z - center.z, outer5.y - center.y)
+  const to = Math.atan2(outer4.z - center.z, outer4.y - center.y)
+  const sweep = Math.max(0, to - from)
   const segments = Math.max(1, Math.ceil(64 * sweep / (2 * Math.PI)))
-  // The arc runs from outer 5 at the circle bottom to outer 4, rising from +Y toward +Z.
   const arc = Array.from({ length: segments + 1 }, (_, i) => {
-    const angle = -Math.PI / 2 + sweep * i / segments
-    return [center.y + radius * Math.cos(angle), center.z + radius * Math.sin(angle)]
+    const angle = from + sweep * i / segments
+    return [center.y + arcRadius * Math.cos(angle), center.z + arcRadius * Math.sin(angle)]
   })
+  arc[0] = [outer5.y, outer5.z]
   arc[arc.length - 1] = [outer4.y, outer4.z]
   return [[rest2.y, rest2.z], ...arc, [outer3.y, outer3.z], [rest1.y, rest1.z]]
 }

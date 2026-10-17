@@ -80,6 +80,10 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           <input id="stand-hinge-tolerance" name="stand-hinge-tolerance" type="number" min="0" step="0.01" value="0.1" />
         </div>
         <div class="transform-field">
+          <label for="stand-tolerance">Stand tolerance (mm)</label>
+          <input id="stand-tolerance" name="stand-tolerance" type="number" min="0" step="0.01" value="0.5" />
+        </div>
+        <div class="transform-field">
           <label for="bolt-tolerance">Bolt tolerance (mm)</label>
           <input id="bolt-tolerance" name="bolt-tolerance" type="number" min="0" step="0.01" value="0.1" />
         </div>
@@ -221,6 +225,7 @@ const parameterInputs = {
   baseAngle: document.querySelector<HTMLInputElement>('#base-angle')!,
   standAngle: document.querySelector<HTMLInputElement>('#stand-angle')!,
   standHingeTolerance: document.querySelector<HTMLInputElement>('#stand-hinge-tolerance')!,
+  standTolerance: document.querySelector<HTMLInputElement>('#stand-tolerance')!,
   boltTolerance: document.querySelector<HTMLInputElement>('#bolt-tolerance')!,
   boltLength: document.querySelector<HTMLInputElement>('#bolt-length')!,
   baseHeight: document.querySelector<HTMLInputElement>('#base-height')!,
