@@ -178,3 +178,13 @@ console.log('PASS: hinge side circle')
   near(bolt.innerRadius, baseEndGeometry(params).holeRadius - 0.25)
 }
 console.log('PASS: bolt circles')
+
+{
+  const { standSideGeometry } = await import('../src/stand-sketch.ts')
+  const params = {...defaultBaseParameters, standHingeTolerance: 0.3}
+  const stand = standSideGeometry(params)
+  near(stand.outerRadius, (params.baseHeight - 0.3) / 2)
+  near(stand.innerRadius, baseEndGeometry(params).holeRadius)
+  assert.deepEqual([stand.outer1, stand.outer2], [{y: stand.outerRadius, z: 0}, {y: -stand.outerRadius, z: 0}])
+}
+console.log('PASS: stand side circles and green half-circle ends')
