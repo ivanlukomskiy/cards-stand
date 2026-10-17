@@ -13,6 +13,7 @@ export interface CellSketchParameters {
   hingeThickness: number
   hingeWidthBottom: number
   hingeTolerance: number
+  rimWidth: number
 }
 
 export const defaultSketchParameters: CellSketchParameters = {
@@ -22,18 +23,19 @@ export const defaultSketchParameters: CellSketchParameters = {
   hingeThickness: 3,
   hingeWidthBottom: 7,
   hingeTolerance: 0.1,
+  rimWidth: 7,
 }
 
 // Sketch coordinates use millimeters, with Y increasing upward.
 export function cellOuterPoints(params: CellSketchParameters): readonly SketchPoint[] {
   const x = params.cellWidth / 2 + params.wallThickness
-  const top = params.wallThickness * 2 + params.hingeThickness + params.hingeTolerance
+  const top = params.wallThickness + params.hingeThickness + params.hingeTolerance
   const bottom = -params.cellLength - params.wallThickness
   return [
-    { name: 'cell outer 1', x, y: top, xFormula: 'cell width / 2 + wall thickness', yFormula: 'wall thickness * 2 + hinge thickness + hinge tolerance' },
+    { name: 'cell outer 1', x, y: top, xFormula: 'cell width / 2 + wall thickness', yFormula: 'wall thickness + hinge thickness + hinge tolerance' },
     { name: 'cell outer 2', x, y: bottom, xFormula: 'cell width / 2 + wall thickness', yFormula: '-cell length - wall thickness' },
     { name: 'cell outer 3', x: -x, y: bottom, xFormula: '-(cell width / 2 + wall thickness)', yFormula: '-cell length - wall thickness' },
-    { name: 'cell outer 4', x: -x, y: top, xFormula: '-(cell width / 2 + wall thickness)', yFormula: 'wall thickness * 2 + hinge thickness + hinge tolerance' },
+    { name: 'cell outer 4', x: -x, y: top, xFormula: '-(cell width / 2 + wall thickness)', yFormula: 'wall thickness + hinge thickness + hinge tolerance' },
   ]
 }
 
@@ -70,13 +72,34 @@ export function hingeCutLeftPoints(params: CellSketchParameters): readonly Sketc
   }))
 }
 
+export function rimRightPoints(params: CellSketchParameters): readonly SketchPoint[] {
+  const right = cellOuterPoints(params)[1]!
+  const inner = cellInnerPoints(params)[1]!
+  const left = right.x - params.wallThickness - params.rimWidth
+  return [
+    { name: 'rim R 1', x: right.x, y: inner.y, xFormula: right.xFormula, yFormula: inner.yFormula },
+    { name: 'rim R 2', x: left, y: inner.y, xFormula: 'cell width / 2 - rim width', yFormula: inner.yFormula },
+    { name: 'rim R 3', x: left, y: inner.y - params.wallThickness, xFormula: 'cell width / 2 - rim width', yFormula: '-cell length - wall thickness' },
+  ]
+}
+
+export function rimLeftPoints(params: CellSketchParameters): readonly SketchPoint[] {
+  return rimRightPoints(params).map(point => ({
+    ...point,
+    name: point.name.replace(' R ', ' L '),
+    x: -point.x,
+    xFormula: `-(${point.xFormula})`,
+  }))
+}
+
 export function cellSketch(params: CellSketchParameters = defaultSketchParameters) {
   const outerPoints = cellOuterPoints(params)
   const innerPoints = cellInnerPoints(params)
   const rightHingePoints = hingeCutRightPoints(params)
   const leftHingePoints = hingeCutLeftPoints(params)
   const hingePoints = [...rightHingePoints, ...leftHingePoints]
-  const points = [...outerPoints, ...innerPoints, ...hingePoints]
+  const rimPoints = [...rimRightPoints(params), ...rimLeftPoints(params)]
+  const points = [...outerPoints, ...innerPoints, ...hingePoints, ...rimPoints]
   const minX = Math.min(...points.map(point => point.x), 0)
   const maxX = Math.max(...points.map(point => point.x), 0)
   const bottom = Math.min(...points.map(point => point.y))
@@ -101,7 +124,7 @@ export function cellSketch(params: CellSketchParameters = defaultSketchParameter
         <polygon class="sketch-outline sketch-hinge-outline" points="${rectangle.map(p => `${p.x},${-p.y}`).join(' ')}" />
       `).join('')}
       ${points.map(p => `
-        <g data-label-x="${p.x + (p.x < 0 ? 2 : -2) * unit}" data-label-y="${-p.y + (p.y < 0 ? 4 : -2) * unit}" data-label-anchor="${p.x < 0 ? 'start' : 'end'}" data-label-size="${3 * unit}" data-point-name="${p.name}" data-x-formula="${p.xFormula}" data-y-formula="${p.yFormula}" data-x="${p.x}" data-y="${p.y}" class="sketch-vertex${hingePoints.includes(p) ? ' sketch-hinge-vertex' : innerPoints.includes(p) ? ' sketch-inner-vertex' : ''}">
+        <g data-label-x="${p.x + (p.x < 0 ? 2 : -2) * unit}" data-label-y="${-p.y + (p.y < 0 ? 4 : -2) * unit}" data-label-anchor="${p.x < 0 ? 'start' : 'end'}" data-label-size="${3 * unit}" data-point-name="${p.name}" data-x-formula="${p.xFormula}" data-y-formula="${p.yFormula}" data-x="${p.x}" data-y="${p.y}" class="sketch-vertex${rimPoints.includes(p) ? ' sketch-rim-vertex' : hingePoints.includes(p) ? ' sketch-hinge-vertex' : innerPoints.includes(p) ? ' sketch-inner-vertex' : ''}">
           <title>${p.name}: (${p.x}, ${p.y}) mm</title>
           <circle class="sketch-vertex-dot" cx="${p.x}" cy="${-p.y}" r="${0.7 * unit}" />
         </g>

@@ -12,6 +12,14 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       <summary>Parameters</summary>
       <div class="sidebar-section-content">
         <div class="transform-field">
+          <label for="cells-rows">Cells rows</label>
+          <input id="cells-rows" name="cells-rows" type="number" min="1" step="1" value="2" />
+        </div>
+        <div class="transform-field">
+          <label for="cell-columns">Cell columns</label>
+          <input id="cell-columns" name="cell-columns" type="number" min="1" step="1" value="2" />
+        </div>
+        <div class="transform-field">
           <label for="cell-width">Cell width (mm)</label>
           <input id="cell-width" name="cell-width" type="number" min="0.1" step="0.1" value="64" />
         </div>
@@ -38,6 +46,10 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         <div class="transform-field">
           <label for="hinge-tolerance">Hinge tolerance (mm)</label>
           <input id="hinge-tolerance" name="hinge-tolerance" type="number" min="0" step="0.01" value="0.1" />
+        </div>
+        <div class="transform-field">
+          <label for="rim-width">Rim width (mm)</label>
+          <input id="rim-width" name="rim-width" type="number" min="0" step="0.1" value="7" />
         </div>
         <div class="transform-field">
           <label for="base-angle">Base angle (°)</label>
@@ -106,6 +118,7 @@ const sketchInputs = {
   hingeThickness: document.querySelector<HTMLInputElement>('#hinge-thickness')!,
   hingeWidthBottom: document.querySelector<HTMLInputElement>('#hinge-width-bottom')!,
   hingeTolerance: document.querySelector<HTMLInputElement>('#hinge-tolerance')!,
+  rimWidth: document.querySelector<HTMLInputElement>('#rim-width')!,
 }
 const updateSketch = () => {
   const fields = Object.values(sketchInputs)
@@ -120,6 +133,7 @@ const updateSketch = () => {
     hingeThickness: sketchInputs.hingeThickness.valueAsNumber,
     hingeWidthBottom: sketchInputs.hingeWidthBottom.valueAsNumber,
     hingeTolerance: sketchInputs.hingeTolerance.valueAsNumber,
+    rimWidth: sketchInputs.rimWidth.valueAsNumber,
   })
 }
 Object.values(sketchInputs).forEach(field => field.addEventListener('input', updateSketch))
