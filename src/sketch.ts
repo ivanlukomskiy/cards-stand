@@ -7,6 +7,7 @@ export interface SketchPoint {
 }
 
 export interface CellSketchParameters {
+  baseAngle: number
   cellWidth: number
   cellLength: number
   wallThickness: number
@@ -17,6 +18,7 @@ export interface CellSketchParameters {
 }
 
 export const defaultSketchParameters: CellSketchParameters = {
+  baseAngle: 45,
   cellWidth: 64,
   cellLength: 24,
   wallThickness: 2,
@@ -29,13 +31,13 @@ export const defaultSketchParameters: CellSketchParameters = {
 // Sketch coordinates use millimeters, with Y increasing upward.
 export function cellOuterPoints(params: CellSketchParameters): readonly SketchPoint[] {
   const x = params.cellWidth / 2 + params.wallThickness
-  const top = params.wallThickness + params.hingeThickness + params.hingeTolerance
+  const top = params.wallThickness + params.hingeThickness + params.hingeTolerance * Math.sin(params.baseAngle * Math.PI / 180)
   const bottom = -params.cellLength - params.wallThickness
   return [
-    { name: 'cell outer 1', x, y: top, xFormula: 'cell width / 2 + wall thickness', yFormula: 'wall thickness + hinge thickness + hinge tolerance' },
+    { name: 'cell outer 1', x, y: top, xFormula: 'cell width / 2 + wall thickness', yFormula: 'wall thickness + hinge thickness + hinge tolerance * sin(base angle)' },
     { name: 'cell outer 2', x, y: bottom, xFormula: 'cell width / 2 + wall thickness', yFormula: '-cell length - wall thickness' },
     { name: 'cell outer 3', x: -x, y: bottom, xFormula: '-(cell width / 2 + wall thickness)', yFormula: '-cell length - wall thickness' },
-    { name: 'cell outer 4', x: -x, y: top, xFormula: '-(cell width / 2 + wall thickness)', yFormula: 'wall thickness + hinge thickness + hinge tolerance' },
+    { name: 'cell outer 4', x: -x, y: top, xFormula: '-(cell width / 2 + wall thickness)', yFormula: 'wall thickness + hinge thickness + hinge tolerance * sin(base angle)' },
   ]
 }
 
@@ -53,12 +55,12 @@ export function hingeCutRightPoints(params: CellSketchParameters): readonly Sket
   const right = params.cellWidth / 2
   const left = right - params.hingeWidthBottom - params.hingeTolerance - params.wallThickness
   const bottom = params.wallThickness
-  const top = bottom + params.hingeThickness + params.hingeTolerance
+  const top = bottom + params.hingeThickness + params.hingeTolerance * Math.sin(params.baseAngle * Math.PI / 180)
   return [
-    { name: 'hinge cut R 1', x: right, y: top, xFormula: 'cell width / 2', yFormula: 'wall thickness + hinge thickness + hinge tolerance' },
+    { name: 'hinge cut R 1', x: right, y: top, xFormula: 'cell width / 2', yFormula: 'wall thickness + hinge thickness + hinge tolerance * sin(base angle)' },
     { name: 'hinge cut R 2', x: right, y: bottom, xFormula: 'cell width / 2', yFormula: 'wall thickness' },
     { name: 'hinge cut R 3', x: left, y: bottom, xFormula: 'cell width / 2 - hinge width bottom - hinge tolerance - wall thickness', yFormula: 'wall thickness' },
-    { name: 'hinge cut R 4', x: left, y: top, xFormula: 'cell width / 2 - hinge width bottom - hinge tolerance - wall thickness', yFormula: 'wall thickness + hinge thickness + hinge tolerance' },
+    { name: 'hinge cut R 4', x: left, y: top, xFormula: 'cell width / 2 - hinge width bottom - hinge tolerance - wall thickness', yFormula: 'wall thickness + hinge thickness + hinge tolerance * sin(base angle)' },
   ]
 }
 
