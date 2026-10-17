@@ -1,4 +1,4 @@
-import { cellInnerPoints, defaultSketchParameters } from './sketch.ts'
+import { cellInnerPoints, cellOuterPoints, cellMidPoints, hingeCutRightPoints, rimRightPoints, defaultSketchParameters } from './sketch.ts'
 import type { CellSketchParameters } from './sketch.ts'
 
 export interface BaseParameters extends CellSketchParameters {
@@ -23,15 +23,45 @@ export function validateBaseParameters(params: BaseParameters) {
   if (params.cellWidth <= 0 || params.cellLength <= 0 || params.wallThickness <= 0) {
     throw new Error('Cell width, cell length, and wall thickness must be greater than zero.')
   }
+  if (params.baseHeight <= params.hingeThickness + params.hingeTolerance) {
+    throw new Error('Base height must exceed hinge thickness + hinge tolerance.')
+  }
   if (params.baseAngle <= 0 || params.baseAngle > 90) {
     throw new Error('Base angle must be greater than 0° and at most 90°.')
   }
+}
+
+export function cellRaisedProfiles(params: BaseParameters): number[][][] {
+  const outer = cellOuterPoints(params)
+  const inner = cellInnerPoints(params)
+  const mid = cellMidPoints(params)
+  const hinge = hingeCutRightPoints(params)
+  const rim = rimRightPoints(params)
+  // Profiles close automatically back to their first point.
+  const right = [
+    [mid[0]!, hinge[3]!, hinge[2]!, hinge[1]!, hinge[0]!, outer[0]!, rim[0]!, inner[1]!, inner[0]!, mid[2]!],
+    [mid[3]!, rim[1]!, rim[2]!, mid[1]!],
+  ].map(profile => profile.map(({ x, y }) => [x, y]))
+  const left = right.map(profile => profile.map(([x, y]) => [-x!, y!]).reverse())
+  return [...right, ...left]
+}
+
+export function cellRimProfiles(params: BaseParameters): number[][][] {
+  const rim = rimRightPoints(params)
+  const outer = cellOuterPoints(params)
+  const right = [rim[1]!, rim[0]!, outer[1]!, rim[2]!].map(({ x, y }) => [x, y])
+  const left = right.map(([x, y]) => [-x!, y!]).reverse()
+  return [right, left]
 }
 
 // Pass the same sketch coordinates to OpenSCAD that the SVG uses.
 export function baseDefinitions(params: BaseParameters): string[] {
   validateBaseParameters(params)
   const definitions = {
+    raised_profiles: cellRaisedProfiles(params),
+    rim_profiles: cellRimProfiles(params),
+    base_height: params.baseHeight,
+    raised_height: params.baseHeight - params.hingeThickness - params.hingeTolerance,
     cell_inner_points: cellInnerPoints(params).map(({ x, y }) => [x, y]),
     rows: params.rows,
     columns: params.columns,

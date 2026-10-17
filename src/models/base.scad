@@ -1,4 +1,4 @@
-// Parameters and cell_inner_points are supplied by src/model.ts.
+// Parameters and sketch profiles are supplied by src/model.ts.
 // Angle is measured from +Y toward +Z in the YOZ plane.
 module angled_extrusion(z_distance) {
     multmatrix([
@@ -12,9 +12,19 @@ module angled_extrusion(z_distance) {
 }
 
 module cell() {
-    // Extrusion 1: inner rectangle, with wall thickness measured along Z.
-    angled_extrusion(wall_thickness)
-        polygon(points = cell_inner_points);
+    union() {
+        // Extrusion 1: inner rectangle, with wall thickness measured along Z.
+        angled_extrusion(wall_thickness)
+            polygon(points = cell_inner_points);
+        // Two right profiles and their Y-axis mirrors, starting at Z=0.
+        for (profile = raised_profiles)
+            angled_extrusion(raised_height)
+                polygon(points = profile);
+        // Outer rim segments use the full base height.
+        for (profile = rim_profiles)
+            angled_extrusion(base_height)
+                polygon(points = profile);
+    }
 }
 
 union() {
