@@ -46,12 +46,12 @@ export function baseEndGeometry(params: BaseParameters) {
     z: hingeZ,
   }
   const hingeCenter2 = {
-    z: params.baseHeight - params.wallThickness - params.hingeThickness / 2,
-    y: hingeCenter.y + (params.baseHeight - params.wallThickness - params.hingeThickness / 2 - hingeCenter.z) * slope,
+    z: params.baseHeight - params.wallThickness - (params.hingeThickness + params.hingeTolerance) / 2,
+    y: hingeCenter.y + (params.baseHeight - params.wallThickness - (params.hingeThickness + params.hingeTolerance) / 2 - hingeCenter.z) * slope,
   }
-  // Hinge centre 3 lies on hinge centre 2's horizontal, one hinge centre 1–2 distance toward -Y.
+  // Hinge centre 3 lies on hinge centre 2's horizontal, offset toward -Y by the centre distance plus hinge thickness.
   const hingeCenter3 = {
-    y: hingeCenter2.y - Math.hypot(hingeCenter2.y - hingeCenter.y, hingeCenter2.z - hingeCenter.z),
+    y: hingeCenter2.y - Math.hypot(hingeCenter2.y - hingeCenter.y, hingeCenter2.z - hingeCenter.z) - params.hingeThickness,
     z: hingeCenter2.z,
   }
   // Mid cut 1: right of hinge centre 3 by the hinge radius (toward -Y), raised to outer 2's Z.

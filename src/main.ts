@@ -67,6 +67,10 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           <input id="cell-width" name="cell-width" type="number" min="0.1" step="0.1" value="64" />
         </div>
         <div class="transform-field">
+          <label for="cell-mid-cut-width">Cell mid cut width (mm)</label>
+          <input id="cell-mid-cut-width" name="cell-mid-cut-width" type="number" min="0" step="0.1" value="32" />
+        </div>
+        <div class="transform-field">
           <label for="cell-length">Cell length (mm)</label>
           <input id="cell-length" name="cell-length" type="number" min="0.1" step="0.1" value="24" />
         </div>
@@ -280,6 +284,7 @@ const parameterInputs = {
   boltLength: document.querySelector<HTMLInputElement>('#bolt-length')!,
   baseHeight: document.querySelector<HTMLInputElement>('#base-height')!,
   cellWidth: document.querySelector<HTMLInputElement>('#cell-width')!,
+  cellMidCutWidth: document.querySelector<HTMLInputElement>('#cell-mid-cut-width')!,
   cellLength: document.querySelector<HTMLInputElement>('#cell-length')!,
   wallThickness: document.querySelector<HTMLInputElement>('#wall-thickness')!,
   hingeThickness: document.querySelector<HTMLInputElement>('#hinge-thickness')!,

@@ -103,13 +103,13 @@ export function baseEndSketch(params: BaseParameters = defaultBaseParameters) {
       </g>
       <circle class="sketch-helper-circle" cx="${-hingeCenter2.y}" cy="${-hingeCenter2.z}" r="${hingeRadius}" />
       <g class="sketch-vertex" data-point-name="hinge centre 2" data-x="${hingeCenter2.y}" data-y="${hingeCenter2.z}" data-first-axis="Y" data-second-axis="Z"
-        data-x-formula="hinge centre 1 Y + (base height - wall thickness - hinge thickness / 2 - hinge centre 1 Z) / tan(hinge angle)" data-y-formula="base height - wall thickness - hinge thickness / 2"
+        data-x-formula="hinge centre 1 Y + (base height - wall thickness - (hinge thickness + hinge tolerance) / 2 - hinge centre 1 Z) / tan(hinge angle)" data-y-formula="base height - wall thickness - (hinge thickness + hinge tolerance) / 2"
         data-label-x="${-hingeCenter2.y - 2 * unit}" data-label-y="${-hingeCenter2.z - 2 * unit}" data-label-anchor="end" data-label-size="${3 * unit}">
         <circle class="sketch-vertex-dot" cx="${-hingeCenter2.y}" cy="${-hingeCenter2.z}" r="${0.7 * unit}" />
       </g>
       <circle class="sketch-helper-circle" cx="${-hingeCenter3.y}" cy="${-hingeCenter3.z}" r="${hingeRadius}" />
       <g class="sketch-vertex" data-point-name="hinge centre 3" data-x="${hingeCenter3.y}" data-y="${hingeCenter3.z}" data-first-axis="Y" data-second-axis="Z"
-        data-x-formula="hinge centre 2 Y - distance(hinge centre 1, hinge centre 2)" data-y-formula="hinge centre 2 Z"
+        data-x-formula="hinge centre 2 Y - distance(hinge centre 1, hinge centre 2) - hinge thickness" data-y-formula="hinge centre 2 Z"
         data-label-x="${-hingeCenter3.y - 2 * unit}" data-label-y="${-hingeCenter3.z - 2 * unit}" data-label-anchor="end" data-label-size="${3 * unit}">
         <circle class="sketch-vertex-dot" cx="${-hingeCenter3.y}" cy="${-hingeCenter3.z}" r="${0.7 * unit}" />
       </g>

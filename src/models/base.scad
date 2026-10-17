@@ -13,14 +13,18 @@ module angled_extrusion(z_distance) {
 
 module cell() {
     union() {
-        // Extrusion 1: outer rectangle floor, with wall thickness measured along Z.
+        // Extrusion 1: outer rectangle floor minus the mid cut, with thickness measured along Z.
         angled_extrusion(wall_thickness)
-            polygon(points = cell_outer_points);
+            difference() {
+                polygon(points = cell_outer_points);
+                if (cell_mid_cut_width > 0)
+                    polygon(points = cell_mid_cut_points);
+            }
         // Full raised: right side wall and front strip, plus its Y-axis mirror, at the full base height.
         for (profile = full_raised_profiles)
             angled_extrusion(base_height)
                 polygon(points = profile);
-        // Semi raised: back strip between the rims, plus its mirror, lowered by the hinge thickness and tolerance.
+        // Semi raised: back strip between the rims, plus its mirror, lowered by the wall thickness, hinge thickness, and hinge tolerance.
         for (profile = semi_raised_profiles)
             angled_extrusion(semi_raised_height)
                 polygon(points = profile);

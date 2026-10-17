@@ -9,6 +9,7 @@ export interface SketchPoint {
 export interface CellSketchParameters {
   hingeAngle: number
   cellWidth: number
+  cellMidCutWidth: number
   cellLength: number
   wallThickness: number
   hingeThickness: number
@@ -20,6 +21,7 @@ export interface CellSketchParameters {
 export const defaultSketchParameters: CellSketchParameters = {
   hingeAngle: 45,
   cellWidth: 64,
+  cellMidCutWidth: 32,
   cellLength: 24,
   wallThickness: 2,
   hingeThickness: 3,
@@ -83,13 +85,24 @@ export function cellMidPoints(params: CellSketchParameters): readonly SketchPoin
   ]
 }
 
+export function cellMidCutPoints(params: CellSketchParameters): readonly SketchPoint[] {
+  const right = cellMidPoints(params).slice(2).map((point, index) => ({
+    ...point, name: `mid cut R ${index + 1}`, x: params.cellMidCutWidth / 2, xFormula: 'cell mid cut width / 2',
+  }))
+  const left = right.map(point => ({
+    ...point, name: point.name.replace(' R ', ' L '), x: -point.x, xFormula: '-cell mid cut width / 2',
+  }))
+  return [...right, ...left.reverse()]
+}
+
 export function cellSketch(params: CellSketchParameters = defaultSketchParameters) {
   const outerPoints = cellOuterPoints(params)
   const innerPoints = cellInnerPoints(params)
   const rimPoints = [...rimRightPoints(params), ...rimLeftPoints(params)]
   const midPoints = cellMidPoints(params)
   const innerMidPoints = midPoints.slice(2)
-  const points = [...outerPoints, ...innerPoints, ...rimPoints, ...midPoints]
+  const midCutPoints = cellMidCutPoints(params)
+  const points = [...outerPoints, ...innerPoints, ...rimPoints, ...midPoints, ...midCutPoints]
   const minX = Math.min(...points.map(point => point.x), 0)
   const maxX = Math.max(...points.map(point => point.x), 0)
   const bottom = Math.min(...points.map(point => point.y))
@@ -110,6 +123,7 @@ export function cellSketch(params: CellSketchParameters = defaultSketchParameter
       </g>
       <polygon class="sketch-outline" points="${outerPoints.map(p => `${p.x},${-p.y}`).join(' ')}" />
       <polygon class="sketch-outline sketch-inner-outline" points="${innerPoints.map(p => `${p.x},${-p.y}`).join(' ')}" />
+      <polygon class="sketch-outline sketch-hinge-outline" points="${midCutPoints.map(p => `${p.x},${-p.y}`).join(' ')}" />
       ${points.map(p => `
         <g data-label-x="${p.x + (p.x < 0 ? 2 : -2) * unit}" data-label-y="${-p.y + (p.y < 0 ? 4 : -2) * unit}" data-label-anchor="${p.x < 0 ? 'start' : 'end'}" data-label-size="${3 * unit}" data-point-name="${p.name}" data-x-formula="${p.xFormula}" data-y-formula="${p.yFormula}" data-x="${p.x}" data-y="${p.y}" class="sketch-vertex${rimPoints.includes(p) ? ' sketch-rim-vertex' : (innerPoints.includes(p) || innerMidPoints.includes(p)) ? ' sketch-inner-vertex' : ''}">
           <title>${p.name}: (${p.x}, ${p.y}) mm</title>

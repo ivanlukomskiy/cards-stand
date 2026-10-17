@@ -42,7 +42,7 @@ for (const hingeAngle of [15,45,90]) {
   const params = {...defaultBaseParameters, hingeAngle}
   const {start, hingeCenter, hingeCenter2, slope} = baseEndGeometry(params)
   near((hingeCenter2.y - start.y - hingeCenter2.z * slope) / Math.hypot(1, slope), -(params.hingeThickness + params.hingeTolerance) / 2)
-  near(hingeCenter2.z, params.baseHeight - params.wallThickness - params.hingeThickness / 2)
+  near(hingeCenter2.z, params.baseHeight - params.wallThickness - (params.hingeThickness + params.hingeTolerance) / 2)
   near(hingeCenter2.y - hingeCenter.y, (hingeCenter2.z - hingeCenter.z) * slope)
 }
 console.log('PASS: hinge centre 2 target Z and beam-parallel translation')
@@ -58,9 +58,9 @@ console.log('PASS: base end outer 1 projected tolerance and dependent beam posit
 for (const hingeAngle of [15,45,90]) {
   const {hingeCenter, hingeCenter2, hingeCenter3} = baseEndGeometry({...defaultBaseParameters, hingeAngle})
   near(hingeCenter3.z, hingeCenter2.z)
-  near(hingeCenter2.y - hingeCenter3.y, Math.hypot(hingeCenter2.y - hingeCenter.y, hingeCenter2.z - hingeCenter.z))
+  near(hingeCenter2.y - hingeCenter3.y, Math.hypot(hingeCenter2.y - hingeCenter.y, hingeCenter2.z - hingeCenter.z) + defaultBaseParameters.hingeThickness)
 }
-console.log('PASS: hinge centre 3 offset along -Y by the hinge centre 1–2 distance')
+console.log('PASS: hinge centre 3 offset along -Y by the hinge centre 1–2 distance plus hinge thickness')
 
 for (const hingeAngle of [15,45,90]) {
   const params = {...defaultBaseParameters, hingeAngle}
@@ -82,6 +82,7 @@ console.log('PASS: mid cuts 2 and 3 on the right and bottom of hinge circle 3')
 for (const hingeAngle of [15,45,90]) {
   const {start, slope, hingeCenter2, hingeCenter3, hingeRadius, midCut3, hinge2Bottom, hinge2Tangent} = baseEndGeometry({...defaultBaseParameters, hingeAngle})
   // Mid cut 3 → hinge 2 bottom is the shared horizontal tangent of circles 3 and 2.
+  near(midCut3.z, defaultBaseParameters.baseHeight - defaultBaseParameters.wallThickness - defaultBaseParameters.hingeThickness - defaultBaseParameters.hingeTolerance)
   near(midCut3.z, hinge2Bottom.z)
   near(Math.hypot(hinge2Bottom.y - hingeCenter2.y, hinge2Bottom.z - hingeCenter2.z), hingeRadius)
   near(hingeCenter3.z, hingeCenter2.z)

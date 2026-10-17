@@ -5,7 +5,7 @@ import { DoubleSide, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three'
 import { baseEndCutPoints, baseEndGeometry, baseEndInnerPoints } from '../src/base-end-geometry.ts'
 import { STLLoader } from 'three/addons/loaders/STLLoader.js'
 import { baseDefinitions, defaultBaseParameters, cellFullRaisedProfiles, cellSemiRaisedProfiles } from '../src/model.ts'
-import { cellMidPoints, cellOuterPoints } from '../src/sketch.ts'
+import { cellMidCutPoints, cellMidPoints, cellOuterPoints } from '../src/sketch.ts'
 
 const wasmBinary = await fs.readFile(new URL('../public/vendor/openscad/openscad.wasm', import.meta.url))
 const source = await fs.readFile(new URL('../src/models/base.scad', import.meta.url), 'utf8')
@@ -15,7 +15,8 @@ const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 0.000
 for (const changes of [
   { rows: 1, columns: 1, hingeAngle: 45 },
   { rows: 1, columns: 1, hingeAngle: 30, baseHeight: 16 },
-  { rows: 1, columns: 1, hingeAngle: 90 },
+  { rows: 1, columns: 1, hingeAngle: 90, cellMidCutWidth: 12 },
+  { rows: 1, columns: 1, cellMidCutWidth: 0 },
   {},
   { rows: 3, columns: 2, hingeAngle: 30, wallThickness: 3 },
   { rows: 1, columns: 3, hingeAngle: 90 },
@@ -36,7 +37,7 @@ for (const changes of [
   const hingeSpanY = (params.hingeThickness + params.hingeTolerance) / Math.sin(params.hingeAngle * Math.PI / 180)
   const rowPitch = params.cellLength + params.wallThickness * 2 + hingeSpanY
   const colPitch = params.cellWidth + params.wallThickness
-  const raisedHeight = params.baseHeight - params.hingeThickness - params.hingeTolerance
+  const raisedHeight = params.baseHeight - params.wallThickness - params.hingeThickness - params.hingeTolerance
   near(min.x, -params.cellWidth / 2 - params.wallThickness)
   near(max.x, params.cellWidth / 2 + params.wallThickness + (params.columns - 1) * colPitch)
   near(min.y, -(params.rows - 1) * rowPitch - params.cellLength - params.wallThickness)
@@ -44,7 +45,7 @@ for (const changes of [
   near(min.z, 0)
   near(max.z, Math.max(params.wallThickness, params.baseHeight))
   if (params.rows === 1 && params.columns === 1) {
-    // The floor covers the outer rectangle; the profiles add volume only above it.
+    // The floor excludes the mid cut rectangle; the profiles add volume only above it.
     const area = polygon => Math.abs(polygon.reduce((sum, p, i) => {
       const q = polygon[(i + 1) % polygon.length]
       return sum + p[0] * q[1] - q[0] * p[1]
@@ -53,7 +54,7 @@ for (const changes of [
     assert.deepEqual(profiles[1], profiles[0].map(([x,y]) => [-x,y]).reverse())
     const fullProfiles = cellFullRaisedProfiles(params)
     assert.deepEqual(fullProfiles[1], fullProfiles[0].map(([x,y]) => [-x,y]).reverse())
-    const expectedVolume = fullProfiles.reduce((sum, profile) => sum + area(profile), 0) * (params.baseHeight - params.wallThickness) + profiles.reduce((sum, profile) => sum + area(profile), 0) * (raisedHeight - params.wallThickness) + area(cellOuterPoints(params).map(({x, y}) => [x, y])) * params.wallThickness
+    const expectedVolume = fullProfiles.reduce((sum, profile) => sum + area(profile), 0) * (params.baseHeight - params.wallThickness) + profiles.reduce((sum, profile) => sum + area(profile), 0) * (raisedHeight - params.wallThickness) + (area(cellOuterPoints(params).map(({x, y}) => [x, y])) - params.cellMidCutWidth * params.cellLength) * params.wallThickness
     const position = geometry.attributes.position
     let volume = 0
     for (let i = 0; i < position.count; i += 3) {
@@ -76,7 +77,11 @@ assert.deepEqual(cellMidPoints(defaultBaseParameters).map(({ name, x, y }) => [n
   ['cell outer mid 1', 0, topY], ['cell outer mid 2', 0, -26],
   ['cell inner mid 1', 0, 0], ['cell inner mid 2', 0, -24],
 ])
-console.log('PASS: midpoint coordinates and invalid parameter rejection')
+assert.deepEqual(cellMidCutPoints(defaultBaseParameters).map(({name, x, y}) => [name, x, y]), [
+  ['mid cut R 1', 16, 0], ['mid cut R 2', 16, -24],
+  ['mid cut L 2', -16, -24], ['mid cut L 1', -16, 0],
+])
+console.log('PASS: midpoint and mid cut coordinates and invalid parameter rejection')
 
 assert.deepEqual(cellFullRaisedProfiles(defaultBaseParameters)[0], [[0,topY],[34,topY],[34,-26],[25,-26],[25,-24],[32,-24],[32,0],[0,0]])
 console.log('PASS: full raised right profile coordinates and ordering')
