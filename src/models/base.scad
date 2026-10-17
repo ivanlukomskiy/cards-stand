@@ -31,7 +31,7 @@ module base_solid() {
     union() {
         for (row = [0 : rows - 1])
             for (column = [0 : columns - 1])
-                translate([column * column_pitch, row * row_pitch, 0])
+                translate([column * column_pitch, -row * row_pitch, 0])
                     cell();
     }
 }
@@ -54,13 +54,29 @@ module hinge_capsule_cut(x_start) {
 
 module edge_hinge_cuts() {
     for (row = [0 : rows - 1])
-        translate([0, row * row_pitch, 0]) {
+        translate([0, -row * row_pitch, 0]) {
             hinge_capsule_cut(-cell_width / 2 - wall_thickness);
             hinge_capsule_cut((columns - 1) * column_pitch + cell_width / 2);
         }
 }
 
-difference() {
-    base_solid();
-    edge_hinge_cuts();
+module base_end() {
+    // The sketch's (Y,Z) base end polygon is extruded along X across the full model width.
+    multmatrix([
+        [0, 0, 1, -cell_width / 2 - wall_thickness],
+        [1, 0, 0, 0],
+        [0, 1, 0, 0],
+        [0, 0, 0, 1]
+    ])
+        linear_extrude(height = (columns - 1) * column_pitch + cell_width + 2 * wall_thickness)
+            polygon(points = base_end_points);
+}
+
+union() {
+    difference() {
+        base_solid();
+        edge_hinge_cuts();
+    }
+    // Fused to row 0 along the outer 1–outer 2 face.
+    base_end();
 }

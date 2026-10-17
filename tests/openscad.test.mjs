@@ -9,7 +9,7 @@ import { cellMidPoints, hingeCutRightPoints, cellOuterPoints } from '../src/sket
 
 const wasmBinary = await fs.readFile(new URL('../public/vendor/openscad/openscad.wasm', import.meta.url))
 const source = await fs.readFile(new URL('../src/models/base.scad', import.meta.url), 'utf8')
-const solidSource = source.replace(/difference\(\) \{\s*base_solid\(\);\s*edge_hinge_cuts\(\);\s*\}/, 'base_solid();')
+const solidSource = source.replace(/difference\(\) \{\s*base_solid\(\);\s*edge_hinge_cuts\(\);\s*\}/, 'base_solid();').replace(/\n\s*\/\/ Fused[^\n]*\n\s*base_end\(\);/, '')
 const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 0.0001, `${actual} != ${expected}`)
 
 for (const changes of [
@@ -39,8 +39,8 @@ for (const changes of [
   const raisedHeight = params.baseHeight - params.hingeThickness - params.hingeTolerance
   near(min.x, -params.cellWidth / 2 - params.wallThickness)
   near(max.x, params.cellWidth / 2 + params.wallThickness + (params.columns - 1) * colPitch)
-  near(min.y, -params.cellLength - params.wallThickness)
-  near(max.y, (params.rows - 1) * rowPitch + Math.max(params.wallThickness * shear, params.wallThickness + hingeSpanY + params.baseHeight * shear, -params.cellLength + params.baseHeight * shear))
+  near(min.y, -(params.rows - 1) * rowPitch - params.cellLength - params.wallThickness)
+  near(max.y, Math.max(params.wallThickness * shear, params.wallThickness + hingeSpanY + params.baseHeight * shear, -params.cellLength + params.baseHeight * shear))
   near(min.z, 0)
   near(max.z, Math.max(params.wallThickness, params.baseHeight))
   if (params.rows === 1 && params.columns === 1) {
@@ -111,7 +111,7 @@ for (const columns of [1, 3]) {
   const rowPitch = params.cellLength + 2*params.wallThickness + (params.hingeThickness + params.hingeTolerance)/Math.sin(params.baseAngle*Math.PI/180)
   for (let row=0;row<params.rows;row++) {
     const z = (hingeCenter.z + hingeCenter2.z)/2 + 0.123
-    const y = hingeCenter.y + (z-hingeCenter.z)/Math.tan(params.baseAngle*Math.PI/180) + row*rowPitch
+    const y = hingeCenter.y + (z-hingeCenter.z)/Math.tan(params.baseAngle*Math.PI/180) - row*rowPitch
     const hits = new Raycaster(new Vector3(-1000,y,z),new Vector3(1,0,0)).intersectObject(mesh)
     const xs = hits.map(hit=>hit.point.x).filter((x,i,all)=>i===0 || Math.abs(x-all[i-1])>1e-5)
     const inside = x => xs.filter(hitX=>hitX<x).length%2===1
@@ -124,4 +124,36 @@ for (const columns of [1, 3]) {
   material.dispose()
   geometry.dispose()
   console.log(`PASS: ${columns} columns, two rows: capsules cut only exterior walls`)
+}
+
+// The base end spans the full model width and is fused to row 0's outer 1–outer 2 face.
+for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, columns: 3, baseAngle: 30 }, { rows: 2, columns: 2, baseAngle: 90 }]) {
+  const params = {...defaultBaseParameters, ...changes}
+  const {start, atHeight, rest1, rest2} = baseEndGeometry(params)
+  const instance = await OpenSCAD({noInitialRun:true, wasmBinary, print:()=>{}, printErr:()=>{}})
+  instance.FS.writeFile('/base.scad', source)
+  assert.equal(instance.callMain(['/base.scad', ...baseDefinitions(params), '--export-format', 'binstl', '-o', '/base.stl']), 0)
+  const geometry = new STLLoader().parse(instance.FS.readFile('/base.stl').slice().buffer)
+  geometry.computeBoundingBox()
+  const colPitch = params.cellWidth + params.wallThickness
+  const minX = -params.cellWidth/2 - params.wallThickness
+  const maxX = (params.columns-1)*colPitch + params.cellWidth/2 + params.wallThickness
+  near(geometry.boundingBox.max.y, Math.max(rest1.y, rest2.y))
+  const material = new MeshBasicMaterial({side:DoubleSide})
+  const mesh = new Mesh(geometry,material)
+  mesh.updateMatrixWorld()
+  // Probe inside the base end polygon, and across the shared face into row 0.
+  const z = atHeight.z / 2 + 0.123
+  const faceY = start.y + (atHeight.y - start.y) * z / atHeight.z
+  for (const y of [faceY + (rest2.y - start.y) / 2, faceY - 0.01, faceY + 0.01]) {
+    const hits = new Raycaster(new Vector3(-1000,y,z),new Vector3(1,0,0)).intersectObject(mesh)
+    const xs = hits.map(hit=>hit.point.x).filter((x,i,all)=>i===0 || Math.abs(x-all[i-1])>1e-5)
+    if (y > faceY) assert.deepEqual(xs.map(x => Math.round(x*1e4)/1e4), [minX, maxX].map(x => Math.round(x*1e4)/1e4), 'Base end must be one solid across the full width')
+    else assert.ok(xs.length >= 2, 'Row 0 wall must meet the base end')
+  }
+  const hits = new Raycaster(new Vector3(0,faceY-0.5,z),new Vector3(0,1,0)).intersectObject(mesh).filter(hit=>Math.abs(hit.point.y-faceY)<1e-4)
+  assert.equal(hits.length, 0, 'No internal face between row 0 and the base end')
+  material.dispose()
+  geometry.dispose()
+  console.log(`PASS: ${params.rows} × ${params.columns} cells, ${params.baseAngle}°: base end spans full width and fuses to row 0`)
 }

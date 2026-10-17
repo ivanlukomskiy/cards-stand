@@ -62,8 +62,9 @@ export function cellFullHeightProfiles(params: BaseParameters): number[][][] {
 // Pass the same sketch coordinates to OpenSCAD that the SVG uses.
 export function baseDefinitions(params: BaseParameters): string[] {
   validateBaseParameters(params)
-  const { hingeCenter, hingeCenter2, hingeRadius } = baseEndGeometry(params)
+  const { hingeCenter, hingeCenter2, hingeRadius, rest1, atHeight, start, rest2 } = baseEndGeometry(params)
   const definitions = {
+    base_end_points: [rest1, atHeight, start, rest2].map(({ y, z }) => [y, z]),
     hinge_centres: [[hingeCenter.y, hingeCenter.z], [hingeCenter2.y, hingeCenter2.z]],
     hinge_radius: hingeRadius,
     cell_width: params.cellWidth,
