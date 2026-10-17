@@ -226,3 +226,22 @@ console.log('PASS: stand side circles, green half-circle ends, and dropped outer
   assert.throws(() => validateBaseParameters({...defaultBaseParameters, standAngle: 150, baseTiltAngle: 30}))
 }
 console.log('PASS: stand top precalculated lengths, outer 1–4, and inner 1–4')
+
+{
+  const { standTopFillets, standTopGeometry, standTopSketch } = await import('../src/stand-sketch.ts')
+  const params = defaultBaseParameters
+  const top = standTopGeometry(params)
+  const fillets = standTopFillets(params)
+  const r = params.standProfileWidth / 2
+  // Inner 3 and inner 2 are right-angle corners, so the arcs start and end one radius from each corner along the edges.
+  assert.deepEqual(fillets.inner3.start, {x: top.inner3.x - r, y: top.inner3.y})
+  near(fillets.inner3.end.x, top.inner3.x); near(fillets.inner3.end.y, top.inner3.y + r)
+  near(fillets.inner3.centre.x, top.inner3.x - r); near(fillets.inner3.centre.y, top.inner3.y + r)
+  near(fillets.inner2.start.x, top.inner2.x); near(fillets.inner2.start.y, top.inner2.y - r)
+  near(fillets.inner2.end.x, top.inner2.x - r); near(fillets.inner2.end.y, top.inner2.y)
+  // Both corners turn counter-clockwise, so both arcs are SVG sweep 0.
+  assert.equal(fillets.inner3.turn, 1)
+  assert.equal(fillets.inner2.turn, 1)
+  assert.ok(standTopSketch(params).includes(`0 0 0 ${fillets.inner2.end.x} ${-fillets.inner2.end.y}`))
+}
+console.log('PASS: stand top fillets at inner 3 and inner 2')

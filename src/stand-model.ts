@@ -1,11 +1,18 @@
 import { validateBaseParameters } from './model.ts'
 import type { BaseParameters } from './model.ts'
-import { standSideGeometry, standTopGeometry } from './stand-sketch.ts'
+import { standSideGeometry, standTopFillets, standTopGeometry } from './stand-sketch.ts'
+import { filletPoints } from './fillet.ts'
 
-// The Stand top blue outline: outer 1 → outer 2 → outer 3 → inner 4 → inner 3 → inner 2 → inner 1 → outer 4.
+// The Stand top blue outline: outer 1 → outer 2 → outer 3 → inner 4 → inner 3 (rounded) → inner 2 (rounded) → inner 1 → outer 4.
 export function standTopPoints(params: BaseParameters): number[][] {
   const top = standTopGeometry(params)
-  return [top.outer1, top.outer2, top.outer3, top.inner4, top.inner3, top.inner2, top.inner1, top.outer4].map(({ x, y }) => [x, y])
+  const fillets = standTopFillets(params)
+  return [
+    ...[top.outer1, top.outer2, top.outer3, top.inner4].map(({ x, y }) => [x, y]),
+    ...filletPoints(fillets.inner3),
+    ...filletPoints(fillets.inner2),
+    ...[top.inner1, top.outer4].map(({ x, y }) => [x, y]),
+  ]
 }
 
 // The Stand side green outline in (Y,Z): the top half circle from outer 1 to outer 2 (64 segments per turn), then outer 3 and outer 4.

@@ -2,6 +2,7 @@ import { baseEndGeometry } from './base-end-geometry.ts'
 import { defaultBaseParameters } from './model.ts'
 import type { BaseParameters } from './model.ts'
 import type { SketchPoint } from './sketch.ts'
+import { fillet, filletPath } from './fillet.ts'
 
 export function hingeOuterPoints(params: BaseParameters): readonly SketchPoint[] {
   const { hingeCenter, hingeCenter2 } = baseEndGeometry(params)
@@ -46,27 +47,6 @@ export function hingeBridgePoints(params: BaseParameters): readonly SketchPoint[
   }))
 }
 
-type Point = { x: number, y: number }
-
-// Round the corner at `corner` between segments from `from` and to `to`, tangent to both.
-export function fillet(from: Point, corner: Point, to: Point, radius: number) {
-  const ax = from.x - corner.x, ay = from.y - corner.y
-  const bx = to.x - corner.x, by = to.y - corner.y
-  const al = Math.hypot(ax, ay), bl = Math.hypot(bx, by)
-  const ux = ax / al, uy = ay / al, vx = bx / bl, vy = by / bl
-  const half = Math.acos(Math.max(-1, Math.min(1, ux * vx + uy * vy))) / 2
-  const tangent = radius / Math.tan(half)
-  const bisector = Math.hypot(ux + vx, uy + vy)
-  const centreDistance = radius / Math.sin(half)
-  return {
-    start: { x: corner.x + ux * tangent, y: corner.y + uy * tangent },
-    end: { x: corner.x + vx * tangent, y: corner.y + vy * tangent },
-    centre: { x: corner.x + (ux + vx) / bisector * centreDistance, y: corner.y + (uy + vy) / bisector * centreDistance },
-    // Positive when the path turns counter-clockwise (Y up) at the corner.
-    turn: Math.sign((corner.x - from.x) * (to.y - corner.y) - (corner.y - from.y) * (to.x - corner.x)),
-  }
-}
-
 // Outline: outer 1 → outer 2 (rounded) → outer 3 → outer 4 → inner 3 → inner 2 (rounded) → inner 1 → close.
 export function hingeOutline(params: BaseParameters) {
   const [outer1, outer2, outer3, outer4] = hingeOuterPoints(params) as [SketchPoint, SketchPoint, SketchPoint, SketchPoint]
@@ -86,9 +66,6 @@ export function hingeTopSketch(params: BaseParameters = defaultBaseParameters) {
   const bridgePoints = hingeBridgePoints(params)
   const points = [...outerPoints, ...hingeInnerPoints(params), ...bridgePoints]
   const outline = hingeOutline(params)
-  // The sketch renders Y up, so a clockwise turn looks clockwise on screen, which is SVG sweep 1.
-  const arc = (corner: ReturnType<typeof fillet>) =>
-    `L ${corner.start.x} ${-corner.start.y} A ${outline.radius} ${outline.radius} 0 0 ${corner.turn < 0 ? 1 : 0} ${corner.end.x} ${-corner.end.y}`
   const extentX = Math.max(...points.map(point => Math.abs(point.x)), 1)
   const top = Math.max(...points.map(point => point.y), 0)
   const bottom = Math.min(...points.map(point => point.y), 0)
@@ -106,11 +83,11 @@ export function hingeTopSketch(params: BaseParameters = defaultBaseParameters) {
         <text x="${2 * unit}" y="${-upper + 4 * unit}" style="font-size:${3 * unit}px">Y</text>
       </g>
       <path class="sketch-outline" d="M ${outline.outer1.x} ${-outline.outer1.y}
-        ${arc(outline.outer2)}
+        ${filletPath(outline.outer2)}
         L ${outline.outer3.x} ${-outline.outer3.y}
         L ${outline.outer4.x} ${-outline.outer4.y}
         L ${outline.inner3.x} ${-outline.inner3.y}
-        ${arc(outline.inner2)}
+        ${filletPath(outline.inner2)}
         L ${outline.inner1.x} ${-outline.inner1.y} Z" />
       <polygon class="sketch-outline sketch-hinge-outline" points="${[outerPoints[2]!, outerPoints[3]!, bridgePoints[1]!, bridgePoints[0]!].map(p => `${p.x},${-p.y}`).join(' ')}" />
       ${points.map(p => `

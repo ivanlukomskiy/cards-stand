@@ -326,7 +326,7 @@ for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, column
     const { min, max } = geometry.boundingBox
     const top = standTopGeometry(params)
     const side = standSideGeometry(params)
-    near(min.x, 0)
+    near(min.x, -top.outer1.x)
     near(max.x, top.outer1.x)
     near(min.y, Math.min(-top.standLength, side.outer2.y))
     near(max.y, Math.max(top.yTop1, side.outer1.y))
@@ -340,13 +340,17 @@ for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, column
     const ringY = (side.innerRadius + side.outerRadius) / 2
     const sideXs = new Raycaster(new Vector3(-1000, ringY, side.outer3.z / 2), new Vector3(1,0,0)).intersectObject(mesh)
       .map(hit=>hit.point.x).filter((x,i,all)=>i===0 || Math.abs(x-all[i-1])>1e-5)
-    assert.deepEqual(round(sideXs), round([top.outer1.x - params.wallThickness, top.outer1.x]))
+    assert.deepEqual(round(sideXs), round([-top.outer1.x, -top.outer1.x + params.wallThickness, top.outer1.x - params.wallThickness, top.outer1.x]))
     // The red circle is cut through the side; between it and the green arc the side stays solid.
     const holeXs = new Raycaster(new Vector3(-1000, 0, 0), new Vector3(1,0,0)).intersectObject(mesh)
     assert.equal(holeXs.length, 0, 'The red circle must be cut through the side')
     const ringXs = new Raycaster(new Vector3(-1000, 0, (side.innerRadius + side.outerRadius) / 2), new Vector3(1,0,0)).intersectObject(mesh)
       .map(hit=>hit.point.x).filter((x,i,all)=>i===0 || Math.abs(x-all[i-1])>1e-5)
-    assert.deepEqual(round(ringXs), round([top.outer1.x - params.wallThickness, top.outer1.x]))
+    assert.deepEqual(round(ringXs), round([-top.outer1.x, -top.outer1.x + params.wallThickness, top.outer1.x - params.wallThickness, top.outer1.x]))
+    // Across the plate near outer 2, the mirrored halves are fused: only the two outer edges are crossed.
+    const plateXs = new Raycaster(new Vector3(-1000, top.outer2.y + 1, side.outer3.z - params.wallThickness / 2), new Vector3(1,0,0)).intersectObject(mesh)
+      .map(hit=>hit.point.x).filter((x,i,all)=>i===0 || Math.abs(x-all[i-1])>1e-5)
+    assert.deepEqual(round(plateXs), round([-top.outer1.x, top.outer1.x]))
     // Inside the frame near outer 2, the top plate spans one wall thickness below outer 3 Z.
     const plateZs = new Raycaster(new Vector3(top.outer2.x - params.wallThickness * 1.5, top.outer2.y + 1, -1000), new Vector3(0,0,1)).intersectObject(mesh)
       .map(hit=>hit.point.z).filter((z,i,all)=>i===0 || Math.abs(z-all[i-1])>1e-5)
@@ -361,6 +365,6 @@ for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, column
     assert.equal(openZs.length, 0, 'The inner rectangle must be open')
     material.dispose()
     geometry.dispose()
-    console.log(`PASS: stand, ${params.columns} columns × ${params.rows} rows: top plate below outer 3 Z and side, with red circle cut, extruded toward O`)
+    console.log(`PASS: stand, ${params.columns} columns × ${params.rows} rows: top plate below outer 3 Z and side, with red circle cut, extruded toward O, mirrored across YOZ`)
   }
 }

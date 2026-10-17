@@ -1,24 +1,8 @@
 import { hingeBridgePoints, hingeInnerPoints, hingeOuterPoints, hingeOutline } from './hinge-top-sketch.ts'
 import { hingeSideGeometry } from './hinge-side-sketch.ts'
-import type { fillet } from './hinge-top-sketch.ts'
+import { filletPoints } from './fillet.ts'
 import { validateBaseParameters } from './model.ts'
 import type { BaseParameters } from './model.ts'
-
-// Sample a fillet arc from its start to its end tangent point, at 64 segments per turn.
-function filletPoints(corner: ReturnType<typeof fillet>): number[][] {
-  const from = Math.atan2(corner.start.y - corner.centre.y, corner.start.x - corner.centre.x)
-  const to = Math.atan2(corner.end.y - corner.centre.y, corner.end.x - corner.centre.x)
-  // The arc bends the same way the outline turns, and is always shorter than half a turn.
-  let sweep = to - from
-  if (corner.turn > 0 && sweep < 0) sweep += 2 * Math.PI
-  if (corner.turn < 0 && sweep > 0) sweep -= 2 * Math.PI
-  const radius = Math.hypot(corner.start.x - corner.centre.x, corner.start.y - corner.centre.y)
-  const segments = Math.max(1, Math.ceil(64 * Math.abs(sweep) / (2 * Math.PI)))
-  return Array.from({ length: segments + 1 }, (_, i) => {
-    const angle = from + sweep * i / segments
-    return [corner.centre.x + radius * Math.cos(angle), corner.centre.y + radius * Math.sin(angle)]
-  })
-}
 
 // The blue outline as a closed polygon in (X, Y): outer 1 → outer 2 (rounded) → outer 3 → outer 4 → inner 3 → inner 2 (rounded) → inner 1.
 export function hingeOutlinePoints(params: BaseParameters): number[][] {

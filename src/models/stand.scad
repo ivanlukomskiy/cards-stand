@@ -1,5 +1,5 @@
 // Parameters and sketch profiles are supplied by src/stand-model.ts.
-union() {
+module stand_half() {
     // The Stand top sketch's blue outline, extruded along -Z by wall thickness from Z = Stand side outer 3 Z.
     translate([0, 0, top_z - wall_thickness])
         linear_extrude(height = wall_thickness)
@@ -17,4 +17,11 @@ union() {
                 if (side_hole_radius > 0)
                     circle(r = side_hole_radius, $fn = 64);
             }
+}
+
+// Mirror across the YOZ plane; the plate halves meet along X = 0.
+union() {
+    stand_half();
+    mirror([1, 0, 0])
+        stand_half();
 }

@@ -2,6 +2,7 @@ import { baseEndGeometry } from './base-end-geometry.ts'
 import { defaultBaseParameters } from './model.ts'
 import { cellOuterPoints } from './sketch.ts'
 import type { SketchPoint } from './sketch.ts'
+import { fillet, filletPath } from './fillet.ts'
 import type { BaseParameters } from './model.ts'
 
 // A sketch with dash-dot axes and optional content. `leftAxis` puts the first axis's positive direction to the left.
@@ -58,13 +59,26 @@ export function standTopGeometry(params: BaseParameters) {
   }
 }
 
+// Blue outline corners at inner 3 and inner 2, rounded by stand profile width / 2.
+export function standTopFillets(params: BaseParameters) {
+  const { inner1, inner2, inner3, inner4 } = standTopGeometry(params)
+  const radius = params.standProfileWidth / 2
+  return {
+    inner3: fillet(inner4, inner3, inner2, radius),
+    inner2: fillet(inner3, inner2, inner1, radius),
+  }
+}
+
 // The stand viewed from above, in the XOY plane: positive X right, positive Y up.
 export function standTopSketch(params: BaseParameters = defaultBaseParameters) {
   const { yTop1, standLength, outer1, outer2, outer3, outer4, inner1, inner2, inner3, inner4 } = standTopGeometry(params)
   const xFormula = '(wall thickness * (columns + 1) + cell width * columns) / 2'
+  const fillets = standTopFillets(params)
   return axesSketch(Math.max(outer1.x, yTop1, standLength), 'X', 'Y', false,
     'Stand top sketch with positive X pointing right and positive Y pointing up', unit => `
-      <polygon class="sketch-outline" points="${[outer1, outer2, outer3, inner4, inner3, inner2, inner1, outer4].map(p => `${p.x},${-p.y}`).join(' ')}" />
+      <path class="sketch-outline" d="M ${outer1.x} ${-outer1.y} ${[outer2, outer3, inner4].map(p => `L ${p.x} ${-p.y}`).join(' ')}
+        ${filletPath(fillets.inner3)} ${filletPath(fillets.inner2)}
+        ${[inner1, outer4].map(p => `L ${p.x} ${-p.y}`).join(' ')} Z" />
       ${[[outer1, 'Y top 1', -2], [outer2, '-stand length', 4], [outer3, '-stand length', 4], [outer4, 'Y top 1', -2]].map(([point, yFormula, labelOffset], index) => {
         const { x, y } = point as { x: number, y: number }
         return `
