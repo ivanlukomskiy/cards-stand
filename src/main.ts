@@ -15,7 +15,15 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <div class="segmented-control" role="group" aria-label="View mode">
       <button id="sketch-mode" class="active" type="button" aria-pressed="true" aria-controls="sketch-view">Sketch</button>
       <button id="model-mode" type="button" aria-pressed="false" aria-controls="model-view">3D</button>
+      <button id="assembly-mode" type="button" aria-pressed="false" aria-controls="assembly-view">Assembly</button>
     </div>
+    <details id="assembly-section" class="sidebar-section" open hidden>
+      <summary>Assembly</summary>
+      <div class="sidebar-section-content">
+        <label class="checkbox-field"><input id="stand-extended" type="checkbox" /> Stand extended</label>
+        <label class="checkbox-field"><input id="hinge-extended" type="checkbox" /> Hinge extended</label>
+      </div>
+    </details>
     <details class="sidebar-section" open>
       <summary>Parameters</summary>
       <div class="sidebar-section-content">
@@ -151,6 +159,15 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <div class="hud"><span id="model-name">Base</span><br><span id="dimensions" role="status">Building…</span></div>
     <div id="canvas-host"></div>
     <p id="preview-error" class="preview-error" role="alert" hidden></p>
+    </section>
+    <section id="assembly-view" class="preview-view" aria-label="Interactive assembly preview" hidden>
+    <div class="viewport-actions">
+      <button id="assembly-fit" class="viewport-action" type="button">Fit model</button>
+      <button id="assembly-redraw" class="viewport-action" type="button">Redraw</button>
+    </div>
+    <div class="hud"><span>Assembly</span><br><span id="assembly-dimensions" role="status">Building…</span></div>
+    <div id="assembly-canvas-host" class="canvas-host"></div>
+    <p id="assembly-error" class="preview-error" role="alert" hidden></p>
     </section>
   </main>
 `
@@ -310,29 +327,79 @@ document.querySelector('#reset-parameters')!.addEventListener('click', () => {
   // One input event saves, redraws the sketches, and schedules a rebuild.
   parameterFields[0]![1].dispatchEvent(new Event('input'))
 })
-const modelView = document.querySelector<HTMLElement>('#model-view')!
-const sketchMode = document.querySelector<HTMLButtonElement>('#sketch-mode')!
-const modelMode = document.querySelector<HTMLButtonElement>('#model-mode')!
-const switchMode = (mode: 'sketch' | 'model') => {
-  remember('cards-stand:mode', mode)
-  const isSketch = mode === 'sketch'
-  sketchView.hidden = !isSketch
-  modelView.hidden = isSketch
-  sketchMode.classList.toggle('active', isSketch)
-  modelMode.classList.toggle('active', !isSketch)
-  sketchMode.setAttribute('aria-pressed', String(isSketch))
-  modelMode.setAttribute('aria-pressed', String(!isSketch))
+type ViewMode = 'sketch' | 'model' | 'assembly'
+const modeViews: Record<ViewMode, { button: HTMLButtonElement; view: HTMLElement }> = {
+  sketch: { button: document.querySelector<HTMLButtonElement>('#sketch-mode')!, view: sketchView },
+  model: { button: document.querySelector<HTMLButtonElement>('#model-mode')!, view: document.querySelector<HTMLElement>('#model-view')! },
+  assembly: { button: document.querySelector<HTMLButtonElement>('#assembly-mode')!, view: document.querySelector<HTMLElement>('#assembly-view')! },
 }
-sketchMode.addEventListener('click', () => switchMode('sketch'))
-modelMode.addEventListener('click', () => switchMode('model'))
-switchMode(recall('cards-stand:mode') === 'model' ? 'model' : 'sketch')
+const assemblySection = document.querySelector<HTMLElement>('#assembly-section')!
+let currentMode: ViewMode = 'sketch'
+const isAssemblyMode = () => currentMode === 'assembly'
+// Set once the assembly preview exists; builds the assembly if it is out of date.
+let onAssemblyShown = () => {}
+const switchMode = (mode: ViewMode) => {
+  remember('cards-stand:mode', mode)
+  currentMode = mode
+  for (const [name, { button, view }] of Object.entries(modeViews)) {
+    view.hidden = name !== mode
+    button.classList.toggle('active', name === mode)
+    button.setAttribute('aria-pressed', String(name === mode))
+  }
+  assemblySection.hidden = mode !== 'assembly'
+  if (mode === 'assembly') onAssemblyShown()
+}
+for (const [name, { button }] of Object.entries(modeViews) as [ViewMode, { button: HTMLButtonElement }][]) {
+  button.addEventListener('click', () => switchMode(name))
+}
+const storedMode = recall('cards-stand:mode')
+switchMode(storedMode !== null && storedMode in modeViews ? storedMode as ViewMode : 'sketch')
+
+// Assembly options persist like the other sidebar state.
+const assemblyKey = 'cards-stand:assembly'
+const assemblyOptions = {
+  standExtended: document.querySelector<HTMLInputElement>('#stand-extended')!,
+  hingeExtended: document.querySelector<HTMLInputElement>('#hinge-extended')!,
+}
+try {
+  const stored: unknown = JSON.parse(recall(assemblyKey) ?? '{}')
+  if (stored && typeof stored === 'object') {
+    for (const [name, field] of Object.entries(assemblyOptions)) field.checked = (stored as Record<string, unknown>)[name] === true
+  }
+} catch { /* ignore unreadable stored options */ }
+const saveAssemblyOptions = () => remember(assemblyKey, JSON.stringify(Object.fromEntries(
+  Object.entries(assemblyOptions).map(([name, field]) => [name, field.checked]))))
+
+// Each part type has its own colour in the assembly.
+const partColors: Record<ModelName, string> = { base: '#5b9bd5', hinge: '#73d6ac', bolt: '#e5b567', stand: '#b48ce6' }
+const runtimeUrl = () => new URL(`${import.meta.env.BASE_URL}vendor/openscad/openscad.js`, document.baseURI).href
+// Render one model in its own worker; cancel() terminates it.
+const renderStl = (model: ModelName, params: BaseParameters) => {
+  const worker = new Worker(new URL('./openscad.worker.ts', import.meta.url), { type: 'module' })
+  let timeout: ReturnType<typeof setTimeout> | undefined
+  const cancel = () => { clearTimeout(timeout); worker.terminate() }
+  const promise = new Promise<ArrayBuffer>((resolve, reject) => {
+    worker.onmessage = ({ data }: MessageEvent<{ stl?: ArrayBuffer; error?: string }>) => {
+      if (data.stl) resolve(data.stl)
+      else reject(new Error(data.error || 'OpenSCAD returned no mesh.'))
+    }
+    worker.onerror = event => { event.preventDefault(); reject(new Error(event.message || 'OpenSCAD could not start.')) }
+    timeout = setTimeout(() => reject(new Error('Rendering timed out. Try Redraw.')), 60000)
+    worker.postMessage({ model, params, runtimeUrl: runtimeUrl() })
+  })
+  promise.then(cancel, cancel)
+  return { promise, cancel }
+}
+const formatSize = (size: { toArray(): number[] }) => `${size.toArray().map(value => Number(value.toFixed(3))).join(' × ')} mm`
 
 const message = document.querySelector<HTMLElement>('#preview-error')!
 const dimensions = document.querySelector<HTMLElement>('#dimensions')!
 const redraw = document.querySelector<HTMLButtonElement>('#redraw')!
-let worker: Worker | undefined
+const assemblyMessage = document.querySelector<HTMLElement>('#assembly-error')!
+const assemblyDimensions = document.querySelector<HTMLElement>('#assembly-dimensions')!
+const assemblyRedraw = document.querySelector<HTMLButtonElement>('#assembly-redraw')!
+let job: { cancel(): void } | undefined
 let timer: ReturnType<typeof setTimeout> | undefined
-let buildTimeout: ReturnType<typeof setTimeout> | undefined
 let generation = 0
 let firstModel = true
 let currentModel: ModelName = 'base'
@@ -360,9 +427,8 @@ try {
   const cancel = () => {
     generation++
     clearTimeout(timer)
-    clearTimeout(buildTimeout)
-    worker?.terminate()
-    worker = undefined
+    job?.cancel()
+    job = undefined
     redraw.textContent = 'Redraw'
     redraw.removeAttribute('aria-busy')
   }
@@ -383,30 +449,79 @@ try {
       dimensions.textContent = 'Build failed'
     }
     try {
-      worker = new Worker(new URL('./openscad.worker.ts', import.meta.url), { type: 'module' })
-      worker.onmessage = ({ data }: MessageEvent<{ stl?: ArrayBuffer; error?: string }>) => {
+      const render = renderStl(currentModel, params)
+      job = render
+      render.promise.then(stl => {
         if (request !== generation) return
-        if (!data.stl) { fail(data.error || 'OpenSCAD returned no mesh.'); return }
-        try {
-          const size = preview.setModel(data.stl)
-          if (firstModel) { preview.fit(); firstModel = false }
-          dimensions.textContent = `${size.toArray().map(value => Number(value.toFixed(3))).join(' × ')} mm`
-          cancel()
-        } catch (cause) {
-          fail(cause instanceof Error ? cause.message : String(cause))
-        }
-      }
-      worker.onerror = (event) => { event.preventDefault(); fail(event.message || 'OpenSCAD could not start.') }
-      buildTimeout = setTimeout(() => fail('Rendering timed out. Try Redraw.'), 60000)
-      worker.postMessage({
-        model: currentModel,
-        params,
-        runtimeUrl: new URL(`${import.meta.env.BASE_URL}vendor/openscad/openscad.js`, document.baseURI).href,
-      })
+        const size = preview.setModel(stl)
+        if (firstModel) { preview.fit(); firstModel = false }
+        dimensions.textContent = formatSize(size)
+        cancel()
+      }).catch(cause => fail(cause instanceof Error ? cause.message : String(cause)))
     } catch (cause) {
       fail(cause instanceof Error ? cause.message : String(cause))
     }
   }
+
+  // The assembly builds only while visible; parameter changes elsewhere just mark it stale.
+  const assemblyPreview = new BasePreview(document.querySelector<HTMLDivElement>('#assembly-canvas-host')!)
+  let assemblyJobs: { cancel(): void }[] = []
+  let assemblyTimer: ReturnType<typeof setTimeout> | undefined
+  let assemblyGeneration = 0
+  let assemblyStale = true
+  let firstAssembly = true
+  const cancelAssembly = () => {
+    assemblyGeneration++
+    clearTimeout(assemblyTimer)
+    assemblyJobs.forEach(render => render.cancel())
+    assemblyJobs = []
+    assemblyRedraw.textContent = 'Redraw'
+    assemblyRedraw.removeAttribute('aria-busy')
+  }
+  const buildAssembly = () => {
+    cancelAssembly()
+    const params = readParameters()
+    if (!params) return
+    assemblyStale = false
+    const request = assemblyGeneration
+    assemblyMessage.hidden = true
+    assemblyDimensions.textContent = 'Building…'
+    assemblyRedraw.textContent = 'Building…'
+    assemblyRedraw.setAttribute('aria-busy', 'true')
+    // For now the assembly holds only the stand.
+    const parts: ModelName[] = ['stand']
+    try {
+      const renders = parts.map(part => renderStl(part, params))
+      assemblyJobs = renders
+      Promise.all(renders.map(render => render.promise)).then(stls => {
+        if (request !== assemblyGeneration) return
+        const size = assemblyPreview.setParts(stls.map((stl, index) => ({ stl, color: partColors[parts[index]!] })))
+        if (firstAssembly) { assemblyPreview.fit(); firstAssembly = false }
+        assemblyDimensions.textContent = formatSize(size)
+        cancelAssembly()
+      }).catch(cause => {
+        if (request !== assemblyGeneration) return
+        cancelAssembly()
+        assemblyMessage.textContent = `Could not build the assembly. ${cause instanceof Error ? cause.message : String(cause)}`
+        assemblyMessage.hidden = false
+        assemblyDimensions.textContent = 'Build failed'
+      })
+    } catch (cause) {
+      assemblyMessage.textContent = `Could not build the assembly. ${cause instanceof Error ? cause.message : String(cause)}`
+      assemblyMessage.hidden = false
+    }
+  }
+  const onAssemblyChanged = () => {
+    cancelAssembly()
+    assemblyStale = true
+    if (isAssemblyMode()) assemblyTimer = setTimeout(buildAssembly, 250)
+  }
+  onAssemblyShown = () => { if (assemblyStale) buildAssembly() }
+  Object.values(assemblyOptions).forEach(field => field.addEventListener('change', () => { saveAssemblyOptions(); onAssemblyChanged() }))
+  Object.values(parameterInputs).forEach(field => field.addEventListener('input', onAssemblyChanged))
+  document.querySelector('#assembly-fit')!.addEventListener('click', () => assemblyPreview.fit())
+  assemblyRedraw.addEventListener('click', buildAssembly)
+  if (isAssemblyMode()) buildAssembly()
   const onParametersChanged = () => {
     cancel()
     message.hidden = true
@@ -428,9 +543,11 @@ try {
     })
   }
   build()
-  import.meta.hot?.dispose(() => { cancel(); preview.dispose() })
+  import.meta.hot?.dispose(() => { cancel(); cancelAssembly(); preview.dispose(); assemblyPreview.dispose() })
 } catch (cause) {
-  message.hidden = false
-  message.textContent = 'Could not start the 3D preview. Please enable WebGL and reload the page.'
+  for (const element of [message, assemblyMessage]) {
+    element.hidden = false
+    element.textContent = 'Could not start the 3D preview. Please enable WebGL and reload the page.'
+  }
   console.error(cause)
 }

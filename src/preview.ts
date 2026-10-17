@@ -2,20 +2,18 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { STLLoader } from 'three/addons/loaders/STLLoader.js'
 
+export interface PreviewPart {
+  stl: ArrayBuffer
+  color: string
+}
+
 // OpenSCAD supplies geometry in millimeters; Three.js only displays it.
 export class BasePreview {
   private readonly scene = new THREE.Scene()
   private readonly camera = new THREE.PerspectiveCamera(45, 1, 0.01, 100000)
   private readonly renderer = new THREE.WebGLRenderer({ antialias: true })
   private readonly controls: OrbitControls
-  private readonly base = new THREE.Mesh(
-    new THREE.BufferGeometry(),
-    new THREE.MeshStandardMaterial({ color: '#5b9bd5', roughness: 0.65 }),
-  )
-  private readonly edges = new THREE.LineSegments(
-    new THREE.BufferGeometry(),
-    new THREE.LineBasicMaterial({ color: '#a1c8e8', transparent: true, opacity: 0.55 }),
-  )
+  private readonly parts = new THREE.Group()
   private readonly grid = new THREE.GridHelper(1000, 100, '#3a4050', '#2a2e39')
   private readonly observer: ResizeObserver
   private radius = 50
@@ -39,9 +37,7 @@ export class BasePreview {
     key.position.set(125, 200, 125)
     const fill = new THREE.DirectionalLight(0xffffff, 0.6)
     fill.position.set(-100, -50, -100)
-    this.scene.add(key, fill, this.grid, this.base)
-    this.base.add(this.edges)
-    this.base.visible = false
+    this.scene.add(key, fill, this.grid, this.parts)
     this.observer = new ResizeObserver(() => this.resize())
     this.observer.observe(host)
     this.resize()
@@ -53,21 +49,33 @@ export class BasePreview {
   }
 
   setModel(stl: ArrayBuffer) {
-    const geometry = new STLLoader().parse(stl)
-    geometry.computeBoundingBox()
-    const size = geometry.boundingBox!.getSize(new THREE.Vector3())
-    // OpenSCAD uses Z-up; this viewport uses Y-up.
-    geometry.rotateX(-Math.PI / 2)
-    geometry.computeVertexNormals()
-    const edges = new THREE.EdgesGeometry(geometry)
-    this.base.geometry.dispose()
-    this.edges.geometry.dispose()
-    this.base.geometry = geometry
-    this.edges.geometry = edges
-    this.base.visible = true
-    geometry.computeBoundingSphere()
-    this.center.copy(geometry.boundingSphere!.center)
-    this.radius = Math.max(geometry.boundingSphere!.radius, 0.01)
+    return this.setParts([{ stl, color: '#5b9bd5' }])
+  }
+
+  // Replace the displayed meshes; returns the combined size in OpenSCAD's Z-up axes.
+  setParts(parts: readonly PreviewPart[]) {
+    const bounds = new THREE.Box3()
+    const meshes = parts.map(({ stl, color }) => {
+      const geometry = new STLLoader().parse(stl)
+      geometry.computeBoundingBox()
+      bounds.union(geometry.boundingBox!)
+      // OpenSCAD uses Z-up; this viewport uses Y-up.
+      geometry.rotateX(-Math.PI / 2)
+      geometry.computeVertexNormals()
+      const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color, roughness: 0.65 }))
+      const edgeColor = new THREE.Color(color).lerp(new THREE.Color('#ffffff'), 0.45)
+      mesh.add(new THREE.LineSegments(
+        new THREE.EdgesGeometry(geometry),
+        new THREE.LineBasicMaterial({ color: edgeColor, transparent: true, opacity: 0.55 }),
+      ))
+      return mesh
+    })
+    this.clearParts()
+    this.parts.add(...meshes)
+    const size = bounds.getSize(new THREE.Vector3())
+    const sphere = new THREE.Box3().setFromObject(this.parts).getBoundingSphere(new THREE.Sphere())
+    this.center.copy(sphere.center)
+    this.radius = Math.max(sphere.radius, 0.01)
     const side = this.radius * 2
     // Keep the camera still so parameter changes remain visible.
     const step = 10 ** Math.floor(Math.log10(side / 5))
@@ -102,14 +110,21 @@ export class BasePreview {
     }
   }
 
+  private clearParts() {
+    this.parts.traverse(object => {
+      if (object instanceof THREE.Mesh || object instanceof THREE.LineSegments) {
+        object.geometry.dispose()
+        object.material.dispose()
+      }
+    })
+    this.parts.clear()
+  }
+
   dispose() {
     this.observer.disconnect()
     this.renderer.setAnimationLoop(null)
     this.controls.dispose()
-    this.base.geometry.dispose()
-    this.base.material.dispose()
-    this.edges.geometry.dispose()
-    this.edges.material.dispose()
+    this.clearParts()
     this.grid.geometry.dispose()
     const materials = Array.isArray(this.grid.material) ? this.grid.material : [this.grid.material]
     materials.forEach(material => material.dispose())
