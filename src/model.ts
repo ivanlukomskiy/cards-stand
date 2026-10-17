@@ -1,5 +1,5 @@
 import { baseEndCutPoints, baseEndGeometry, baseEndInnerPoints } from './base-end-geometry.ts'
-import { cellInnerPoints, cellOuterPoints, cellMidPoints, hingeCutRightPoints, rimRightPoints, defaultSketchParameters } from './sketch.ts'
+import { cellInnerPoints, cellOuterPoints, cellMidPoints, rimRightPoints, defaultSketchParameters } from './sketch.ts'
 import type { CellSketchParameters } from './sketch.ts'
 
 export interface BaseParameters extends CellSketchParameters {
@@ -36,26 +36,21 @@ export function validateBaseParameters(params: BaseParameters) {
   }
 }
 
-export function cellRaisedProfiles(params: BaseParameters): number[][][] {
+export function cellFullRaisedProfiles(params: BaseParameters): number[][][] {
+  const outer = cellOuterPoints(params)
   const inner = cellInnerPoints(params)
   const mid = cellMidPoints(params)
-  const hinge = hingeCutRightPoints(params)
   const rim = rimRightPoints(params)
   // Profiles close automatically back to their first point.
-  const right = [
-    [mid[0]!, hinge[3]!, hinge[2]!, hinge[1]!, inner[0]!, mid[2]!],
-    [mid[3]!, rim[1]!, rim[2]!, mid[1]!],
-  ].map(profile => profile.map(({ x, y }) => [x, y]))
-  const left = right.map(profile => profile.map(([x, y]) => [-x!, y!]).reverse())
-  return [...right, ...left]
+  const right = [mid[0]!, outer[0]!, outer[1]!, rim[1]!, rim[0]!, inner[1]!, inner[0]!, mid[2]!].map(({ x, y }) => [x, y])
+  const left = right.map(([x, y]) => [-x!, y!]).reverse()
+  return [right, left]
 }
 
-export function cellFullHeightProfiles(params: BaseParameters): number[][][] {
+export function cellSemiRaisedProfiles(params: BaseParameters): number[][][] {
+  const mid = cellMidPoints(params)
   const rim = rimRightPoints(params)
-  const outer = cellOuterPoints(params)
-  const hinge = hingeCutRightPoints(params)
-  const inner = cellInnerPoints(params)
-  const right = [hinge[0]!, outer[0]!, outer[1]!, rim[2]!, rim[1]!, inner[1]!].map(({ x, y }) => [x, y])
+  const right = [mid[3]!, rim[0]!, rim[1]!, mid[1]!].map(({ x, y }) => [x, y])
   const left = right.map(([x, y]) => [-x!, y!]).reverse()
   return [right, left]
 }
@@ -63,7 +58,7 @@ export function cellFullHeightProfiles(params: BaseParameters): number[][][] {
 // Pass the same sketch coordinates to OpenSCAD that the SVG uses.
 export function baseDefinitions(params: BaseParameters): string[] {
   validateBaseParameters(params)
-  const { hingeCenter, hingeCenter2, hingeRadius, rest1, atHeight, start, rest2, center, holeRadius } = baseEndGeometry(params)
+  const { hingeCenter, hingeCenter2, hingeRadius, rest1, atHeight, start, rest2, center, holeRadius, slope } = baseEndGeometry(params)
   const definitions = {
     base_end_points: [rest1, atHeight, start, rest2].map(({ y, z }) => [y, z]),
     base_end_inner_points: baseEndInnerPoints(params),
@@ -74,17 +69,18 @@ export function baseDefinitions(params: BaseParameters): string[] {
     hinge_centres: [[hingeCenter.y, hingeCenter.z], [hingeCenter2.y, hingeCenter2.z]],
     hinge_radius: hingeRadius,
     cell_width: params.cellWidth,
-    raised_profiles: cellRaisedProfiles(params),
-    full_height_profiles: cellFullHeightProfiles(params),
+    full_raised_profiles: cellFullRaisedProfiles(params),
+    semi_raised_profiles: cellSemiRaisedProfiles(params),
     base_height: params.baseHeight,
-    raised_height: params.baseHeight - params.hingeThickness - params.hingeTolerance,
-    cell_inner_points: cellInnerPoints(params).map(({ x, y }) => [x, y]),
+    semi_raised_height: params.baseHeight - params.hingeThickness - params.hingeTolerance,
+    cell_outer_points: cellOuterPoints(params).map(({ x, y }) => [x, y]),
     rows: params.rows,
     columns: params.columns,
     column_pitch: params.cellWidth + params.wallThickness,
     row_pitch: params.cellLength + params.wallThickness * 2 + (params.hingeThickness + params.hingeTolerance) / Math.sin(params.baseAngle * Math.PI / 180),
     wall_thickness: params.wallThickness,
-    base_angle: params.baseAngle,
+    // Computed here so sheared cell faces coincide exactly with base end points built from the same slope.
+    shear: slope,
   }
   return Object.entries(definitions).flatMap(([name, value]) => ['-D', `${name}=${JSON.stringify(value)}`])
 }

@@ -1,9 +1,9 @@
 // Parameters and sketch profiles are supplied by src/model.ts.
-// Angle is measured from +Y toward +Z in the YOZ plane.
+// Angle is measured from +Y toward +Z in the YOZ plane; shear = 1 / tan(base angle).
 module angled_extrusion(z_distance) {
     multmatrix([
         [1, 0, 0, 0],
-        [0, 1, 1 / tan(base_angle), 0],
+        [0, 1, shear, 0],
         [0, 0, 1, 0],
         [0, 0, 0, 1]
     ])
@@ -13,16 +13,16 @@ module angled_extrusion(z_distance) {
 
 module cell() {
     union() {
-        // Extrusion 1: inner rectangle, with wall thickness measured along Z.
+        // Extrusion 1: outer rectangle floor, with wall thickness measured along Z.
         angled_extrusion(wall_thickness)
-            polygon(points = cell_inner_points);
-        // Two right profiles and their Y-axis mirrors, starting at Z=0.
-        for (profile = raised_profiles)
-            angled_extrusion(raised_height)
-                polygon(points = profile);
-        // Side and outer rim profiles use the full base height.
-        for (profile = full_height_profiles)
+            polygon(points = cell_outer_points);
+        // Full raised: right side wall and front strip, plus its Y-axis mirror, at the full base height.
+        for (profile = full_raised_profiles)
             angled_extrusion(base_height)
+                polygon(points = profile);
+        // Semi raised: back strip between the rims, plus its mirror, lowered by the hinge thickness and tolerance.
+        for (profile = semi_raised_profiles)
+            angled_extrusion(semi_raised_height)
                 polygon(points = profile);
     }
 }
@@ -37,7 +37,7 @@ module base_solid() {
 }
 
 module hinge_capsule_cut(x_start) {
-    // The sketch's (Y,Z) capsule is extruded along X through one outside wall.
+    // The sketch's (Y,Z) capsule is extruded along X through one side wall.
     multmatrix([
         [0, 0, 1, x_start],
         [1, 0, 0, 0],
@@ -52,12 +52,12 @@ module hinge_capsule_cut(x_start) {
             }
 }
 
-module edge_hinge_cuts() {
+// Cut through the side walls of every cell, including the shared interior walls.
+module wall_hinge_cuts() {
     for (row = [0 : rows - 1])
-        translate([0, -row * row_pitch, 0]) {
-            hinge_capsule_cut(-cell_width / 2 - wall_thickness);
-            hinge_capsule_cut((columns - 1) * column_pitch + cell_width / 2);
-        }
+        translate([0, -row * row_pitch, 0])
+            for (wall = [0 : columns])
+                hinge_capsule_cut(wall * column_pitch - cell_width / 2 - wall_thickness);
 }
 
 // A function, because a top-level assignment here would be evaluated before the appended -D parameters.
@@ -120,7 +120,7 @@ module row_cuts() {
 union() {
     difference() {
         base_solid();
-        edge_hinge_cuts();
+        wall_hinge_cuts();
         row_cuts();
     }
     // Fused to row 0 along the outer 1–outer 2 face.

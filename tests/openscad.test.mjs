@@ -4,12 +4,12 @@ import OpenSCAD from '../public/vendor/openscad/openscad.js'
 import { DoubleSide, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three'
 import { baseEndCutPoints, baseEndGeometry, baseEndInnerPoints } from '../src/base-end-geometry.ts'
 import { STLLoader } from 'three/addons/loaders/STLLoader.js'
-import { baseDefinitions, defaultBaseParameters, cellRaisedProfiles, cellFullHeightProfiles } from '../src/model.ts'
-import { cellMidPoints, hingeCutRightPoints, cellOuterPoints } from '../src/sketch.ts'
+import { baseDefinitions, defaultBaseParameters, cellFullRaisedProfiles, cellSemiRaisedProfiles } from '../src/model.ts'
+import { cellMidPoints, cellOuterPoints } from '../src/sketch.ts'
 
 const wasmBinary = await fs.readFile(new URL('../public/vendor/openscad/openscad.wasm', import.meta.url))
 const source = await fs.readFile(new URL('../src/models/base.scad', import.meta.url), 'utf8')
-const solidSource = source.replace(/difference\(\) \{\s*base_solid\(\);\s*edge_hinge_cuts\(\);\s*row_cuts\(\);\s*\}/, 'base_solid();').replace(/\n\s*\/\/ Fused[^\n]*\n\s*base_end\(\);/, '')
+const solidSource = source.replace(/difference\(\) \{\s*base_solid\(\);\s*wall_hinge_cuts\(\);\s*row_cuts\(\);\s*\}/, 'base_solid();').replace(/\n\s*\/\/ Fused[^\n]*\n\s*base_end\(\);/, '')
 const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 0.0001, `${actual} != ${expected}`)
 
 for (const changes of [
@@ -44,16 +44,16 @@ for (const changes of [
   near(min.z, 0)
   near(max.z, Math.max(params.wallThickness, params.baseHeight))
   if (params.rows === 1 && params.columns === 1) {
-    // The profiles touch the floor at their boundaries without overlapping its volume.
+    // The floor covers the outer rectangle; the profiles add volume only above it.
     const area = polygon => Math.abs(polygon.reduce((sum, p, i) => {
       const q = polygon[(i + 1) % polygon.length]
       return sum + p[0] * q[1] - q[0] * p[1]
     }, 0)) / 2
-    const profiles = cellRaisedProfiles(params)
-    assert.deepEqual(profiles.slice(2), profiles.slice(0,2).map(profile => profile.map(([x,y]) => [-x,y]).reverse()))
-    const rimProfiles = cellFullHeightProfiles(params)
-    assert.deepEqual(rimProfiles[1], rimProfiles[0].map(([x,y]) => [-x,y]).reverse())
-    const expectedVolume = rimProfiles.reduce((sum, profile) => sum + area(profile), 0) * params.baseHeight + profiles.reduce((sum, profile) => sum + area(profile), 0) * raisedHeight + params.cellWidth * params.cellLength * params.wallThickness
+    const profiles = cellSemiRaisedProfiles(params)
+    assert.deepEqual(profiles[1], profiles[0].map(([x,y]) => [-x,y]).reverse())
+    const fullProfiles = cellFullRaisedProfiles(params)
+    assert.deepEqual(fullProfiles[1], fullProfiles[0].map(([x,y]) => [-x,y]).reverse())
+    const expectedVolume = fullProfiles.reduce((sum, profile) => sum + area(profile), 0) * (params.baseHeight - params.wallThickness) + profiles.reduce((sum, profile) => sum + area(profile), 0) * (raisedHeight - params.wallThickness) + area(cellOuterPoints(params).map(({x, y}) => [x, y])) * params.wallThickness
     const position = geometry.attributes.position
     let volume = 0
     for (let i = 0; i < position.count; i += 3) {
@@ -65,7 +65,7 @@ for (const changes of [
     assert.ok(Math.abs(Math.abs(volume) - expectedVolume) < expectedVolume * 1e-5, `Unexpected volume ${volume}; expected ${expectedVolume}`)
   }
   geometry.dispose()
-  console.log(`PASS: ${params.rows} × ${params.columns} cells, ${params.baseAngle}°, ${raisedHeight} mm raised profiles; mesh bounds and single-cell volume`)
+  console.log(`PASS: ${params.rows} × ${params.columns} cells, ${params.baseAngle}°, ${raisedHeight} mm semi raised profiles; mesh bounds and single-cell volume`)
 }
 assert.throws(() => baseDefinitions({ ...defaultBaseParameters, baseAngle: 0 }))
 assert.throws(() => baseDefinitions({ ...defaultBaseParameters, baseHeight: 3.1 }))
@@ -78,23 +78,17 @@ assert.deepEqual(cellMidPoints(defaultBaseParameters).map(({ name, x, y }) => [n
 ])
 console.log('PASS: midpoint coordinates and invalid parameter rejection')
 
-assert.deepEqual(cellRaisedProfiles(defaultBaseParameters).slice(0,2), [
-  [[0,topY],[22.9,topY],[22.9,2],[32,2],[32,0],[0,0]],
-  [[0,-24],[25,-24],[25,-26],[0,-26]],
-])
-console.log('PASS: exact right-side profile coordinates and ordering')
+assert.deepEqual(cellFullRaisedProfiles(defaultBaseParameters)[0], [[0,topY],[34,topY],[34,-26],[25,-26],[25,-24],[32,-24],[32,0],[0,0]])
+console.log('PASS: full raised right profile coordinates and ordering')
 
-assert.deepEqual(cellFullHeightProfiles(defaultBaseParameters)[0], [[32,topY],[34,topY],[34,-26],[25,-26],[25,-24],[32,-24]])
-console.log('PASS: full-height side profile point ordering')
+assert.deepEqual(cellSemiRaisedProfiles(defaultBaseParameters)[0], [[0,-24],[25,-24],[25,-26],[0,-26]])
+console.log('PASS: semi raised right profile coordinates and ordering')
 
 for (const baseAngle of [30, 45, 90]) {
   const params = {...defaultBaseParameters, baseAngle}
-  const hinge = hingeCutRightPoints(params)
-  near(hinge[0].y, 2 + 3.1 / Math.sin(baseAngle * Math.PI / 180))
-  near(cellOuterPoints(params)[0].y, hinge[0].y)
-  near(hinge[2].x, 22.9) // X tolerance must remain unprojected.
+  near(cellOuterPoints(params)[0].y, 2 + 3.1 / Math.sin(baseAngle * Math.PI / 180))
 }
-console.log('PASS: projected Y tolerance and unchanged X tolerance')
+console.log('PASS: projected Y tolerance at cell outer 1')
 
 // Check real cut meshes by probing the capsule centreline across all columns.
 for (const columns of [1, 3]) {
@@ -118,12 +112,12 @@ for (const columns of [1, 3]) {
     assert.equal(inside(-params.cellWidth/2-params.wallThickness/2),false,'Left exterior must be cut')
     assert.equal(inside((columns-1)*colPitch+params.cellWidth/2+params.wallThickness/2),false,'Right exterior must be cut')
     for(let column=0;column<columns-1;column++) {
-      assert.equal(inside(column*colPitch+params.cellWidth/2+params.wallThickness/2),true,'Interior wall must remain solid')
+      assert.equal(inside(column*colPitch+params.cellWidth/2+params.wallThickness/2),false,'Interior wall must be cut')
     }
   }
   material.dispose()
   geometry.dispose()
-  console.log(`PASS: ${columns} columns, two rows: capsules cut only exterior walls`)
+  console.log(`PASS: ${columns} columns, two rows: capsules cut every cell side wall`)
 }
 
 // The base end spans the full model width and is fused to row 0's outer 1–outer 2 face.
