@@ -89,7 +89,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         </div>
         <div class="transform-field">
           <label for="stand-profile-width">Stand profile width (mm)</label>
-          <input id="stand-profile-width" name="stand-profile-width" type="number" min="0" step="0.1" value="25" />
+          <input id="stand-profile-width" name="stand-profile-width" type="number" min="0" step="0.1" value="18" />
         </div>
         <div class="transform-field">
           <label for="bolt-tolerance">Bolt tolerance (mm)</label>

@@ -48,19 +48,23 @@ export function standTopGeometry(params: BaseParameters) {
     // Projections of outer 2 and outer 1 onto OY.
     outer3: { x: 0, y: -standLength },
     outer4: { x: 0, y: yTop1 },
-    inner1: { x: params.standProfileWidth, y: 0 },
-    // Outer 1 moved left by the stand profile width, on OX.
-    inner2: { x: halfWidth - params.standProfileWidth, y: 0 },
+    // On OY, one stand profile width below OX.
+    inner1: { x: 0, y: -params.standProfileWidth },
+    // Outer 1 X moved left by the stand profile width, at the same Y as inner 1.
+    inner2: { x: halfWidth - params.standProfileWidth, y: -params.standProfileWidth },
+    // Inner 2 and inner 1 at one stand profile width above outer 3.
+    inner3: { x: halfWidth - params.standProfileWidth, y: -standLength + params.standProfileWidth },
+    inner4: { x: 0, y: -standLength + params.standProfileWidth },
   }
 }
 
 // The stand viewed from above, in the XOY plane: positive X right, positive Y up.
 export function standTopSketch(params: BaseParameters = defaultBaseParameters) {
-  const { yTop1, standLength, outer1, outer2, outer3, outer4, inner1, inner2 } = standTopGeometry(params)
+  const { yTop1, standLength, outer1, outer2, outer3, outer4, inner1, inner2, inner3, inner4 } = standTopGeometry(params)
   const xFormula = '(wall thickness * (columns + 1) + cell width * columns) / 2'
   return axesSketch(Math.max(outer1.x, yTop1, standLength), 'X', 'Y', false,
     'Stand top sketch with positive X pointing right and positive Y pointing up', unit => `
-      <polygon class="sketch-outline" points="${[outer1, outer2, outer3, outer4].map(p => `${p.x},${-p.y}`).join(' ')}" />
+      <polygon class="sketch-outline" points="${[outer1, outer2, outer3, inner4, inner3, inner2, inner1, outer4].map(p => `${p.x},${-p.y}`).join(' ')}" />
       ${[[outer1, 'Y top 1', -2], [outer2, '-stand length', 4], [outer3, '-stand length', 4], [outer4, 'Y top 1', -2]].map(([point, yFormula, labelOffset], index) => {
         const { x, y } = point as { x: number, y: number }
         return `
@@ -69,10 +73,10 @@ export function standTopSketch(params: BaseParameters = defaultBaseParameters) {
           <circle class="sketch-vertex-dot" cx="${x}" cy="${-y}" r="${0.7 * unit}" />
         </g>`
       }).join('')}
-      ${[[inner1, 'stand profile width'], [inner2, `${xFormula} - stand profile width`]].map(([point, formula], index) => {
+      ${[[inner1, '0'], [inner2, `${xFormula} - stand profile width`], [inner3, `${xFormula} - stand profile width`], [inner4, '0']].map(([point, formula], index) => {
         const { x, y } = point as { x: number, y: number }
         return `
-        <g class="sketch-vertex sketch-inner-vertex" data-point-name="inner ${index + 1}" data-x="${x}" data-y="${y}" data-x-formula="${formula}" data-y-formula="0"
+        <g class="sketch-vertex sketch-inner-vertex" data-point-name="inner ${index + 1}" data-x="${x}" data-y="${y}" data-x-formula="${formula}" data-y-formula="${index < 2 ? '-stand profile width' : '-stand length + stand profile width'}"
           data-label-x="${x}" data-label-y="${-y + 4 * unit}" data-label-anchor="middle" data-label-size="${3 * unit}">
           <circle class="sketch-vertex-dot" cx="${x}" cy="${-y}" r="${0.7 * unit}" />
         </g>`

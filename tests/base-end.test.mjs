@@ -220,8 +220,9 @@ console.log('PASS: stand side circles, green half-circle ends, and dropped outer
     const halfWidth = (params.wallThickness * (params.columns + 1) + params.cellWidth * params.columns) / 2
     assert.deepEqual([top.outer1, top.outer2], [{x: halfWidth, y: top.yTop1}, {x: halfWidth, y: -top.standLength}])
     assert.deepEqual([top.outer3, top.outer4], [{x: 0, y: -top.standLength}, {x: 0, y: top.yTop1}])
-    assert.deepEqual([top.inner1, top.inner2], [{x: params.standProfileWidth, y: 0}, {x: halfWidth - params.standProfileWidth, y: 0}])
+    assert.deepEqual([top.inner1, top.inner2], [{x: 0, y: -params.standProfileWidth}, {x: halfWidth - params.standProfileWidth, y: -params.standProfileWidth}])
+    assert.deepEqual([top.inner3, top.inner4], [{x: halfWidth - params.standProfileWidth, y: top.outer3.y + params.standProfileWidth}, {x: 0, y: top.outer3.y + params.standProfileWidth}])
   }
   assert.throws(() => validateBaseParameters({...defaultBaseParameters, standAngle: 150, baseTiltAngle: 30}))
 }
-console.log('PASS: stand top precalculated lengths, outer 1–4, and inner 1–2')
+console.log('PASS: stand top precalculated lengths, outer 1–4, and inner 1–4')
