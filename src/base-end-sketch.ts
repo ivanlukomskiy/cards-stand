@@ -52,8 +52,8 @@ export function baseEndSketch(params: BaseParameters = defaultBaseParameters) {
         L ${-outer3.y} ${-outer3.z}
         L ${-rest1.y} ${-rest1.z}" />
       ${hingeOutline}
-      <path class="sketch-outline sketch-cut-outline" transform="translate(${-cutOutlineEpsilon} 0)" d="M ${-atHeight.y} ${-atHeight.z}
-        L ${-midCut1.y} ${-midCut1.z}
+      <path class="sketch-outline sketch-cut-outline" transform="translate(${-cutOutlineEpsilon} 0)" d="M ${-atHeight.y} ${-(atHeight.z + cutOutlineEpsilon)}
+        L ${-midCut1.y} ${-(midCut1.z + cutOutlineEpsilon)}
         L ${-midCut2.y} ${-midCut2.z}
         A ${hingeRadius} ${hingeRadius} 0 0 1 ${-midCut3.y} ${-midCut3.z}
         L ${-cutCorner.y} ${-cutCorner.z} Z" />

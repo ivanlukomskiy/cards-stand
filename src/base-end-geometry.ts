@@ -100,8 +100,8 @@ export const cutOutlineEpsilon = 0.001
 export function baseEndCutPoints(params: BaseParameters): number[][] {
   const { atHeight, midCut1, hingeCenter3, hingeRadius, cutCorner } = baseEndGeometry(params)
   return [
-    [atHeight.y, atHeight.z],
-    [midCut1.y, midCut1.z],
+    [atHeight.y, atHeight.z + cutOutlineEpsilon],
+    [midCut1.y, midCut1.z + cutOutlineEpsilon],
     ...arcPoints(hingeCenter3, hingeRadius, Math.PI, 1.5 * Math.PI),
     [cutCorner.y, cutCorner.z],
   ].map(([y, z]) => [y! + cutOutlineEpsilon, z!])
