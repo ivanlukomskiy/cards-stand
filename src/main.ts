@@ -23,8 +23,8 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <details id="assembly-section" class="sidebar-section" open hidden>
       <summary>Assembly</summary>
       <div class="sidebar-section-content">
-        <label class="checkbox-field"><input id="stand-extended" type="checkbox" /> Stand extended</label>
-        <label class="checkbox-field"><input id="hinge-extended" type="checkbox" /> Hinge extended</label>
+        <label class="checkbox-field"><input id="stand-extended" type="checkbox" checked /> Stand extended</label>
+        <label class="checkbox-field"><input id="hinge-extended" type="checkbox" checked /> Hinge extended</label>
       </div>
     </details>
     <details id="parts-section" class="sidebar-section" open hidden>
@@ -55,7 +55,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <details id="parameters-section" class="sidebar-section" open>
       <summary>Parameters</summary>
       <div class="sidebar-section-content">
-        <details id="base-parameters" class="sidebar-section" open>
+        <details id="base-parameters" class="sidebar-section">
           <summary>Base</summary>
           <div class="sidebar-section-content">
             <div class="transform-field">
@@ -96,7 +96,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
             </div>
           </div>
         </details>
-        <details id="hinge-parameters" class="sidebar-section" open>
+        <details id="hinge-parameters" class="sidebar-section">
           <summary>Hinge</summary>
           <div class="sidebar-section-content">
             <div class="transform-field">
@@ -129,7 +129,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
             </div>
           </div>
         </details>
-        <details id="stand-parameters" class="sidebar-section" open>
+        <details id="stand-parameters" class="sidebar-section">
           <summary>Stand</summary>
           <div class="sidebar-section-content">
             <div class="transform-field">
@@ -150,7 +150,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
             </div>
           </div>
         </details>
-        <details id="bolt-parameters" class="sidebar-section" open>
+        <details id="bolt-parameters" class="sidebar-section">
           <summary>Bolt</summary>
           <div class="sidebar-section-content">
             <div class="transform-field">
@@ -438,7 +438,10 @@ const assemblyOptions = {
 try {
   const stored: unknown = JSON.parse(recall(assemblyKey) ?? '{}')
   if (stored && typeof stored === 'object') {
-    for (const [name, field] of Object.entries(assemblyOptions)) field.checked = (stored as Record<string, unknown>)[name] === true
+    for (const [name, field] of Object.entries(assemblyOptions)) {
+      const checked = (stored as Record<string, unknown>)[name]
+      if (typeof checked === 'boolean') field.checked = checked
+    }
   }
 } catch { /* ignore unreadable stored options */ }
 const saveAssemblyOptions = () => remember(assemblyKey, JSON.stringify(Object.fromEntries(
