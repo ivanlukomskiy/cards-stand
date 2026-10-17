@@ -33,14 +33,14 @@ for (const changes of [
   geometry.computeBoundingBox()
   const { min, max } = geometry.boundingBox
   const shear = 1 / Math.tan(params.baseAngle * Math.PI / 180)
-  const yTolerance = params.hingeTolerance * Math.sin(params.baseAngle * Math.PI / 180)
-  const rowPitch = params.cellLength + params.wallThickness * 2 + params.hingeThickness + yTolerance
+  const hingeSpanY = (params.hingeThickness + params.hingeTolerance) / Math.sin(params.baseAngle * Math.PI / 180)
+  const rowPitch = params.cellLength + params.wallThickness * 2 + hingeSpanY
   const colPitch = params.cellWidth + params.wallThickness
   const raisedHeight = params.baseHeight - params.hingeThickness - params.hingeTolerance
   near(min.x, -params.cellWidth / 2 - params.wallThickness)
   near(max.x, params.cellWidth / 2 + params.wallThickness + (params.columns - 1) * colPitch)
   near(min.y, -params.cellLength - params.wallThickness)
-  near(max.y, (params.rows - 1) * rowPitch + Math.max(params.wallThickness * shear, params.wallThickness + params.hingeThickness + yTolerance + params.baseHeight * shear, -params.cellLength + params.baseHeight * shear))
+  near(max.y, (params.rows - 1) * rowPitch + Math.max(params.wallThickness * shear, params.wallThickness + hingeSpanY + params.baseHeight * shear, -params.cellLength + params.baseHeight * shear))
   near(min.z, 0)
   near(max.z, Math.max(params.wallThickness, params.baseHeight))
   if (params.rows === 1 && params.columns === 1) {
@@ -71,7 +71,7 @@ assert.throws(() => baseDefinitions({ ...defaultBaseParameters, baseAngle: 0 }))
 assert.throws(() => baseDefinitions({ ...defaultBaseParameters, baseHeight: 3.1 }))
 assert.throws(() => baseDefinitions({ ...defaultBaseParameters, rows: 1.5 }))
 assert.throws(() => baseDefinitions({ ...defaultBaseParameters, columns: 0 }))
-const topY = 5 + 0.1 * Math.sin(Math.PI / 4)
+const topY = 2 + 3.1 / Math.sin(Math.PI / 4)
 assert.deepEqual(cellMidPoints(defaultBaseParameters).map(({ name, x, y }) => [name, x, y]), [
   ['cell outer mid 1', 0, topY], ['cell outer mid 2', 0, -26],
   ['cell inner mid 1', 0, 0], ['cell inner mid 2', 0, -24],
@@ -90,7 +90,7 @@ console.log('PASS: full-height side profile point ordering')
 for (const baseAngle of [30, 45, 90]) {
   const params = {...defaultBaseParameters, baseAngle}
   const hinge = hingeCutRightPoints(params)
-  near(hinge[0].y, 5 + 0.1 * Math.sin(baseAngle * Math.PI / 180))
+  near(hinge[0].y, 2 + 3.1 / Math.sin(baseAngle * Math.PI / 180))
   near(cellOuterPoints(params)[0].y, hinge[0].y)
   near(hinge[2].x, 22.9) // X tolerance must remain unprojected.
 }
@@ -108,7 +108,7 @@ for (const columns of [1, 3]) {
   const mesh = new Mesh(geometry,material)
   mesh.updateMatrixWorld()
   const colPitch = params.cellWidth + params.wallThickness
-  const rowPitch = params.cellLength + 2*params.wallThickness + params.hingeThickness + params.hingeTolerance*Math.sin(params.baseAngle*Math.PI/180)
+  const rowPitch = params.cellLength + 2*params.wallThickness + (params.hingeThickness + params.hingeTolerance)/Math.sin(params.baseAngle*Math.PI/180)
   for (let row=0;row<params.rows;row++) {
     const z = (hingeCenter.z + hingeCenter2.z)/2 + 0.123
     const y = hingeCenter.y + (z-hingeCenter.z)/Math.tan(params.baseAngle*Math.PI/180) + row*rowPitch

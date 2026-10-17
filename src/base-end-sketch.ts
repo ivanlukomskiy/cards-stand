@@ -53,17 +53,17 @@ export function baseEndSketch(params: BaseParameters = defaultBaseParameters) {
         L ${-rest1.y} ${-rest1.z}" />
       ${hingeOutline}
       <g class="sketch-vertex" data-point-name="outer 1" data-x="${start.y}" data-y="0" data-first-axis="Y" data-second-axis="Z"
-        data-x-formula="wall thickness + hinge thickness + hinge tolerance" data-y-formula="0"
+        data-x-formula="wall thickness + (hinge thickness + hinge tolerance) / sin(base angle)" data-y-formula="0"
         data-label-x="${-start.y - 2 * unit}" data-label-y="${4 * unit}" data-label-anchor="end" data-label-size="${3 * unit}">
         <circle class="sketch-vertex-dot" cx="${-start.y}" cy="0" r="${0.7 * unit}" />
       </g>
       <g class="sketch-vertex" data-point-name="outer 2" data-x="${atHeight.y}" data-y="${atHeight.z}" data-first-axis="Y" data-second-axis="Z"
-        data-x-formula="wall thickness + hinge thickness + hinge tolerance + base height / tan(base angle)" data-y-formula="base height"
+        data-x-formula="wall thickness + (hinge thickness + hinge tolerance) / sin(base angle) + base height / tan(base angle)" data-y-formula="base height"
         data-label-x="${-atHeight.y - 2 * unit}" data-label-y="${-atHeight.z - 2 * unit}" data-label-anchor="end" data-label-size="${3 * unit}">
         <circle class="sketch-vertex-dot" cx="${-atHeight.y}" cy="${-atHeight.z}" r="${0.7 * unit}" />
       </g>
       <g class="sketch-vertex sketch-circle-center" data-point-name="circle centre" data-x="${center.y}" data-y="${center.z}" data-first-axis="Y" data-second-axis="Z"
-        data-x-formula="wall thickness + hinge thickness + hinge tolerance + base height / (2 * tan(base angle)) + base height / (2 * sin(base angle)) + wall thickness / sin(base angle)" data-y-formula="base height / 2"
+        data-x-formula="wall thickness + (hinge thickness + hinge tolerance) / sin(base angle) + base height / (2 * tan(base angle)) + base height / (2 * sin(base angle)) + wall thickness / sin(base angle)" data-y-formula="base height / 2"
         data-label-x="${-center.y - 2 * unit}" data-label-y="${-center.z - 2 * unit}" data-label-anchor="end" data-label-size="${3 * unit}">
         <circle class="sketch-vertex-dot" cx="${-center.y}" cy="${-center.z}" r="${0.7 * unit}" />
       </g>

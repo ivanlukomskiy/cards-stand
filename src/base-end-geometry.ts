@@ -1,7 +1,7 @@
 import type { BaseParameters } from './model.ts'
 
 export function baseEndGeometry(params: BaseParameters) {
-  const start = { y: params.wallThickness + params.hingeThickness + params.hingeTolerance, z: 0 }
+  const start = { y: params.wallThickness + (params.hingeThickness + params.hingeTolerance) / Math.sin(params.baseAngle * Math.PI / 180), z: 0 }
   const slope = 1 / Math.tan(params.baseAngle * Math.PI / 180)
   const atHeight = { y: start.y + params.baseHeight * slope, z: params.baseHeight }
   // OY and the upper horizontal beam are baseHeight apart.

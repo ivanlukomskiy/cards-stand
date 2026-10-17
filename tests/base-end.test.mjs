@@ -35,3 +35,11 @@ for (const baseAngle of [15,45,90]) {
   near(hingeCenter2.y - hingeCenter.y, (hingeCenter2.z - hingeCenter.z) * slope)
 }
 console.log('PASS: hinge centre 2 target Z and beam-parallel translation')
+
+for (const baseAngle of [30,45,90]) {
+  const params = {...defaultBaseParameters,baseAngle}
+  const geometry = baseEndGeometry(params)
+  near(geometry.start.y, params.wallThickness + (params.hingeThickness + params.hingeTolerance) / Math.sin(baseAngle*Math.PI/180))
+  near(geometry.atHeight.y-geometry.start.y, params.baseHeight*geometry.slope)
+}
+console.log('PASS: base end outer 1 projected tolerance and dependent beam position')

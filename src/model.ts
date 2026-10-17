@@ -75,7 +75,7 @@ export function baseDefinitions(params: BaseParameters): string[] {
     rows: params.rows,
     columns: params.columns,
     column_pitch: params.cellWidth + params.wallThickness,
-    row_pitch: params.cellLength + params.wallThickness * 2 + params.hingeThickness + params.hingeTolerance * Math.sin(params.baseAngle * Math.PI / 180),
+    row_pitch: params.cellLength + params.wallThickness * 2 + (params.hingeThickness + params.hingeTolerance) / Math.sin(params.baseAngle * Math.PI / 180),
     wall_thickness: params.wallThickness,
     base_angle: params.baseAngle,
   }
