@@ -5,8 +5,8 @@ import { STLLoader } from 'three/addons/loaders/STLLoader.js'
 export interface PreviewPart {
   stl: ArrayBuffer
   color: string
-  // Copies to show, each rotated about X then translated in OpenSCAD's Z-up axes; one untransformed copy if omitted.
-  placements?: readonly { rotationX: number; offset: readonly [number, number, number] }[]
+  // Copies to show, each rotated about Y, then about X, then translated in OpenSCAD's Z-up axes; one untransformed copy if omitted.
+  placements?: readonly { rotationY?: number; rotationX: number; offset: readonly [number, number, number] }[]
 }
 
 // OpenSCAD supplies geometry in millimeters; Three.js only displays it.
@@ -59,8 +59,9 @@ export class BasePreview {
     const bounds = new THREE.Box3()
     const meshes = parts.flatMap(({ stl, color, placements }) => {
       const source = new STLLoader().parse(stl)
-      const copies = (placements ?? [{ rotationX: 0, offset: [0, 0, 0] as const }]).map(({ rotationX, offset }) => {
+      const copies = (placements ?? [{ rotationX: 0, offset: [0, 0, 0] as const }]).map(({ rotationY = 0, rotationX, offset }) => {
         const geometry = source.clone()
+        geometry.rotateY(rotationY)
         geometry.rotateX(rotationX)
         geometry.translate(...offset)
         return geometry

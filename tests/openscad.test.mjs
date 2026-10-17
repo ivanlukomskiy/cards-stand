@@ -379,6 +379,7 @@ for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, column
     base: [source, baseDefinitions],
     hinge: [await fs.readFile(new URL('../src/models/hinge.scad', import.meta.url), 'utf8'), hingeDefinitions],
     stand: [await fs.readFile(new URL('../src/models/stand.scad', import.meta.url), 'utf8'), standDefinitions],
+    bolt: [await fs.readFile(new URL('../src/models/bolt.scad', import.meta.url), 'utf8'), (await import('../src/bolt-model.ts')).boltDefinitions],
   }
   for (const [columns, rows] of [[1, 1], [2, 2], [3, 3]]) {
     const params = {...defaultBaseParameters, columns, rows}
@@ -391,18 +392,23 @@ for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, column
         instance.FS.writeFile('/part.scad', partSource)
         assert.equal(instance.callMain(['/part.scad', ...definitions(params), '--export-format', 'binstl', '-o', '/part.stl']), 0)
         const geometry = new STLLoader().parse(instance.FS.readFile('/part.stl').slice().buffer)
+        const partBounds = { min: Infinity, max: -Infinity }
         for (const placement of placements[part]) {
           // Transform the way the preview does; it must agree with applyPlacement.
           const placed = geometry.clone()
+          placed.rotateY(placement.rotationY ?? 0)
           placed.rotateX(placement.rotationX)
           placed.translate(...placement.offset)
           const position = geometry.attributes.position
           const expected = applyPlacement(placement, [position.getX(0), position.getY(0), position.getZ(0)])
           near(placed.attributes.position.getX(0), expected[0]); near(placed.attributes.position.getY(0), expected[1]); near(placed.attributes.position.getZ(0), expected[2])
           placed.computeBoundingBox()
-          near(placed.boundingBox.min.x, -placed.boundingBox.max.x)
+          partBounds.min = Math.min(partBounds.min, placed.boundingBox.min.x)
+          partBounds.max = Math.max(partBounds.max, placed.boundingBox.max.x)
           placed.dispose()
         }
+        // All copies of a part together are centred on X = 0.
+        near(partBounds.min, -partBounds.max)
         geometry.dispose()
       }
       const { hingeCenter, hingeCenter2, start, atHeight, midCut1 } = baseEndGeometry(params)
@@ -498,5 +504,40 @@ for (const changes of [{ rows: 1, columns: 1, baseAngle: 45 }, { rows: 3, column
       geometry.dispose()
     }
   }
-  console.log('PASS: assembly centres parts on X = 0, places hinges and stand, tilts everything when the stand is extended, and lands the stand tip on Z = 0')
+  // Two bolts on the base hole axis, heads flush with the base sides and shanks pointing into the base.
+  {
+    const { boltGeometry } = await import('../src/bolt-sketch.ts')
+    const { boltDefinitions } = await import('../src/bolt-model.ts')
+    const boltSource = await fs.readFile(new URL('../src/models/bolt.scad', import.meta.url), 'utf8')
+    for (const columns of [1, 3]) {
+      const params = {...defaultBaseParameters, columns}
+      const { center } = baseEndGeometry(params)
+      const half = (params.wallThickness * (columns + 1) + params.cellWidth * columns) / 2
+      const bolts = assemblyPlacements(params, { standExtended: false, hingeExtended: false }).bolt
+      assert.equal(bolts.length, 2)
+      const instance = await OpenSCAD({noInitialRun:true, wasmBinary, print:()=>{}, printErr:()=>{}})
+      instance.FS.writeFile('/bolt.scad', boltSource)
+      assert.equal(instance.callMain(['/bolt.scad', ...boltDefinitions(params), '--export-format', 'binstl', '-o', '/bolt.stl']), 0)
+      const geometry = new STLLoader().parse(instance.FS.readFile('/bolt.stl').slice().buffer)
+      for (const [index, side] of [1, -1].entries()) {
+        const placement = bolts[index]
+        const axis = applyPlacement(placement, [0, 0, 0])
+        near(axis[0], side * half); near(axis[1], center.y); near(axis[2], center.z)
+        const tip = applyPlacement(placement, [0, 0, 1])
+        near(tip[0] - axis[0], -side)
+        const placed = geometry.clone()
+        placed.rotateY(placement.rotationY); placed.rotateX(placement.rotationX); placed.translate(...placement.offset)
+        placed.computeBoundingBox()
+        const { min, max } = placed.boundingBox
+        const length = params.boltLength + params.wallThickness
+        // Head from the base side inward by wall thickness; shank on into the base.
+        near(side > 0 ? max.x : -min.x, half)
+        near(side > 0 ? min.x : -max.x, half - length)
+        near(max.z - center.z, boltGeometry(params).outerRadius)
+        placed.dispose()
+      }
+      geometry.dispose()
+    }
+  }
+  console.log('PASS: assembly centres parts on X = 0, places hinges and stand, tilts everything when the stand is extended, lands the stand tip on Z = 0, and inserts two bolts')
 }
