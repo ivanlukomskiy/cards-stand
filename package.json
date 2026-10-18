@@ -2,13 +2,15 @@
   "name": "cards-stand",
   "private": true,
   "version": "0.0.0",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "node tests/openscad.test.mjs && node tests/base-end.test.mjs",
-    "deploy": "npm run build && gh-pages -d dist"
+    "deploy": "npm run build && gh-pages -d dist",
+    "generate-logo": "node scripts/generate-logo.mjs"
   },
   "devDependencies": {
     "@types/three": "^0.185.4",

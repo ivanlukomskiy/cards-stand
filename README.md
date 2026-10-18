@@ -1,35 +1,39 @@
-# Cards stand
+<p align="center">
+  <img src="public/favicon.svg" width="96" alt="cards stand logo" />
+</p>
 
-A parametric cards stand constructor with a named 2D sketch and an OpenSCAD-generated Three.js preview.
+<h1 align="center">cards stand</h1>
 
-Use Node.js 24, then run `npm install` and `npm run dev`. Run `npm run build` for production and `npm test` to verify the actual OpenSCAD mesh geometry.
+<p align="center">Parametric cards stand generation for board games</p>
 
-The sidebar and viewport styles follow the sibling dome-builder project. The Sketches view has seven sketches, chosen in its sidebar section (Parts likewise lists its models in its own section): Cell top (one cell in XOY), Cell side (the base end in YOZ), Hinge top (XOY: outer 1–4 from hinge top width, hinge height, cell width, and the hinge centre 1–2 distance), Hinge side (YOZ: a circle at the origin with diameter `hinge thickness`), Bolt (XOY: a red circle of radius `(base height - hinge tolerance) / 2` and a green circle of the Cell side stand hinge circle's radius minus `bolt tolerance`), Stand top (XOY: outer 1 and outer 2 at X = `(wall thickness * (columns + 1) + cell width * columns) / 2 - wall thickness` and Y = Y top 1 / -stand length, with outer 3 and outer 4 their projections on OY, joined as the outline outer 1 → outer 2 → outer 3 → inner 4 → inner 3 → inner 2 → inner 1 → outer 4, rounded at inner 3 and inner 2 by `stand profile width / 2`; inner 1 is `(0, -stand profile width)` and inner 2 is `(outer 1 X - stand profile width, -stand profile width)`; inner 3 and inner 4 share inner 2 and inner 1's X at `outer 3 Y + stand profile width`; see below), and Stand side (YOZ, positive Y left: a green outline: the top half-circle arc of diameter `base height - stand hinge tolerance` from outer 1 to outer 2 on the Y axis, then outer 2 → outer 3 → outer 4 → outer 1, around the Cell side red circle; outer 3 and outer 4 are outer 2 and outer 1 moved down by the Cell side yellow arc's radius, `base height / 2 + stand tolerance`; outer 5 and outer 6 are outer 3 and outer 4 moved down by `wall thickness`, with a purple polygon outer 3 → outer 5 → outer 6 → outer 4). Sketches show named points, hover formulas, and dash-dot axes. Parts shows one model at a time. Drag to orbit, scroll/pinch to zoom, and right-drag to pan. Fit model frames the generated mesh; models rebuild automatically after parameter changes. The selected view (Assembly/Parts/Sketches), sketch tab, part, sidebar parameters, and expanded sidebar sections are remembered across reloads in localStorage; Reset to defaults restores every parameter.
+<p align="center"><a href="https://ivanlukomskiy.github.io/cards-stand/">Open the generator</a></p>
 
-The first cell keeps its sketch coordinates. Columns advance in +X by `cell width + wall thickness`; rows advance in -Y by `cell length + 2 * wall thickness + (hinge thickness + hinge tolerance) / sin(hinge angle)`.
+## How it works
 
-Each cell unions three extrusions. The floor is the outer rectangle (cell outer 1–4) extruded by wall thickness. Full raised profiles (cell outer mid 1 → cell outer 1 → cell outer 2 → rim R2 → rim R1 → cell inner 2 → cell inner 1 → cell inner mid 1, and its Y-axis mirror) extrude by the full base height. Semi raised profiles (cell inner mid 2 → rim R1 → rim R2 → cell outer mid 2, and its mirror) extrude by `base height - hinge thickness - hinge tolerance`. All start at Z=0, with extrusion distances measured along Z. Extrusions rise toward +Y and +Z, at the hinge angle measured from +Y in the YOZ plane. The Y shift is `Z / tan(hinge angle)`; that shear is computed in TypeScript and passed to OpenSCAD so cell faces coincide exactly with the base end. Angles must be greater than 0° and at most 90°; base height must exceed hinge thickness plus tolerance. Rim R1 and R2 sit at `cell width / 2 - rim width`, at `-cell length` and `-cell length - wall thickness`.
+The stand is a grid of cells that hold cards, with a hinged divider in each row and a folding stand at the back. You set the dimensions in the sidebar (rows, columns, cell size, wall thickness, angles, tolerances and the stand's Voronoi pattern), and every part is rebuilt from them:
 
-`src/sketch.ts` defines the points, including outer/inner midpoint markers. `src/model.ts` passes the same inner rectangle coordinates to OpenSCAD along with layout and extrusion parameters. `src/models/base.scad` defines the angled extrusion and repeated cell union. The official OpenSCAD WebAssembly runtime is installed in `public/vendor/openscad` with source, version, checksum, and license details.
+- **Base**: the cells, with grooves the hinges rotate in, and the end that holds the stand.
+- **Hinge**: one per row, holding the cards up.
+- **Stand**: the folding back support, with a rounded Voronoi pattern cut through its plate.
+- **Bolt**: two pins that hold the stand in the base.
 
-The Parts view switches between models: Base, Bolt (the Bolt sketch's red circle extruded by wall thickness, and its green circle extruded by `bolt length + wall thickness` with a 45° end chamfer of `green radius / 3`), and Hinge (the Hinge top blue outline, with sampled fillets, extruded symmetrically about Z = 0 by hinge thickness in total, unioned with the Hinge side circle extruded along X from inner 3 by `hinge profile width + wall thickness`, all mirrored across the ZOY plane and repeated per column at the cell column pitch; neighbouring hinges join through their overlapping cylinders and the green bridge polygon, extruded like the blue outline between neighbours only, never at the model's outer sides). OpenSCAD runs in an isolated background worker and exports a binary STL in millimeters. Three.js loads that mesh, converts Z-up to Y-up, and fits the actual mesh bounds. Superseded builds are terminated; the last successful mesh remains visible during rebuilding or invalid edits.
+Each part is described by 2D sketches computed in TypeScript (shown in the Sketches view, with every point's formula on hover). The sketches are extruded and combined by OpenSCAD, running in the browser as WebAssembly, and the resulting meshes are shown with Three.js. The Assembly view puts the parts together, with the stand and hinges folded or extended. Export downloads every part as STL or as 3MF with the assembly colours, ready to slice and print.
 
-In the cell sketch and row layout, the hinge span along Y is `(hinge thickness + hinge tolerance) / sin(hinge angle)`, with top points at `wall thickness + (hinge thickness + hinge tolerance) / sin(hinge angle)`. X coordinates retain the original hinge tolerance; extrusion distances along Z are unchanged.
+![The assembly preview with default parameters](docs/screenshot.png)
 
-Outer 4 sits on the base end circle with its radius increased by `stand tolerance` (same centre); outer 3 is where the line from outer 4 at the stand angle meets Z = base height, and outer 5 is where the enlarged circle crosses Z = 0 on the +Y side of the centre. The stand angle must keep outer 4 between Z = 0 and base height.
+## Running locally
 
-The base end polygon (rest 1 → outer 2 → outer 1 → rest 2) is extruded along X across the full model width and fused to row 0 along its outer 1–outer 2 face. The yellow outline (rest 2 → outer 5 → arc → outer 4 → outer 3 → rest 1, closed back to rest 2) is extruded the same way but inset by `2 * wall thickness` from each side. The pink circle (diameter `base height - 2 * wall thickness - stand hinge tolerance`, concentric with the helper circle) is drilled through the yellow extrusion along X, with 45° chamfers of `wall thickness / 2` at both ends. Neither extrusion is subtracted by the hinge cuts.
+Use Node.js 24.
 
-The purple outline from the Base end sketch (outer 2 → mid cut 1 → mid cut 2 → arc → mid cut 3 → hinge circle 2 bottom → arc → its tangent point on outer 1–outer 2) is shifted toward +Y by `cutOutlineEpsilon` (0.001 mm) and cut along X through every row, between the inner faces of the two outer side walls, so only those walls remain in that region.
+```sh
+npm install
+npm run dev
+```
 
-The hinge capsule from the Base end sketch is subtracted along X at both sides of every cell, in every row. Each cut starts at the outer face of the side wall and runs inward by `wall thickness * 2 + hinge profile width + hinge tolerance`. The capsule sketch and cuts share their geometry through `src/base-end-geometry.ts`.
+## Why
 
-Stand top values: `Y top 1` is the Cell side outer 3–outer 4 length; `Y top 2` is the Cell side distance from outer 1 to the circle centre's projection on OY; `full length = Y top 2 + (cell outer 1–outer 2 length) * rows`; `stand length = (full length * sin(t) + (base height / 2) * cos(t) + c * cos(s + t)) / sin(s + t)` with `s` the stand angle, `t` the base tilt angle, and `c` the plate's lowest end corner relative to the stand axis (`-(base height / 2 + stand tolerance)` when `s + t ≥ 90°`, else that minus wall thickness), so the extended stand's tip lands on Z = 0 in the assembly. Stand angle + base tilt angle must be less than 180°.
+This project is an experiment in designing a printable model by writing code with AI tools instead of using CAD software. Every dimension, sketch and part is described in conversation and turned into TypeScript and OpenSCAD, with tests that check the real geometry. Whether a design changes or a print shows a part is too tight, the fix is a change to the model's rules, and every part follows from them.
 
-Stand model: the Stand top blue outline extruded along -Z by wall thickness from Z = Stand side outer 3 Z, unioned with the Stand side green outline (half circle plus outer 2 → outer 3 → outer 4), minus its red circle, extruded along X by wall thickness from X = Stand top outer 1 X toward O; everything is mirrored across the YOZ plane.
+## License
 
-Assembly mode (the first and default view, before Parts and Sketches) places the parts together, each part type in its own colour (base blue, hinge green, bolt yellow, stand purple). It builds only while visible and rebuilds after parameter changes. Its sidebar section has Stand extended and Hinge extended options, remembered across reloads; the assembly holds the base, hinges, stand, and bolts, placed by the rules in `src/assembly.ts` (rule 1: each part is centred on X = 0; rule 2: one hinge per row; with Hinge extended its axis is on Cell side hinge centre 1 with the plate running up along outer 1 → outer 2, otherwise on hinge centre 2 with the plate running toward mid cut 1; rule 3: the stand's Stand side circle centre sits on the Cell side circle centre, its XOY plane parallel to outer 3–outer 4 with Stand extended, otherwise parallel to outer 5–rest 2; rule 5: two bolts on the base hole axis, one from each side, head outer faces flush with the base sides and shanks pointing into the base; rule 4: with Stand extended, everything tilts by the base tilt angle about the base's far bottom edge, raising the stand end).
-
-The Export section at the end of the sidebar renders one file per part type (base, hinge, bolt, stand) from the current parameters and downloads them together as a ZIP (stored uncompressed by `src/zip.ts`): Export STL gives binary STLs in `cards-stand-parts-stl.zip`; Export 3MF gives 3MF files in `cards-stand-parts-3mf.zip`, each part coloured as in the assembly through the models' `part_color` variable.
-
-Deploy to GitHub Pages with `npm run deploy` (Node.js 24 and Git push access to origin required). This builds `dist/` and publishes it to the `gh-pages` branch, matching dome-builder. The Vite base path is `/cards-stand/`; GitHub Pages should publish from `gh-pages` at `/` to https://ivanlukomskiy.github.io/cards-stand/.
+[MIT](LICENSE). The bundled OpenSCAD runtime in `public/vendor/openscad` is GPL-licensed (see its `COPYING`).
