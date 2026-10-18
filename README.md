@@ -13,7 +13,7 @@
 The stand is a grid of cells that hold cards, with a hinged divider in each row and a folding stand at the back. You set the dimensions in the sidebar (rows, columns, cell size, wall thickness, angles, tolerances and the stand's Voronoi pattern), and every part is rebuilt from them:
 
 - **Base**: the cells, with grooves the hinges rotate in, and the end that holds the stand.
-- **Hinge**: one per row, holding the cards up.
+- **Hinge**: one per row, holding the cards up. The hinges lock in place when opened, which makes the stand sturdier.
 - **Stand**: the folding back support, with a rounded Voronoi pattern cut through its plate.
 - **Bolt**: two pins that hold the stand in the base.
 
