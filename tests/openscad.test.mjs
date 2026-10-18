@@ -4,7 +4,7 @@ import OpenSCAD from '../public/vendor/openscad/openscad.js'
 import { DoubleSide, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three'
 import { baseEndCutPoints, baseEndGeometry, baseEndInnerPoints } from '../src/base-end-geometry.ts'
 import { STLLoader } from 'three/addons/loaders/STLLoader.js'
-import { baseDefinitions, defaultBaseParameters, cellFullRaisedProfiles, cellSemiRaisedProfiles } from '../src/model.ts'
+import { baseDefinitions, defaultBaseParameters, rowPitch as modelRowPitch, cellFullRaisedProfiles, cellSemiRaisedProfiles } from '../src/model.ts'
 import { cellPadEndPoints, cellMidCutPoints, cellMidPoints, cellOuterPoints } from '../src/sketch.ts'
 import { hingeTravelX } from '../src/hinge-top-sketch.ts'
 
@@ -36,7 +36,7 @@ for (const changes of [
   const { min, max } = geometry.boundingBox
   const shear = 1 / Math.tan(params.hingeAngle * Math.PI / 180)
   const hingeSpanY = (params.hingeThickness + params.hingeTolerance) / Math.sin(params.hingeAngle * Math.PI / 180)
-  const rowPitch = params.cellLength + params.wallThickness * 2 + hingeSpanY
+  const rowPitch = modelRowPitch(params)
   const colPitch = params.cellWidth + params.wallThickness
   const raisedHeight = params.baseHeight - params.wallThickness - params.hingeThickness - params.hingeTolerance
   near(min.x, -params.cellWidth / 2 - params.wallThickness)
@@ -117,7 +117,7 @@ for (const columns of [1, 3]) {
   const mesh = new Mesh(geometry,material)
   mesh.updateMatrixWorld()
   const colPitch = params.cellWidth + params.wallThickness
-  const rowPitch = params.cellLength + 2*params.wallThickness + (params.hingeThickness + params.hingeTolerance)/Math.sin(params.hingeAngle*Math.PI/180)
+  const rowPitch = modelRowPitch(params)
   const travelX = hingeTravelX(params)
   const cutLength = params.wallThickness*2 + params.hingeProfileWidth + params.hingeTolerance + travelX
   for (let row=0;row<params.rows;row++) {
@@ -199,7 +199,7 @@ for (const changes of [{ rows: 1, columns: 1, hingeAngle: 45 }, { rows: 3, colum
   const mesh = new Mesh(geometry,material)
   mesh.updateMatrixWorld()
   const colPitch = params.cellWidth + params.wallThickness
-  const rowPitch = params.cellLength + 2*params.wallThickness + (params.hingeThickness + params.hingeTolerance)/Math.sin(params.hingeAngle*Math.PI/180)
+  const rowPitch = modelRowPitch(params)
   const minX = -params.cellWidth/2 - params.wallThickness
   const maxX = (params.columns-1)*colPitch + params.cellWidth/2 + params.wallThickness
   const round = values => values.map(x => Math.round(x*1e4)/1e4)
@@ -486,7 +486,7 @@ for (const changes of [{ rows: 1, columns: 1, hingeAngle: 45 }, { rows: 3, colum
     const angle = params.baseTiltAngle * Math.PI / 180
     const [py, pz] = tiltPivot(params)
     // The pivot is the far end of the last row.
-    near(py, baseEndGeometry(params).start.y - params.rows * rowPitch(params))
+    near(py, -params.cellLength - params.wallThickness - (params.rows - 1) * rowPitch(params))
     const rotate = ([x, y, z]) => [x, (y - py) * Math.cos(angle) - (z - pz) * Math.sin(angle) + py, (y - py) * Math.sin(angle) + (z - pz) * Math.cos(angle) + pz]
     for (const part of assemblyParts) {
       for (const placement of flat[part]) {

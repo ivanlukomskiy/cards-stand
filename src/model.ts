@@ -73,9 +73,12 @@ export function cellSemiRaisedProfiles(params: BaseParameters): number[][][] {
   return [right, left]
 }
 
+// Neighbouring rows overlap by this many millimetres, so they fuse without coincident faces.
+export const rowPitchEpsilon = 0.001
+
 // Rows advance in -Y by this pitch.
 export function rowPitch(params: BaseParameters) {
-  return params.cellLength + params.wallThickness * 2 + (params.hingeThickness + params.hingeTolerance) / Math.sin(params.hingeAngle * Math.PI / 180)
+  return params.cellLength + params.wallThickness * 2 + (params.hingeThickness + params.hingeTolerance) / Math.sin(params.hingeAngle * Math.PI / 180) - rowPitchEpsilon
 }
 
 // Pass the same sketch coordinates to OpenSCAD that the SVG uses.

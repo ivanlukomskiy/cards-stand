@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { baseEndGeometry } from '../src/base-end-sketch.ts'
-import { defaultBaseParameters, validateBaseParameters } from '../src/model.ts'
+import { defaultBaseParameters, rowPitch, validateBaseParameters } from '../src/model.ts'
 import { hingeBridgePoints, hingeInnerPoints, hingeOuterPoints, hingeOutline, hingeTopSketch, hingeTravelX } from '../src/hinge-top-sketch.ts'
 import { hingeCentreTravel } from '../src/base-end-geometry.ts'
 
@@ -211,7 +211,7 @@ console.log('PASS: stand side circles, green half-circle ends, and dropped outer
     const top = standTopGeometry(params)
     near(top.yTop1, Math.hypot(outer3.y - outer4.y, outer3.z - outer4.z))
     near(top.yTop2, center.y - start.y)
-    near(top.fullLength, top.yTop2 + (o1.y - o2.y) * params.rows)
+    near(top.fullLength, top.yTop2 + (o1.y - o2.y) + rowPitch(params) * (params.rows - 1))
     const s = params.standAngle * Math.PI / 180, t = params.baseTiltAngle * Math.PI / 180
     const { arcRadius } = baseEndGeometry(params)
     const corner = s + t >= Math.PI / 2 ? -arcRadius : -(arcRadius + params.wallThickness)

@@ -28,7 +28,7 @@ export function applyPlacement({ rotationY = 0, rotationX, offset }: Placement, 
 
 // The base's far bottom edge (Y at the end of the last row, Z = 0), about which the extended stand tilts everything.
 export function tiltPivot(params: BaseParameters): [number, number] {
-  return [cellOuterPoints(params)[0]!.y - params.rows * rowPitch(params), 0]
+  return [cellOuterPoints(params)[1]!.y - (params.rows - 1) * rowPitch(params), 0]
 }
 
 // Rotate a placement by `angle` about the X-parallel axis through (Y, Z) = pivot.

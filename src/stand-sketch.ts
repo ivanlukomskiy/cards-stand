@@ -1,5 +1,5 @@
 import { baseEndGeometry } from './base-end-geometry.ts'
-import { defaultBaseParameters } from './model.ts'
+import { defaultBaseParameters, rowPitch } from './model.ts'
 import { cellOuterPoints } from './sketch.ts'
 import type { SketchPoint } from './sketch.ts'
 import { fillet, filletPath } from './fillet.ts'
@@ -35,8 +35,8 @@ export function standTopGeometry(params: BaseParameters) {
   const yTop1 = Math.hypot(outer3.y - outer4.y, outer3.z - outer4.z)
   // Cell side: from outer 1 to the circle centre's projection on OY.
   const yTop2 = center.y - start.y
-  // Cell top: cell outer 1–outer 2 length, once per row.
-  const fullLength = yTop2 + (cellOuter1.y - cellOuter2.y) * params.rows
+  // Cell top: cell outer 1–outer 2 length for the first row, plus one row pitch per further row.
+  const fullLength = yTop2 + (cellOuter1.y - cellOuter2.y) + rowPitch(params) * (params.rows - 1)
   const standAngle = params.standAngle * Math.PI / 180
   const tiltAngle = params.baseTiltAngle * Math.PI / 180
   // The extended stand pivots on the circle centre (raised base height / 2 above the base bottom) and its plate
