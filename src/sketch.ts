@@ -28,7 +28,7 @@ export const defaultSketchParameters: CellSketchParameters = {
   wallThickness: 1.6,
   hingeThickness: 3,
   hingeProfileWidth: 7,
-  hingeTolerance: 0.18,
+  hingeTolerance: 0.12,
   rimWidth: 7,
 }
 

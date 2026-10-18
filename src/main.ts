@@ -134,11 +134,11 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
             </div>
             <div class="transform-field">
               <label for="hinge-tolerance">Hinge tolerance, <em>mm</em></label>
-              <input id="hinge-tolerance" data-tooltip="higher values means looser" name="hinge-tolerance" type="number" min="0" step="0.01" value="0.18" />
+              <input id="hinge-tolerance" data-tooltip="higher values means looser" name="hinge-tolerance" type="number" min="0" step="0.01" value="0.12" />
             </div>
             <div class="transform-field">
               <label for="hinge-rest-tolerance">Hinge rest tolerance, <em>mm</em></label>
-              <input id="hinge-rest-tolerance" data-tooltip="higher values means looser" name="hinge-rest-tolerance" type="number" min="0" step="0.01" value="0.3" />
+              <input id="hinge-rest-tolerance" data-tooltip="higher values means looser" name="hinge-rest-tolerance" type="number" min="0" step="0.01" value="0.6" />
             </div>
           </div>
         </details>
