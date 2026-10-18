@@ -7,7 +7,10 @@ import { hingeTopSketch, hingeTravelX } from './hinge-top-sketch'
 import { hingeSideSketch } from './hinge-side-sketch'
 import { boltSketch } from './bolt-sketch'
 import { standSideSketch, standTopSketch } from './stand-sketch'
-import { defaultBaseParameters, validateBaseParameters } from './model'
+import { baseDefinitions, defaultBaseParameters, validateBaseParameters } from './model'
+import { hingeDefinitions } from './hinge-model'
+import { boltDefinitions } from './bolt-model'
+import { standDefinitions } from './stand-model'
 import type { BaseParameters } from './model'
 import type { ExportFormat, ModelName } from './openscad.worker'
 import { assemblyParts, assemblyPlacements } from './assembly'
@@ -512,6 +515,25 @@ const renderModel = (model: ModelName, params: BaseParameters, options: { format
   promise.then(cancel, cancel)
   return { promise, cancel }
 }
+// The latest preview STL of each part, keyed by that part's own OpenSCAD definitions, so a part is only
+// re-rendered when something it depends on changes. Only finished renders are kept: a cancelled render's
+// promise never settles, so sharing one still in flight could leave another view waiting forever.
+const partDefinitions: Record<ModelName, (params: BaseParameters) => string[]> = {
+  base: baseDefinitions, hinge: hingeDefinitions, bolt: boltDefinitions, stand: standDefinitions,
+}
+const partCache = new Map<ModelName, { key: string; stl: ArrayBuffer }>()
+const partKey = (model: ModelName, params: BaseParameters) => JSON.stringify(partDefinitions[model](params))
+const isPartCached = (model: ModelName, params: BaseParameters) => {
+  try { return partCache.get(model)?.key === partKey(model, params) } catch { return false }
+}
+const renderPart = (model: ModelName, params: BaseParameters) => {
+  const key = partKey(model, params)
+  const cached = partCache.get(model)
+  if (cached?.key === key) return { promise: Promise.resolve(cached.stl), cancel: () => {} }
+  const render = renderModel(model, params)
+  render.promise.then(stl => partCache.set(model, { key, stl }), () => {})
+  return render
+}
 // Export one file per part type, bundled as a single ZIP download; 3MF files carry the assembly colours.
 const exportButtons: Record<ExportFormat, HTMLButtonElement> = {
   stl: document.querySelector<HTMLButtonElement>('#export-stl')!,
@@ -601,7 +623,7 @@ try {
       dimensions.textContent = 'Build failed'
     }
     try {
-      const render = renderModel(currentModel, params)
+      const render = renderPart(currentModel, params)
       job = render
       render.promise.then(stl => {
         if (request !== generation) return
@@ -642,7 +664,7 @@ try {
       hingeExtended: assemblyOptions.hingeExtended.checked,
     })
     try {
-      const renders = parts.map(part => renderModel(part, params))
+      const renders = parts.map(part => renderPart(part, params))
       assemblyJobs = renders
       Promise.all(renders.map(render => render.promise)).then(stls => {
         if (request !== assemblyGeneration) return
@@ -665,7 +687,11 @@ try {
   const onAssemblyChanged = () => {
     cancelAssembly()
     assemblyStale = true
-    if (isAssemblyMode()) assemblyTimer = setTimeout(buildAssembly, 250)
+    if (!isAssemblyMode()) return
+    // With every part already rendered (say, only a checkbox changed), re-place them straight away.
+    const params = readParameters()
+    if (params && assemblyParts.every(part => isPartCached(part, params))) buildAssembly()
+    else assemblyTimer = setTimeout(buildAssembly, 250)
   }
   onAssemblyShown = () => { if (assemblyStale) buildAssembly() }
   Object.values(assemblyOptions).forEach(field => field.addEventListener('change', () => { saveAssemblyOptions(); onAssemblyChanged() }))
