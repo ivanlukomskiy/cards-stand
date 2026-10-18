@@ -36,6 +36,8 @@ export const defaultBaseParameters: BaseParameters = {
   ...defaultSketchParameters, rows: 5, columns: 3, standAngle: 80, standHingeTolerance: 0.1, standTolerance: 0.5, baseTiltAngle: 30, standProfileWidthVertical: 10, standProfileWidthHorizontal: 18, standThickness: 2, standPatternCellSize: 12, standPatternRibWidth: 2, standPatternSeed: 1, standPatternCornerRadius: 2, standPatternJitter: 1.6, standPatternRelaxations: 1, hingePinExtension: 2, hingeTopWidth: 22, hingeHeight: 58, boltTolerance: 0.24, boltLength: 10, hingeAngle: 45, baseHeight: 12,
 }
 
+export const minStandPatternCellSize = 5
+
 export function validateBaseParameters(params: BaseParameters) {
   for (const [name, value] of Object.entries(params)) {
     if (!Number.isFinite(value)) throw new Error(`${name} must be a finite number.`)
@@ -65,6 +67,10 @@ export function validateBaseParameters(params: BaseParameters) {
   // The mid cut's corners are rounded by the wall thickness.
   if (params.cellMidCutWidth > 0 && params.cellMidCutWidth < 2 * params.wallThickness) {
     throw new Error('Cell mid cut width must be 0 or at least twice the wall thickness.')
+  }
+  // Smaller cells mean many more holes, and generating them gets very slow.
+  if (params.standPatternCellSize > 0 && params.standPatternCellSize < minStandPatternCellSize) {
+    throw new Error(`Stand pattern cell size must be 0 or at least ${minStandPatternCellSize} mm.`)
   }
   if (params.standPatternCellSize > 0 && params.standPatternRibWidth <= 0) {
     throw new Error('Stand pattern rib width must be greater than zero.')

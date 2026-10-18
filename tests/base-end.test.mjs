@@ -342,6 +342,10 @@ console.log('PASS: hinge centre travel and its ΔX along inner 3 → inner 2')
   assert.throws(() => validateBaseParameters({...defaultBaseParameters, standPatternRibWidth: 0}))
   assert.throws(() => validateBaseParameters({...defaultBaseParameters, standPatternSeed: 1.5}))
   assert.throws(() => validateBaseParameters({...defaultBaseParameters, standPatternRelaxations: 0.5}))
+  // Cell size is 0 (no pattern) or at least 5 mm.
+  assert.throws(() => validateBaseParameters({...defaultBaseParameters, standPatternCellSize: 4.9}))
+  validateBaseParameters({...defaultBaseParameters, standPatternCellSize: 5})
+  validateBaseParameters({...defaultBaseParameters, standPatternCellSize: 0})
   // Jitter, relaxations and corner radius each change the pattern.
   for (const change of [{ standPatternJitter: 0.5 }, { standPatternRelaxations: 3 }, { standPatternCornerRadius: 1 }]) {
     assert.notDeepEqual(standTopHoles({...defaultBaseParameters, ...change}), standTopHoles(defaultBaseParameters))

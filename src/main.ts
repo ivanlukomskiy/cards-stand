@@ -163,7 +163,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           <div class="sidebar-section-content">
             <div class="transform-field">
               <label for="stand-pattern-cell-size">Cell size, <em>mm</em></label>
-              <input id="stand-pattern-cell-size" data-tooltip="0 for a single opening" name="stand-pattern-cell-size" type="number" min="0" step="0.5" value="12" />
+              <input id="stand-pattern-cell-size" data-tooltip="0 for a single opening, otherwise at least 5" name="stand-pattern-cell-size" type="number" min="0" step="0.5" value="12" />
             </div>
             <div class="transform-field">
               <label for="stand-pattern-rib-width">Rib width, <em>mm</em></label>
