@@ -98,9 +98,10 @@ export function cellMidCutPoints(params: CellSketchParameters): readonly SketchP
   return [...right, ...left.reverse()]
 }
 
-export function cellPadEndPoints(params: CellSketchParameters): readonly SketchPoint[] {
-  const x = params.cellWidth / 2 - 2 * params.wallThickness - params.hingeProfileWidth - params.hingeTolerance
-  const xFormula = 'cell width / 2 - 2 * wall thickness - hinge profile width - hinge tolerance'
+// hingeTravelX: the hinge top sketch's |ΔX| along inner 3 → inner 2 over the hinge centre travel.
+export function cellPadEndPoints(params: CellSketchParameters, hingeTravelX = 0): readonly SketchPoint[] {
+  const x = params.cellWidth / 2 - 2 * params.wallThickness - params.hingeProfileWidth - params.hingeTolerance - hingeTravelX
+  const xFormula = 'cell width / 2 - 2 * wall thickness - hinge profile width - hinge tolerance - hinge travel ΔX'
   const right = [cellOuterPoints(params)[0]!, cellInnerPoints(params)[0]!].map((point, index) => ({
     ...point, name: `pad end ${index + 1} R`, x, xFormula,
   }))
@@ -110,14 +111,14 @@ export function cellPadEndPoints(params: CellSketchParameters): readonly SketchP
   return [...right, ...left.reverse()]
 }
 
-export function cellSketch(params: CellSketchParameters = defaultSketchParameters) {
+export function cellSketch(params: CellSketchParameters = defaultSketchParameters, hingeTravelX = 0) {
   const outerPoints = cellOuterPoints(params)
   const innerPoints = cellInnerPoints(params)
   const rimPoints = [...rimRightPoints(params), ...rimLeftPoints(params)]
   const midPoints = cellMidPoints(params)
   const innerMidPoints = midPoints.slice(2)
   const midCutPoints = cellMidCutPoints(params)
-  const padEndPoints = cellPadEndPoints(params)
+  const padEndPoints = cellPadEndPoints(params, hingeTravelX)
   const points = [...outerPoints, ...innerPoints, ...rimPoints, ...midPoints, ...midCutPoints, ...padEndPoints]
   const minX = Math.min(...points.map(point => point.x), 0)
   const maxX = Math.max(...points.map(point => point.x), 0)

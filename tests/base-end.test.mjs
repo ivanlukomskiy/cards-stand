@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import { baseEndGeometry } from '../src/base-end-sketch.ts'
 import { defaultBaseParameters, validateBaseParameters } from '../src/model.ts'
-import { hingeBridgePoints, hingeInnerPoints, hingeOuterPoints, hingeOutline, hingeTopSketch } from '../src/hinge-top-sketch.ts'
+import { hingeBridgePoints, hingeInnerPoints, hingeOuterPoints, hingeOutline, hingeTopSketch, hingeTravelX } from '../src/hinge-top-sketch.ts'
+import { hingeCentreTravel } from '../src/base-end-geometry.ts'
 
 const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-8, `${a} != ${b}`)
 for (const standAngle of [25, 45, 80, 90, 120, 155]) {
@@ -270,3 +271,12 @@ console.log('PASS: stand top fillets at inner 3 and inner 2')
   }
 }
 console.log('PASS: zip writer stores files with names, offsets, and CRC-32')
+
+{
+  const [, inner2, inner3] = hingeInnerPoints(defaultBaseParameters)
+  const { hingeCenter, hingeCenter2 } = baseEndGeometry(defaultBaseParameters)
+  const travel = Math.hypot(hingeCenter2.y - hingeCenter.y, hingeCenter2.z - hingeCenter.z)
+  near(hingeCentreTravel(defaultBaseParameters), travel)
+  near(hingeTravelX(defaultBaseParameters), travel * Math.abs(inner2.x - inner3.x) / Math.hypot(inner2.x - inner3.x, inner2.y - inner3.y))
+}
+console.log('PASS: hinge centre travel and its ΔX along inner 3 → inner 2')

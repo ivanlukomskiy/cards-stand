@@ -3,11 +3,11 @@ import { setupSidebarTooltips } from './sidebar-tooltips'
 import { BasePreview } from './preview'
 import { cellSketch } from './sketch'
 import { baseEndSketch } from './base-end-sketch'
-import { hingeTopSketch } from './hinge-top-sketch'
+import { hingeTopSketch, hingeTravelX } from './hinge-top-sketch'
 import { hingeSideSketch } from './hinge-side-sketch'
 import { boltSketch } from './bolt-sketch'
 import { standSideSketch, standTopSketch } from './stand-sketch'
-import { validateBaseParameters } from './model'
+import { defaultBaseParameters, validateBaseParameters } from './model'
 import type { BaseParameters } from './model'
 import type { ExportFormat, ModelName } from './openscad.worker'
 import { assemblyParts, assemblyPlacements } from './assembly'
@@ -179,7 +179,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <main class="viewport" aria-label="Constructor preview">
     <section id="sketch-view" class="preview-view" aria-label="2D sketch preview">
       <div id="cell-sketch-panel" class="sketch-panel" role="tabpanel" aria-labelledby="cell-tab">
-        ${cellSketch()}
+        ${cellSketch(defaultBaseParameters, hingeTravelX(defaultBaseParameters))}
       </div>
       <div id="base-end-sketch-panel" class="sketch-panel" role="tabpanel" aria-labelledby="base-end-tab" hidden>
         ${baseEndSketch()}
@@ -343,7 +343,7 @@ const readParameters = (): BaseParameters | null => {
   }
 }
 const renderSketches = (params: BaseParameters) => {
-  cellPanel.innerHTML = cellSketch(params)
+  cellPanel.innerHTML = cellSketch(params, hingeTravelX(params))
   baseEndPanel.innerHTML = baseEndSketch(params)
   hingeTopPanel.innerHTML = hingeTopSketch(params)
   hingeSidePanel.innerHTML = hingeSideSketch(params)

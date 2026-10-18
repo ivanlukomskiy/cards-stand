@@ -6,6 +6,7 @@ import { baseEndCutPoints, baseEndGeometry, baseEndInnerPoints } from '../src/ba
 import { STLLoader } from 'three/addons/loaders/STLLoader.js'
 import { baseDefinitions, defaultBaseParameters, cellFullRaisedProfiles, cellSemiRaisedProfiles } from '../src/model.ts'
 import { cellPadEndPoints, cellMidCutPoints, cellMidPoints, cellOuterPoints } from '../src/sketch.ts'
+import { hingeTravelX } from '../src/hinge-top-sketch.ts'
 
 const wasmBinary = await fs.readFile(new URL('../public/vendor/openscad/openscad.wasm', import.meta.url))
 const source = await fs.readFile(new URL('../src/models/base.scad', import.meta.url), 'utf8')
@@ -54,7 +55,10 @@ for (const changes of [
     assert.deepEqual(profiles[1], profiles[0].map(([x,y]) => [-x,y]).reverse())
     const fullProfiles = cellFullRaisedProfiles(params)
     assert.deepEqual(fullProfiles[1], fullProfiles[0].map(([x,y]) => [-x,y]).reverse())
-    const expectedVolume = (fullProfiles.reduce((sum, profile) => sum + area(profile), 0) - area(cellPadEndPoints(params).map(({x, y}) => [x, y]))) * (params.baseHeight - params.wallThickness) + profiles.reduce((sum, profile) => sum + area(profile), 0) * (raisedHeight - params.wallThickness) + (area(cellOuterPoints(params).map(({x, y}) => [x, y])) - params.cellMidCutWidth * (params.cellLength - params.wallThickness + hingeSpanY)) * params.wallThickness
+    // Once the travel ΔX moves the pad ends inside the mid cut, the profiles also lose the mid cut strips beside the pad end.
+    const padEnd = cellPadEndPoints(params, hingeTravelX(params))
+    const midCutOutsidePad = 2 * Math.max(0, params.cellMidCutWidth / 2 - padEnd[0].x) * (padEnd[0].y - params.wallThickness)
+    const expectedVolume = (fullProfiles.reduce((sum, profile) => sum + area(profile), 0) - area(padEnd.map(({x, y}) => [x, y])) - midCutOutsidePad) * (params.baseHeight - params.wallThickness) + profiles.reduce((sum, profile) => sum + area(profile), 0) * (raisedHeight - params.wallThickness) + (area(cellOuterPoints(params).map(({x, y}) => [x, y])) - params.cellMidCutWidth * (params.cellLength - params.wallThickness + hingeSpanY)) * params.wallThickness
     const position = geometry.attributes.position
     let volume = 0
     for (let i = 0; i < position.count; i += 3) {
@@ -114,7 +118,8 @@ for (const columns of [1, 3]) {
   mesh.updateMatrixWorld()
   const colPitch = params.cellWidth + params.wallThickness
   const rowPitch = params.cellLength + 2*params.wallThickness + (params.hingeThickness + params.hingeTolerance)/Math.sin(params.hingeAngle*Math.PI/180)
-  const cutLength = params.wallThickness*2 + params.hingeProfileWidth + params.hingeTolerance
+  const travelX = hingeTravelX(params)
+  const cutLength = params.wallThickness*2 + params.hingeProfileWidth + params.hingeTolerance + travelX
   for (let row=0;row<params.rows;row++) {
     const z = (hingeCenter.z + hingeCenter2.z)/2 + 0.123
     const y = hingeCenter.y + (z-hingeCenter.z)/Math.tan(params.hingeAngle*Math.PI/180) - row*rowPitch
@@ -123,15 +128,15 @@ for (const columns of [1, 3]) {
     // Each cell keeps two pads between the side grooves and the central pad end opening.
     const expected = Array.from({length: columns}, (_, column) => [
       column*colPitch - params.cellWidth/2 - params.wallThickness + cutLength,
-      column*colPitch - cellPadEndPoints(params)[0].x,
-      column*colPitch + cellPadEndPoints(params)[0].x,
+      column*colPitch - cellPadEndPoints(params, travelX)[0].x,
+      column*colPitch + cellPadEndPoints(params, travelX)[0].x,
       column*colPitch + params.cellWidth/2 + params.wallThickness - cutLength,
     ]).flat()
-    assert.deepEqual(xs.map(x => Math.round(x*1e4)/1e4), expected.map(x => Math.round(x*1e4)/1e4), `Row ${row}: hinge cuts must reach the cut length from each cell side`)
+    assert.ok(xs.length === expected.length && xs.every((x, i) => Math.abs(x - expected[i]) < 1e-4), `Row ${row}: hinge cuts must reach the cut length from each cell side: ${xs} != ${expected}`)
   }
   material.dispose()
   geometry.dispose()
-  console.log(`PASS: ${columns} columns, two rows: hinge capsules cut by wall thickness * 2 + hinge profile width + hinge tolerance from each cell side`)
+  console.log(`PASS: ${columns} columns, two rows: hinge capsules cut by wall thickness * 2 + hinge profile width + hinge tolerance + hinge travel ΔX from each cell side`)
 }
 
 // The base end spans the full model width and is fused to row 0's outer 1–outer 2 face.

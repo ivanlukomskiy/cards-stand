@@ -1,12 +1,11 @@
-import { baseEndGeometry } from './base-end-geometry.ts'
+import { hingeCentreTravel } from './base-end-geometry.ts'
 import { defaultBaseParameters } from './model.ts'
 import type { BaseParameters } from './model.ts'
 import type { SketchPoint } from './sketch.ts'
 import { fillet, filletPath } from './fillet.ts'
 
 export function hingeOuterPoints(params: BaseParameters): readonly SketchPoint[] {
-  const { hingeCenter, hingeCenter2 } = baseEndGeometry(params)
-  const hingeCentreDistance = Math.hypot(hingeCenter2.y - hingeCenter.y, hingeCenter2.z - hingeCenter.z)
+  const hingeCentreDistance = hingeCentreTravel(params)
   const top = params.hingeTopWidth / 2
   const side = params.cellWidth / 2
   return [
@@ -34,6 +33,12 @@ export function hingeInnerPoints(params: BaseParameters): readonly SketchPoint[]
     { name: 'inner 2', x, y: inner1.y, xFormula: 'outer 2–outer 3 shifted toward O by hinge profile width, at inner 1 Y', yFormula: 'hinge height - hinge profile width' },
     { name: 'inner 3', x: outer4.x - params.hingeProfileWidth, y: outer4.y, xFormula: 'cell width / 2 - hinge profile width', yFormula: '0' },
   ]
+}
+
+// |ΔX| of a move from inner 3 toward inner 2 by the hinge centre travel.
+export function hingeTravelX(params: BaseParameters) {
+  const [, inner2, inner3] = hingeInnerPoints(params) as [SketchPoint, SketchPoint, SketchPoint]
+  return hingeCentreTravel(params) * Math.abs(inner2.x - inner3.x) / Math.hypot(inner2.x - inner3.x, inner2.y - inner3.y)
 }
 
 // Outer 3 and outer 4 moved right by the wall thickness.

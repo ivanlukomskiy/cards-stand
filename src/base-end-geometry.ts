@@ -66,6 +66,11 @@ export function baseEndGeometry(params: BaseParameters) {
   return { start, atHeight, slope, center, radius, arcRadius, outer5, holeRadius, offsetStart, rest1, rest2, outer3, outer4, hingeCenter, hingeCenter2, hingeCenter3, hingeRadius, midCut1, midCut2, midCut3, cutCorner }
 }
 
+// Hinge centre travel: the distance between hinge centres 1 and 2.
+export function hingeCentreTravel(params: BaseParameters) {
+  const { hingeCenter, hingeCenter2 } = baseEndGeometry(params)
+  return Math.hypot(hingeCenter2.y - hingeCenter.y, hingeCenter2.z - hingeCenter.z)
+}
 
 // The yellow outline, closed by rest 1–rest 2, with its arc sampled at 64 segments per turn.
 export function baseEndInnerPoints(params: BaseParameters): number[][] {
