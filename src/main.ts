@@ -76,7 +76,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
             </div>
             <div class="transform-field">
               <label for="wall-thickness">Wall thickness, <em>mm</em></label>
-              <input id="wall-thickness" name="wall-thickness" type="number" min="0.1" step="0.1" value="2" />
+              <input id="wall-thickness" name="wall-thickness" type="number" min="0.1" step="0.1" value="1.6" />
             </div>
             <div class="transform-field">
               <label for="cell-width">Cell width, <em>mm</em></label>
@@ -125,7 +125,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
             </div>
             <div class="transform-field">
               <label for="hinge-tolerance">Hinge tolerance, <em>mm</em></label>
-              <input id="hinge-tolerance" data-tooltip="higher values means looser" name="hinge-tolerance" type="number" min="0" step="0.01" value="0.25" />
+              <input id="hinge-tolerance" data-tooltip="higher values means looser" name="hinge-tolerance" type="number" min="0" step="0.01" value="0.18" />
             </div>
           </div>
         </details>
@@ -159,7 +159,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
             </div>
             <div class="transform-field">
               <label for="bolt-tolerance">Bolt tolerance, <em>mm</em></label>
-              <input id="bolt-tolerance" data-tooltip="higher values means looser" name="bolt-tolerance" type="number" min="0" step="0.01" value="0.2" />
+              <input id="bolt-tolerance" data-tooltip="higher values means looser" name="bolt-tolerance" type="number" min="0" step="0.01" value="0.24" />
             </div>
           </div>
         </details>

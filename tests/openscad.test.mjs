@@ -72,36 +72,38 @@ assert.throws(() => baseDefinitions({ ...defaultBaseParameters, hingeAngle: 0 })
 assert.throws(() => baseDefinitions({ ...defaultBaseParameters, baseHeight: 3.1 }))
 assert.throws(() => baseDefinitions({ ...defaultBaseParameters, rows: 1.5 }))
 assert.throws(() => baseDefinitions({ ...defaultBaseParameters, columns: 0 }))
+// Fixed dimensions keep these coordinate fixtures independent of UI defaults.
+const coordinateFixture = {...defaultBaseParameters, wallThickness: 2, hingeTolerance: 0.25}
 const topY = 2 + 3.25 / Math.sin(Math.PI / 4)
-assert.deepEqual(cellMidPoints(defaultBaseParameters).map(({ name, x, y }) => [name, x, y]), [
+assert.deepEqual(cellMidPoints(coordinateFixture).map(({ name, x, y }) => [name, x, y]), [
   ['cell outer mid 1', 0, topY], ['cell outer mid 2', 0, -26],
   ['cell inner mid 1', 0, 0], ['cell inner mid 2', 0, -24],
 ])
-assert.deepEqual(cellMidCutPoints(defaultBaseParameters).map(({name, x, y}) => [name, x, y]), [
+assert.deepEqual(cellMidCutPoints(coordinateFixture).map(({name, x, y}) => [name, x, y]), [
   ['mid cut R 1', 16, topY - 2], ['mid cut R 2', 16, -22],
   ['mid cut L 2', -16, -22], ['mid cut L 1', -16, topY - 2],
 ])
-assert.deepEqual(cellPadEndPoints(defaultBaseParameters).map(({name, x, y}) => [name, x, y]), [
+assert.deepEqual(cellPadEndPoints(coordinateFixture).map(({name, x, y}) => [name, x, y]), [
   ['pad end 1 R', 20.75, topY], ['pad end 2 R', 20.75, 0],
   ['pad end 2 L', -20.75, 0], ['pad end 1 L', -20.75, topY],
 ])
 console.log('PASS: midpoint, mid cut, and pad end coordinates and invalid parameter rejection')
 
-assert.deepEqual(cellFullRaisedProfiles(defaultBaseParameters)[0], [[0,topY],[34,topY],[34,-26],[25,-26],[25,-24],[32,-24],[32,0],[0,0]])
+assert.deepEqual(cellFullRaisedProfiles(coordinateFixture)[0], [[0,topY],[34,topY],[34,-26],[25,-26],[25,-24],[32,-24],[32,0],[0,0]])
 console.log('PASS: full raised right profile coordinates and ordering')
 
-assert.deepEqual(cellSemiRaisedProfiles(defaultBaseParameters)[0], [[0,-24],[25,-24],[25,-26],[0,-26]])
+assert.deepEqual(cellSemiRaisedProfiles(coordinateFixture)[0], [[0,-24],[25,-24],[25,-26],[0,-26]])
 console.log('PASS: semi raised right profile coordinates and ordering')
 
 for (const hingeAngle of [30, 45, 90]) {
-  const params = {...defaultBaseParameters, hingeAngle}
+  const params = {...coordinateFixture, hingeAngle}
   near(cellOuterPoints(params)[0].y, 2 + 3.25 / Math.sin(hingeAngle * Math.PI / 180))
 }
 console.log('PASS: projected Y tolerance at cell outer 1')
 
 // Check real cut meshes by probing the capsule centreline across all columns.
 for (const columns of [1, 3]) {
-  const params = {...defaultBaseParameters, rows: 2, columns}
+  const params = {...coordinateFixture, rows: 2, columns}
   const {hingeCenter, hingeCenter2} = baseEndGeometry(params)
   const instance = await OpenSCAD({noInitialRun:true, wasmBinary, print:()=>{}, printErr:()=>{}})
   instance.FS.writeFile('/base.scad', source)

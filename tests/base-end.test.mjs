@@ -144,7 +144,7 @@ console.log('PASS: hinge top outline fillets at outer 2 and inner 2')
 {
   const [, , outer3, outer4] = hingeOuterPoints(defaultBaseParameters)
   assert.deepEqual(hingeBridgePoints(defaultBaseParameters).map(({name, x, y}) => [name, x, y]), [
-    ['bridge 1', outer3.x + 2, outer3.y], ['bridge 2', outer4.x + 2, outer4.y],
+    ['bridge 1', outer3.x + defaultBaseParameters.wallThickness, outer3.y], ['bridge 2', outer4.x + defaultBaseParameters.wallThickness, outer4.y],
   ])
 }
 console.log('PASS: hinge top bridge points')
