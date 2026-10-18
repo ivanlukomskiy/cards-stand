@@ -192,14 +192,20 @@ console.log('PASS: bolt circles')
   const stand = standSideGeometry(params)
   near(stand.outerRadius, (params.baseHeight - 0.3) / 2)
   near(stand.innerRadius * 2, params.baseHeight - 2 * params.wallThickness)
-  assert.deepEqual([stand.outer1, stand.outer2], [{y: stand.outerRadius, z: 0}, {y: -stand.outerRadius, z: 0}])
-  // Outer 3 and 4 drop outer 2 and 1 by the Cell side yellow arc's radius.
+  assert.deepEqual(stand.outer2, {y: -stand.outerRadius, z: 0})
+  // Outer 3 drops outer 2 by the Cell side yellow arc's radius; outer 4 sits at that Z and the Stand top outer 4 Y.
+  const { standTopGeometry } = await import('../src/stand-sketch.ts')
+  const yTop1 = standTopGeometry(params).yTop1
   const drop = baseEndGeometry(params).arcRadius
   near(drop, params.baseHeight / 2 + params.standTolerance)
-  assert.deepEqual([stand.outer3, stand.outer4], [{y: -stand.outerRadius, z: -drop}, {y: stand.outerRadius, z: -drop}])
-  assert.deepEqual([stand.outer5, stand.outer6], [{y: -stand.outerRadius, z: -drop - params.wallThickness}, {y: stand.outerRadius, z: -drop - params.wallThickness}])
+  assert.deepEqual([stand.outer3, stand.outer4], [{y: -stand.outerRadius, z: -drop}, {y: yTop1, z: -drop}])
+  assert.deepEqual([stand.outer5, stand.outer6], [{y: -stand.outerRadius, z: -drop - params.wallThickness}, {y: yTop1, z: -drop - params.wallThickness}])
+  // Outer 1 is on the green circle, and outer 4–outer 1 is tangent there, touching its upper side.
+  near(Math.hypot(stand.outer1.y, stand.outer1.z), stand.outerRadius)
+  near(stand.outer1.y * (stand.outer4.y - stand.outer1.y) + stand.outer1.z * (stand.outer4.z - stand.outer1.z), 0)
+  assert.ok(stand.outer1.z > stand.outer4.z)
 }
-console.log('PASS: stand side circles, green half-circle ends, and dropped outer 3–6')
+console.log('PASS: stand side circles, green arc ends at the outer 4 tangent, and dropped outer 3–6')
 
 {
   const { standTopGeometry } = await import('../src/stand-sketch.ts')
