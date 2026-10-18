@@ -41,11 +41,11 @@ export function standTopGeometry(params: BaseParameters) {
   const standAngle = params.standAngle * Math.PI / 180
   const tiltAngle = params.baseTiltAngle * Math.PI / 180
   // The extended stand pivots on the circle centre (raised base height / 2 above the base bottom) and its plate
-  // sits arcRadius (top face) to arcRadius + wall thickness (bottom face) from that axis. After rotating by the
+  // sits arcRadius (top face) to arcRadius + stand thickness (bottom face) from that axis. After rotating by the
   // stand angle and tilting by the base tilt angle about the base's far bottom edge, the plate's lowest end
   // corner lands at Z = 0 when the stand has this length.
   const total = standAngle + tiltAngle
-  const lowestCorner = total >= Math.PI / 2 ? -arcRadius : -(arcRadius + params.wallThickness)
+  const lowestCorner = total >= Math.PI / 2 ? -arcRadius : -(arcRadius + params.standThickness)
   const standLength = (fullLength * Math.sin(tiltAngle) + center.z * Math.cos(tiltAngle) + lowestCorner * Math.cos(total)) / Math.sin(total)
   // Half the full model width, less one wall thickness: the X of the stand's outer side.
   const halfWidth = (params.wallThickness * (params.columns + 1) + params.cellWidth * params.columns) / 2 - params.wallThickness
@@ -158,9 +158,9 @@ export function standSideGeometry(params: BaseParameters) {
     outer2: { y: outerRadius * Math.cos(outer2Angle), z: outerRadius * Math.sin(outer2Angle) },
     outer3,
     outer4,
-    // Outer 3 and outer 4 moved down by the wall thickness.
-    outer5: { y: outer3.y, z: -drop - params.wallThickness },
-    outer6: { y: outer4.y, z: -drop - params.wallThickness },
+    // Outer 3 and outer 4 moved down by the stand thickness.
+    outer5: { y: outer3.y, z: -drop - params.standThickness },
+    outer6: { y: outer4.y, z: -drop - params.standThickness },
   }
 }
 
@@ -174,8 +174,8 @@ export function standSideSketch(params: BaseParameters = defaultBaseParameters) 
     [`-${radiusY} * sin(hinge angle)`, `${radiusY} * cos(hinge angle)`],
     [`-(${radiusY} + (base height / 2 + stand tolerance) * cos(hinge angle)) / sin(hinge angle)`, '-(base height / 2 + stand tolerance)'],
     ['Stand top Y top 1', '-(base height / 2 + stand tolerance)'],
-    [`-(${radiusY} + (base height / 2 + stand tolerance) * cos(hinge angle)) / sin(hinge angle)`, '-(base height / 2 + stand tolerance) - wall thickness'],
-    ['Stand top Y top 1', '-(base height / 2 + stand tolerance) - wall thickness'],
+    [`-(${radiusY} + (base height / 2 + stand tolerance) * cos(hinge angle)) / sin(hinge angle)`, '-(base height / 2 + stand tolerance) - stand thickness'],
+    ['Stand top Y top 1', '-(base height / 2 + stand tolerance) - stand thickness'],
   ]
   return axesSketch(Math.max(outerRadius, outer4.y, -outer3.y, -outer5.z, 1e-3), 'Y', 'Z', true,
     'Stand side sketch with positive Y pointing left and positive Z pointing up', unit => `

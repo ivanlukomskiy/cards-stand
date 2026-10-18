@@ -124,10 +124,10 @@ module base_end_hole(inset) {
 }
 
 module base_end() {
-    inset = 2 * wall_thickness;
+    inset = wall_thickness + stand_thickness;
     // Blue polygon across the full model width.
     base_end_extrusion(base_end_points, 0);
-    // Yellow outline, inset by twice the wall thickness on each side.
+    // Yellow outline, inset by the wall thickness plus the stand thickness on each side, leaving room for the stand's side walls.
     if (model_width() > 2 * inset)
         difference() {
             base_end_extrusion(base_end_inner_points, inset);

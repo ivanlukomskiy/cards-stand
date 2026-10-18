@@ -23,7 +23,7 @@ export function standSidePoints(params: BaseParameters): number[][] {
 export function standDefinitions(params: BaseParameters): string[] {
   validateBaseParameters(params)
   const definitions = {
-    wall_thickness: params.wallThickness,
+    stand_thickness: params.standThickness,
     top_points: standTopPoints(params),
     top_holes: standTopHoles(params),
     side_points: standSidePoints(params),

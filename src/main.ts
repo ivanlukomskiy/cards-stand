@@ -137,6 +137,10 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
               <input id="stand-angle" name="stand-angle" type="number" min="0.1" max="179.9" step="0.1" value="80" />
             </div>
             <div class="transform-field">
+              <label for="stand-thickness">Stand thickness, <em>mm</em></label>
+              <input id="stand-thickness" data-tooltip="plate and side walls" name="stand-thickness" type="number" min="0.1" step="0.1" value="1.6" />
+            </div>
+            <div class="transform-field">
               <label for="stand-profile-width-vertical">Stand profile width vertical, <em>mm</em></label>
               <input id="stand-profile-width-vertical" data-tooltip="top and bottom of the stand frame" name="stand-profile-width-vertical" type="number" min="0" step="0.1" value="10" />
             </div>
@@ -338,6 +342,7 @@ const parameterInputs = {
   baseTiltAngle: document.querySelector<HTMLInputElement>('#base-tilt-angle')!,
   standProfileWidthVertical: document.querySelector<HTMLInputElement>('#stand-profile-width-vertical')!,
   standProfileWidthHorizontal: document.querySelector<HTMLInputElement>('#stand-profile-width-horizontal')!,
+  standThickness: document.querySelector<HTMLInputElement>('#stand-thickness')!,
   standPatternCellSize: document.querySelector<HTMLInputElement>('#stand-pattern-cell-size')!,
   standPatternRibWidth: document.querySelector<HTMLInputElement>('#stand-pattern-rib-width')!,
   standPatternSeed: document.querySelector<HTMLInputElement>('#stand-pattern-seed')!,

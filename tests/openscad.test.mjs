@@ -155,7 +155,7 @@ for (const columns of [1, 3]) {
 }
 
 // The base end spans the full model width and is fused to row 0's outer 1–outer 2 face.
-for (const changes of [{ rows: 1, columns: 1, hingeAngle: 45 }, { rows: 3, columns: 3, hingeAngle: 30, standHingeTolerance: 0.5 }, { rows: 2, columns: 2, hingeAngle: 90, standHingeTolerance: 0 }]) {
+for (const changes of [{ rows: 1, columns: 1, hingeAngle: 45 }, { rows: 3, columns: 3, hingeAngle: 30, standHingeTolerance: 0.5, standThickness: 2.5 }, { rows: 2, columns: 2, hingeAngle: 90, standHingeTolerance: 0 }]) {
   const params = {...defaultBaseParameters, ...changes}
   const {start, atHeight, rest1, rest2, center} = baseEndGeometry(params)
   const instance = await OpenSCAD({noInitialRun:true, wasmBinary, print:()=>{}, printErr:()=>{}})
@@ -185,9 +185,9 @@ for (const changes of [{ rows: 1, columns: 1, hingeAngle: 45 }, { rows: 3, colum
   const xsAt = (y, z) => new Raycaster(new Vector3(-1000,y,z),new Vector3(1,0,0)).intersectObject(mesh)
     .map(hit=>hit.point.x).filter((x,i,all)=>i===0 || Math.abs(x-all[i-1])>1e-5).map(x => Math.round(x*1e4)/1e4)
   const round = values => values.map(x => Math.round(x*1e4)/1e4)
-  const innerMin = minX + 2*params.wallThickness
-  const innerMax = maxX - 2*params.wallThickness
-  assert.deepEqual(xsAt(center.y, center.z + holeRadius + chamfer * 1.5), round([innerMin, innerMax]), 'Yellow outline must be inset by twice the wall thickness')
+  const innerMin = minX + params.wallThickness + params.standThickness
+  const innerMax = maxX - params.wallThickness - params.standThickness
+  assert.deepEqual(xsAt(center.y, center.z + holeRadius + chamfer * 1.5), round([innerMin, innerMax]), 'Yellow outline must be inset by the wall thickness plus the stand thickness')
   assert.deepEqual(xsAt(center.y, center.z), [], 'Hole must cut through the yellow extrusion')
   assert.deepEqual(xsAt(center.y, center.z + holeRadius + chamfer / 2), round([innerMin + chamfer / 2, innerMax - chamfer / 2]), 'Hole ends must have 45° chamfers of wall thickness / 2')
   const hits = new Raycaster(new Vector3(0,faceY-0.5,z),new Vector3(0,1,0)).intersectObject(mesh).filter(hit=>Math.abs(hit.point.y-faceY)<1e-4)
@@ -349,7 +349,7 @@ for (const changes of [{ rows: 1, columns: 1, hingeAngle: 45 }, { rows: 3, colum
   const { standDefinitions } = await import('../src/stand-model.ts')
   const { standSideGeometry, standTopGeometry } = await import('../src/stand-sketch.ts')
   const standSource = await fs.readFile(new URL('../src/models/stand.scad', import.meta.url), 'utf8')
-  for (const changes of [{}, { columns: 3, rows: 3, wallThickness: 3 }]) {
+  for (const changes of [{}, { columns: 3, rows: 3, wallThickness: 3, standThickness: 2.5 }]) {
     const params = {...defaultBaseParameters, ...changes}
     const instance = await OpenSCAD({noInitialRun:true, wasmBinary, print:()=>{}, printErr:()=>{}})
     instance.FS.writeFile('/stand.scad', withDefinitions(standSource, standDefinitions(params)))
@@ -363,7 +363,7 @@ for (const changes of [{ rows: 1, columns: 1, hingeAngle: 45 }, { rows: 3, colum
     near(max.x, top.outer1.x)
     near(min.y, Math.min(-top.standLength, side.outer3.y))
     near(max.y, Math.max(top.yTop1, side.outer1.y))
-    near(min.z, side.outer3.z - params.wallThickness)
+    near(min.z, side.outer3.z - params.standThickness)
     near(max.z, side.outerRadius)
     const material = new MeshBasicMaterial({side:DoubleSide})
     const mesh = new Mesh(geometry, material)
@@ -373,26 +373,26 @@ for (const changes of [{ rows: 1, columns: 1, hingeAngle: 45 }, { rows: 3, colum
     const ringY = (side.innerRadius + side.outerRadius) / 2
     const sideXs = new Raycaster(new Vector3(-1000, ringY, side.outer3.z / 2), new Vector3(1,0,0)).intersectObject(mesh)
       .map(hit=>hit.point.x).filter((x,i,all)=>i===0 || Math.abs(x-all[i-1])>1e-5)
-    assert.deepEqual(round(sideXs), round([-top.outer1.x, -top.outer1.x + params.wallThickness, top.outer1.x - params.wallThickness, top.outer1.x]))
+    assert.deepEqual(round(sideXs), round([-top.outer1.x, -top.outer1.x + params.standThickness, top.outer1.x - params.standThickness, top.outer1.x]))
     // The red circle is cut through the side; between it and the green arc the side stays solid.
     const holeXs = new Raycaster(new Vector3(-1000, 0, 0), new Vector3(1,0,0)).intersectObject(mesh)
     assert.equal(holeXs.length, 0, 'The red circle must be cut through the side')
     const ringXs = new Raycaster(new Vector3(-1000, 0, (side.innerRadius + side.outerRadius) / 2), new Vector3(1,0,0)).intersectObject(mesh)
       .map(hit=>hit.point.x).filter((x,i,all)=>i===0 || Math.abs(x-all[i-1])>1e-5)
-    assert.deepEqual(round(ringXs), round([-top.outer1.x, -top.outer1.x + params.wallThickness, top.outer1.x - params.wallThickness, top.outer1.x]))
+    assert.deepEqual(round(ringXs), round([-top.outer1.x, -top.outer1.x + params.standThickness, top.outer1.x - params.standThickness, top.outer1.x]))
     // Across the plate near outer 2, the mirrored halves are fused: only the two outer edges are crossed.
-    const plateXs = new Raycaster(new Vector3(-1000, top.outer2.y + 1, side.outer3.z - params.wallThickness / 2), new Vector3(1,0,0)).intersectObject(mesh)
+    const plateXs = new Raycaster(new Vector3(-1000, top.outer2.y + 1, side.outer3.z - params.standThickness / 2), new Vector3(1,0,0)).intersectObject(mesh)
       .map(hit=>hit.point.x).filter((x,i,all)=>i===0 || Math.abs(x-all[i-1])>1e-5)
     assert.deepEqual(round(plateXs), round([-top.outer1.x, top.outer1.x]))
     // Inside the frame near outer 2, the top plate spans one wall thickness below outer 3 Z.
-    const plateZs = new Raycaster(new Vector3(top.outer2.x - params.wallThickness * 1.5, top.outer2.y + 1, -1000), new Vector3(0,0,1)).intersectObject(mesh)
+    const plateZs = new Raycaster(new Vector3(top.outer2.x - params.standThickness * 1.5, top.outer2.y + 1, -1000), new Vector3(0,0,1)).intersectObject(mesh)
       .map(hit=>hit.point.z).filter((z,i,all)=>i===0 || Math.abs(z-all[i-1])>1e-5)
-    assert.deepEqual(round(plateZs), round([side.outer3.z - params.wallThickness, side.outer3.z]))
+    assert.deepEqual(round(plateZs), round([side.outer3.z - params.standThickness, side.outer3.z]))
     // Where the side sits on the plate they are fused: a vertical line through both crosses only the outer faces.
-    const fusedZs = new Raycaster(new Vector3(top.outer1.x - params.wallThickness / 2, ringY, -1000), new Vector3(0,0,1)).intersectObject(mesh)
+    const fusedZs = new Raycaster(new Vector3(top.outer1.x - params.standThickness / 2, ringY, -1000), new Vector3(0,0,1)).intersectObject(mesh)
       .map(hit=>hit.point.z).filter((z,i,all)=>i===0 || Math.abs(z-all[i-1])>1e-5)
     assert.equal(fusedZs.length, 2, 'Side and plate must fuse')
-    near(fusedZs[0], side.outer3.z - params.wallThickness)
+    near(fusedZs[0], side.outer3.z - params.standThickness)
     // Every pattern hole is cut through the plate: probe each one's vertex average on the X > 0 half.
     const { standTopHoles } = await import('../src/stand-sketch.ts')
     const holes = standTopHoles(params)
@@ -526,12 +526,12 @@ for (const changes of [{ rows: 1, columns: 1, hingeAngle: 45 }, { rows: 3, colum
     const { standSideGeometry, standTopGeometry } = await import('../src/stand-sketch.ts')
     const { standDefinitions } = await import('../src/stand-model.ts')
     const standSource = await fs.readFile(new URL('../src/models/stand.scad', import.meta.url), 'utf8')
-    for (const changes of [{}, { standAngle: 40, baseTiltAngle: 20 }, { rows: 3, standAngle: 120, baseTiltAngle: 15 }]) {
+    for (const changes of [{}, { standAngle: 40, baseTiltAngle: 20, standThickness: 3 }, { rows: 3, standAngle: 120, baseTiltAngle: 15 }]) {
       const params = {...defaultBaseParameters, ...changes}
       const [stand] = assemblyPlacements(params, { standExtended: true, hingeExtended: false }).stand
       const { standLength } = standTopGeometry(params)
       const plateTop = standSideGeometry(params).outer3.z
-      const tipZ = Math.min(applyPlacement(stand, [0, -standLength, plateTop])[2], applyPlacement(stand, [0, -standLength, plateTop - params.wallThickness])[2])
+      const tipZ = Math.min(applyPlacement(stand, [0, -standLength, plateTop])[2], applyPlacement(stand, [0, -standLength, plateTop - params.standThickness])[2])
       near(tipZ, 0)
       const instance = await OpenSCAD({noInitialRun:true, wasmBinary, print:()=>{}, printErr:()=>{}})
       instance.FS.writeFile('/stand.scad', withDefinitions(standSource, standDefinitions(params)))

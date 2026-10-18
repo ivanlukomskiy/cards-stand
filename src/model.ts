@@ -14,6 +14,8 @@ export interface BaseParameters extends CellSketchParameters {
   standProfileWidthVertical: number
   standProfileWidthHorizontal: number
   // Voronoi holes in the stand plate; a cell size of 0 leaves one rounded opening.
+  // Thickness of the stand's plate and side walls.
+  standThickness: number
   standPatternCellSize: number
   standPatternRibWidth: number
   standPatternSeed: number
@@ -31,7 +33,7 @@ export interface BaseParameters extends CellSketchParameters {
 }
 
 export const defaultBaseParameters: BaseParameters = {
-  ...defaultSketchParameters, rows: 2, columns: 2, standAngle: 80, standHingeTolerance: 0.1, standTolerance: 0.5, baseTiltAngle: 30, standProfileWidthVertical: 10, standProfileWidthHorizontal: 18, standPatternCellSize: 12, standPatternRibWidth: 2, standPatternSeed: 1, standPatternCornerRadius: 2, standPatternJitter: 1.6, standPatternRelaxations: 1, hingePinExtension: 2, hingeTopWidth: 22, hingeHeight: 58, boltTolerance: 0.24, boltLength: 10, hingeAngle: 45, baseHeight: 12,
+  ...defaultSketchParameters, rows: 2, columns: 2, standAngle: 80, standHingeTolerance: 0.1, standTolerance: 0.5, baseTiltAngle: 30, standProfileWidthVertical: 10, standProfileWidthHorizontal: 18, standThickness: 1.6, standPatternCellSize: 12, standPatternRibWidth: 2, standPatternSeed: 1, standPatternCornerRadius: 2, standPatternJitter: 1.6, standPatternRelaxations: 1, hingePinExtension: 2, hingeTopWidth: 22, hingeHeight: 58, boltTolerance: 0.24, boltLength: 10, hingeAngle: 45, baseHeight: 12,
 }
 
 export function validateBaseParameters(params: BaseParameters) {
@@ -42,8 +44,8 @@ export function validateBaseParameters(params: BaseParameters) {
   if (!Number.isInteger(params.rows) || !Number.isInteger(params.columns) || params.rows < 1 || params.columns < 1) {
     throw new Error('Rows and columns must be positive whole numbers.')
   }
-  if (params.cellWidth <= 0 || params.cellLength <= 0 || params.wallThickness <= 0) {
-    throw new Error('Cell width, cell length, and wall thickness must be greater than zero.')
+  if (params.cellWidth <= 0 || params.cellLength <= 0 || params.wallThickness <= 0 || params.standThickness <= 0) {
+    throw new Error('Cell width, cell length, wall thickness, and stand thickness must be greater than zero.')
   }
   if (params.baseHeight <= params.hingeThickness + params.hingeTolerance) {
     throw new Error('Base height must exceed hinge thickness + hinge tolerance.')
@@ -130,6 +132,7 @@ export function baseDefinitions(params: BaseParameters): string[] {
     column_pitch: params.cellWidth + params.wallThickness,
     row_pitch: rowPitch(params),
     wall_thickness: params.wallThickness,
+    stand_thickness: params.standThickness,
     // Computed here so sheared cell faces coincide exactly with base end points built from the same slope.
     shear: slope,
   }

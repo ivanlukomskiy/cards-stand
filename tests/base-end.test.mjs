@@ -188,7 +188,7 @@ console.log('PASS: bolt circles')
 
 {
   const { standSideGeometry } = await import('../src/stand-sketch.ts')
-  const params = {...defaultBaseParameters, standHingeTolerance: 0.3}
+  const params = {...defaultBaseParameters, standHingeTolerance: 0.3, standThickness: 2.4}
   const stand = standSideGeometry(params)
   near(stand.outerRadius, (params.baseHeight - 0.3) / 2)
   near(stand.innerRadius * 2, params.baseHeight - 2 * params.wallThickness)
@@ -199,7 +199,7 @@ console.log('PASS: bolt circles')
   near(drop, params.baseHeight / 2 + params.standTolerance)
   near(stand.outer3.z, -drop)
   assert.deepEqual(stand.outer4, {y: yTop1, z: -drop})
-  assert.deepEqual([stand.outer5, stand.outer6], [{y: stand.outer3.y, z: -drop - params.wallThickness}, {y: yTop1, z: -drop - params.wallThickness}])
+  assert.deepEqual([stand.outer5, stand.outer6], [{y: stand.outer3.y, z: -drop - params.standThickness}, {y: yTop1, z: -drop - params.standThickness}])
   // At outer 3, the lines to outer 4 and outer 2 meet at the hinge angle; outer 3 lies to the right (-Y) of outer 2.
   const toOuter4 = Math.atan2(stand.outer4.z - stand.outer3.z, stand.outer4.y - stand.outer3.y)
   const toOuter2 = Math.atan2(stand.outer2.z - stand.outer3.z, stand.outer2.y - stand.outer3.y)
@@ -228,7 +228,7 @@ console.log('PASS: stand side circles, green arc ends at the outer 4 tangent, ou
     near(top.fullLength, top.yTop2 + (o1.y - o2.y) + rowPitch(params) * (params.rows - 1))
     const s = params.standAngle * Math.PI / 180, t = params.baseTiltAngle * Math.PI / 180
     const { arcRadius } = baseEndGeometry(params)
-    const corner = s + t >= Math.PI / 2 ? -arcRadius : -(arcRadius + params.wallThickness)
+    const corner = s + t >= Math.PI / 2 ? -arcRadius : -(arcRadius + params.standThickness)
     near(top.standLength, (top.fullLength * Math.sin(t) + center.z * Math.cos(t) + corner * Math.cos(s + t)) / Math.sin(s + t))
     const halfWidth = (params.wallThickness * (params.columns + 1) + params.cellWidth * params.columns) / 2 - params.wallThickness
     assert.deepEqual([top.outer1, top.outer2], [{x: halfWidth, y: top.yTop1}, {x: halfWidth, y: -top.standLength}])
