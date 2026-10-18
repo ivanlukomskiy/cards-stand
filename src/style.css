@@ -96,6 +96,7 @@ canvas { display: block; touch-action: none; }
 .sketch-point-label { fill: var(--text); font-family: system-ui, sans-serif; pointer-events: none; paint-order: stroke fill; stroke: #12141a; stroke-width: 3px; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 
 .sketch-rim-vertex .sketch-vertex-dot { fill: #f28b94; }
+.sketch-rim-outline { stroke: #f28b94; }
 .sketch-circle-center .sketch-vertex-dot { fill: #c49bff; }
 .sketch-rest-vertex .sketch-vertex-dot { fill: #73d6ac; }
 .sketch-vertex:hover .sketch-vertex-dot { fill: #fff; }

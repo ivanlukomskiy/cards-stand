@@ -1,5 +1,5 @@
 import { baseEndCutPoints, baseEndGeometry, baseEndInnerPoints } from './base-end-geometry.ts'
-import { cellPadEndPoints, cellMidCutPoints, cellInnerPoints, cellOuterPoints, cellMidPoints, rimRightPoints, defaultSketchParameters } from './sketch.ts'
+import { cellPadEndPoints, cellMidCutOutline, cellInnerPoints, cellOuterPoints, cellMidPoints, rimRightPoints, defaultSketchParameters } from './sketch.ts'
 import type { CellSketchParameters } from './sketch.ts'
 import { hingeTravelX } from './hinge-top-sketch.ts'
 
@@ -48,6 +48,10 @@ export function validateBaseParameters(params: BaseParameters) {
   const limit = Math.acos(Math.min(1, radius / (radius + params.standTolerance))) * 180 / Math.PI
   if (params.standAngle < limit || params.standAngle > 180 - limit) {
     throw new Error(`Stand angle must be between ${limit.toFixed(1)}° and ${(180 - limit).toFixed(1)}° for this stand tolerance and base height.`)
+  }
+  // The mid cut's corners are rounded by the wall thickness.
+  if (params.cellMidCutWidth > 0 && params.cellMidCutWidth < 2 * params.wallThickness) {
+    throw new Error('Cell mid cut width must be 0 or at least twice the wall thickness.')
   }
   if (params.hingeAngle <= 0 || params.hingeAngle > 90) {
     throw new Error('Hinge angle must be greater than 0° and at most 90°.')
@@ -101,7 +105,7 @@ export function baseDefinitions(params: BaseParameters): string[] {
     base_height: params.baseHeight,
     semi_raised_height: params.baseHeight - params.wallThickness - params.hingeThickness - params.hingeTolerance,
     cell_pad_end_points: cellPadEndPoints(params, hingeTravelX(params)).map(({ x, y }) => [x, y]),
-    cell_mid_cut_points: cellMidCutPoints(params).map(({ x, y }) => [x, y]),
+    cell_mid_cut_points: params.cellMidCutWidth > 0 ? cellMidCutOutline(params) : [],
     cell_mid_cut_width: params.cellMidCutWidth,
     cell_outer_points: cellOuterPoints(params).map(({ x, y }) => [x, y]),
     rows: params.rows,

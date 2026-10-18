@@ -1,3 +1,5 @@
+import { fillet, filletPath, filletPoints } from './fillet.ts'
+
 export interface SketchPoint {
   name: string
   x: number
@@ -99,6 +101,17 @@ export function cellMidCutPoints(params: CellSketchParameters): readonly SketchP
 }
 
 // hingeTravelX: the hinge top sketch's |ΔX| along inner 3 → inner 2 over the hinge centre travel.
+// The mid cut rectangle's corners, rounded by the wall thickness.
+export function cellMidCutFillets(params: CellSketchParameters) {
+  const points = cellMidCutPoints(params)
+  return points.map((point, index) => fillet(points[(index + points.length - 1) % points.length]!, point, points[(index + 1) % points.length]!, params.wallThickness))
+}
+
+// The rounded mid cut as a closed polygon, its arcs sampled at 64 segments per turn.
+export function cellMidCutOutline(params: CellSketchParameters): number[][] {
+  return cellMidCutFillets(params).flatMap(filletPoints)
+}
+
 export function cellPadEndPoints(params: CellSketchParameters, hingeTravelX = 0): readonly SketchPoint[] {
   const x = params.cellWidth / 2 - 2 * params.wallThickness - params.hingeProfileWidth - params.hingeTolerance - hingeTravelX
   const xFormula = 'cell width / 2 - 2 * wall thickness - hinge profile width - hinge tolerance - hinge travel ΔX'
@@ -118,6 +131,7 @@ export function cellSketch(params: CellSketchParameters = defaultSketchParameter
   const midPoints = cellMidPoints(params)
   const innerMidPoints = midPoints.slice(2)
   const midCutPoints = cellMidCutPoints(params)
+  const midCutFillets = cellMidCutFillets(params)
   const padEndPoints = cellPadEndPoints(params, hingeTravelX)
   const points = [...outerPoints, ...innerPoints, ...rimPoints, ...midPoints, ...midCutPoints, ...padEndPoints]
   const minX = Math.min(...points.map(point => point.x), 0)
@@ -140,7 +154,8 @@ export function cellSketch(params: CellSketchParameters = defaultSketchParameter
       </g>
       <polygon class="sketch-outline" points="${outerPoints.map(p => `${p.x},${-p.y}`).join(' ')}" />
       <polygon class="sketch-outline sketch-inner-outline" points="${innerPoints.map(p => `${p.x},${-p.y}`).join(' ')}" />
-      <polygon class="sketch-outline sketch-hinge-outline" points="${midCutPoints.map(p => `${p.x},${-p.y}`).join(' ')}" />
+      ${[rimRightPoints(params), rimLeftPoints(params)].map(([a, b]) => `<line class="sketch-outline sketch-rim-outline" x1="${a!.x}" y1="${-a!.y}" x2="${b!.x}" y2="${-b!.y}" />`).join('')}
+      ${params.cellMidCutWidth > 0 ? `<path class="sketch-outline sketch-hinge-outline" d="M ${midCutFillets[0]!.start.x} ${-midCutFillets[0]!.start.y} ${midCutFillets.map(filletPath).join(' ')} Z" />` : ''}
       <polygon class="sketch-outline sketch-cut-outline" points="${padEndPoints.map(p => `${p.x},${-p.y}`).join(' ')}" />
       ${points.map(p => `
         <g data-label-x="${p.x + (p.x < 0 ? 2 : -2) * unit}" data-label-y="${-p.y + (p.y < 0 ? 4 : -2) * unit}" data-label-anchor="${p.x < 0 ? 'start' : 'end'}" data-label-size="${3 * unit}" data-point-name="${p.name}" data-x-formula="${p.xFormula}" data-y-formula="${p.yFormula}" data-x="${p.x}" data-y="${p.y}" class="sketch-vertex${padEndPoints.includes(p) ? ' sketch-cut-vertex' : rimPoints.includes(p) ? ' sketch-rim-vertex' : (innerPoints.includes(p) || innerMidPoints.includes(p)) ? ' sketch-inner-vertex' : ''}">

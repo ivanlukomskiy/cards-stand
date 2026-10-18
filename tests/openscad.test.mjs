@@ -5,7 +5,7 @@ import { DoubleSide, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three'
 import { baseEndCutPoints, baseEndGeometry, baseEndInnerPoints } from '../src/base-end-geometry.ts'
 import { STLLoader } from 'three/addons/loaders/STLLoader.js'
 import { baseDefinitions, defaultBaseParameters, rowPitch as modelRowPitch, cellFullRaisedProfiles, cellSemiRaisedProfiles } from '../src/model.ts'
-import { cellPadEndPoints, cellMidCutPoints, cellMidPoints, cellOuterPoints } from '../src/sketch.ts'
+import { cellPadEndPoints, cellMidCutOutline, cellMidCutPoints, cellMidPoints, cellOuterPoints } from '../src/sketch.ts'
 import { hingeTravelX } from '../src/hinge-top-sketch.ts'
 
 const wasmBinary = await fs.readFile(new URL('../public/vendor/openscad/openscad.wasm', import.meta.url))
@@ -57,8 +57,16 @@ for (const changes of [
     assert.deepEqual(fullProfiles[1], fullProfiles[0].map(([x,y]) => [-x,y]).reverse())
     // Once the travel ΔX moves the pad ends inside the mid cut, the profiles also lose the mid cut strips beside the pad end.
     const padEnd = cellPadEndPoints(params, hingeTravelX(params))
-    const midCutOutsidePad = 2 * Math.max(0, params.cellMidCutWidth / 2 - padEnd[0].x) * (padEnd[0].y - params.wallThickness)
-    const expectedVolume = (fullProfiles.reduce((sum, profile) => sum + area(profile), 0) - area(padEnd.map(({x, y}) => [x, y])) - midCutOutsidePad) * (params.baseHeight - params.wallThickness) + profiles.reduce((sum, profile) => sum + area(profile), 0) * (raisedHeight - params.wallThickness) + (area(cellOuterPoints(params).map(({x, y}) => [x, y])) - params.cellMidCutWidth * (params.cellLength - params.wallThickness + hingeSpanY)) * params.wallThickness
+    const midCut = params.cellMidCutWidth > 0 ? cellMidCutOutline(params) : []
+    // Keep the part of a polygon where f(point) >= 0, for a linear f (Sutherland–Hodgman against one half-plane).
+    const clip = (polygon, f) => polygon.flatMap((p, i) => {
+      const q = polygon[(i + 1) % polygon.length], fp = f(p), fq = f(q)
+      const out = fp >= 0 ? [p] : []
+      if ((fp >= 0) !== (fq >= 0)) { const t = fp / (fp - fq); out.push([p[0] + t * (q[0] - p[0]), p[1] + t * (q[1] - p[1])]) }
+      return out
+    })
+    const midCutOutsidePad = midCut.length ? 2 * area(clip(clip(midCut, ([x]) => x - padEnd[0].x), ([, y]) => y)) : 0
+    const expectedVolume = (fullProfiles.reduce((sum, profile) => sum + area(profile), 0) - area(padEnd.map(({x, y}) => [x, y])) - midCutOutsidePad) * (params.baseHeight - params.wallThickness) + profiles.reduce((sum, profile) => sum + area(profile), 0) * (raisedHeight - params.wallThickness) + (area(cellOuterPoints(params).map(({x, y}) => [x, y])) - (midCut.length ? area(midCut) : 0)) * params.wallThickness
     const position = geometry.attributes.position
     let volume = 0
     for (let i = 0; i < position.count; i += 3) {
@@ -76,6 +84,7 @@ assert.throws(() => baseDefinitions({ ...defaultBaseParameters, hingeAngle: 0 })
 assert.throws(() => baseDefinitions({ ...defaultBaseParameters, baseHeight: 3.1 }))
 assert.throws(() => baseDefinitions({ ...defaultBaseParameters, rows: 1.5 }))
 assert.throws(() => baseDefinitions({ ...defaultBaseParameters, columns: 0 }))
+assert.throws(() => baseDefinitions({ ...defaultBaseParameters, cellMidCutWidth: defaultBaseParameters.wallThickness }))
 // Fixed dimensions keep these coordinate fixtures independent of UI defaults.
 const coordinateFixture = {...defaultBaseParameters, wallThickness: 2, hingeTolerance: 0.25}
 const topY = 2 + 3.25 / Math.sin(Math.PI / 4)
