@@ -7,6 +7,7 @@ import type { BaseParameters } from './model'
 import { hingeDefinitions } from './hinge-model'
 import { boltDefinitions } from './bolt-model'
 import { standDefinitions } from './stand-model'
+import { withDefinitions } from './scad-source'
 
 export type ModelName = 'base' | 'hinge' | 'bolt' | 'stand'
 export type ExportFormat = 'stl' | '3mf'
@@ -40,9 +41,9 @@ self.onmessage = async ({ data }: MessageEvent<{ model: ModelName; params: BaseP
       print: (message: string) => messages.push(message),
       printErr: (message: string) => messages.push(message),
     })
-    instance.FS.writeFile('/model.scad', model.source)
+    instance.FS.writeFile('/model.scad', withDefinitions(model.source, definitions))
     const code = instance.callMain([
-      '/model.scad', ...definitions,
+      '/model.scad',
       '--export-format', format === 'stl' ? 'binstl' : '3mf', '-o', `/model.${format}`,
     ])
     if (code !== 0) throw new Error(messages.join('\n') || `OpenSCAD exited with code ${code}.`)

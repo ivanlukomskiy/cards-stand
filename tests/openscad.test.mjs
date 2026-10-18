@@ -4,6 +4,7 @@ import OpenSCAD from '../public/vendor/openscad/openscad.js'
 import { DoubleSide, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three'
 import { baseEndCutPoints, baseEndGeometry, baseEndInnerPoints } from '../src/base-end-geometry.ts'
 import { STLLoader } from 'three/addons/loaders/STLLoader.js'
+import { withDefinitions } from '../src/scad-source.ts'
 import { baseDefinitions, defaultBaseParameters, rowPitch as modelRowPitch, cellFullRaisedProfiles, cellSemiRaisedProfiles } from '../src/model.ts'
 import { cellPadEndPoints, cellMidCutOutline, cellMidCutPoints, cellMidPoints, cellOuterPoints } from '../src/sketch.ts'
 import { hingeTravelX } from '../src/hinge-top-sketch.ts'
@@ -351,8 +352,8 @@ for (const changes of [{ rows: 1, columns: 1, hingeAngle: 45 }, { rows: 3, colum
   for (const changes of [{}, { columns: 3, rows: 3, wallThickness: 3 }]) {
     const params = {...defaultBaseParameters, ...changes}
     const instance = await OpenSCAD({noInitialRun:true, wasmBinary, print:()=>{}, printErr:()=>{}})
-    instance.FS.writeFile('/stand.scad', standSource)
-    assert.equal(instance.callMain(['/stand.scad', ...standDefinitions(params), '--export-format', 'binstl', '-o', '/stand.stl']), 0)
+    instance.FS.writeFile('/stand.scad', withDefinitions(standSource, standDefinitions(params)))
+    assert.equal(instance.callMain(['/stand.scad', '--export-format', 'binstl', '-o', '/stand.stl']), 0)
     const geometry = new STLLoader().parse(instance.FS.readFile('/stand.stl').slice().buffer)
     geometry.computeBoundingBox()
     const { min, max } = geometry.boundingBox
@@ -392,12 +393,19 @@ for (const changes of [{ rows: 1, columns: 1, hingeAngle: 45 }, { rows: 3, colum
       .map(hit=>hit.point.z).filter((z,i,all)=>i===0 || Math.abs(z-all[i-1])>1e-5)
     assert.equal(fusedZs.length, 2, 'Side and plate must fuse')
     near(fusedZs[0], side.outer3.z - params.wallThickness)
-    // The opening between inner 1–4 is empty.
-    const openZs = new Raycaster(new Vector3(top.inner2.x / 2, (top.inner1.y + top.inner4.y) / 2, -1000), new Vector3(0,0,1)).intersectObject(mesh)
-    assert.equal(openZs.length, 0, 'The inner rectangle must be open')
+    // Every pattern hole is cut through the plate: probe each one's vertex average on the X > 0 half.
+    const { standTopHoles } = await import('../src/stand-sketch.ts')
+    const holes = standTopHoles(params)
+    assert.ok(holes.length > 0)
+    for (const hole of holes) {
+      const [hx, hy] = hole.reduce(([x, y], p) => [x + p[0] / hole.length, y + p[1] / hole.length], [0, 0])
+      if (hx < 0) continue
+      const openZs = new Raycaster(new Vector3(hx, hy, -1000), new Vector3(0,0,1)).intersectObject(mesh)
+      assert.equal(openZs.length, 0, `The hole at (${hx}, ${hy}) must be open`)
+    }
     material.dispose()
     geometry.dispose()
-    console.log(`PASS: stand, ${params.columns} columns × ${params.rows} rows: top plate below outer 3 Z and side, with red circle cut, extruded toward O, mirrored across YOZ`)
+    console.log(`PASS: stand, ${params.columns} columns × ${params.rows} rows: top plate below outer 3 Z with pattern holes, and side, with red circle cut, extruded toward O, mirrored across YOZ`)
   }
 }
 
@@ -421,8 +429,8 @@ for (const changes of [{ rows: 1, columns: 1, hingeAngle: 45 }, { rows: 3, colum
       for (const part of assemblyParts) {
         const [partSource, definitions] = sources[part]
         const instance = await OpenSCAD({noInitialRun:true, wasmBinary, print:()=>{}, printErr:()=>{}})
-        instance.FS.writeFile('/part.scad', partSource)
-        assert.equal(instance.callMain(['/part.scad', ...definitions(params), '--export-format', 'binstl', '-o', '/part.stl']), 0)
+        instance.FS.writeFile('/part.scad', withDefinitions(partSource, definitions(params)))
+        assert.equal(instance.callMain(['/part.scad', '--export-format', 'binstl', '-o', '/part.stl']), 0)
         const geometry = new STLLoader().parse(instance.FS.readFile('/part.stl').slice().buffer)
         const partBounds = { min: Infinity, max: -Infinity }
         for (const placement of placements[part]) {
@@ -526,8 +534,8 @@ for (const changes of [{ rows: 1, columns: 1, hingeAngle: 45 }, { rows: 3, colum
       const tipZ = Math.min(applyPlacement(stand, [0, -standLength, plateTop])[2], applyPlacement(stand, [0, -standLength, plateTop - params.wallThickness])[2])
       near(tipZ, 0)
       const instance = await OpenSCAD({noInitialRun:true, wasmBinary, print:()=>{}, printErr:()=>{}})
-      instance.FS.writeFile('/stand.scad', standSource)
-      assert.equal(instance.callMain(['/stand.scad', ...standDefinitions(params), '--export-format', 'binstl', '-o', '/stand.stl']), 0)
+      instance.FS.writeFile('/stand.scad', withDefinitions(standSource, standDefinitions(params)))
+      assert.equal(instance.callMain(['/stand.scad', '--export-format', 'binstl', '-o', '/stand.stl']), 0)
       const geometry = new STLLoader().parse(instance.FS.readFile('/stand.stl').slice().buffer)
       geometry.rotateX(stand.rotationX)
       geometry.translate(...stand.offset)
@@ -606,8 +614,8 @@ for (const changes of [{ rows: 1, columns: 1, hingeAngle: 45 }, { rows: 3, colum
   for (const [part, [partSource, definitions]] of Object.entries(parts)) {
     const messages = []
     const instance = await OpenSCAD({noInitialRun:true, wasmBinary, print: t => messages.push(t), printErr: t => messages.push(t)})
-    instance.FS.writeFile('/part.scad', partSource)
-    assert.equal(instance.callMain(['/part.scad', ...definitions(defaultBaseParameters), '-D', `part_color="${colors[part]}"`, '--export-format', '3mf', '-o', '/part.3mf']), 0)
+    instance.FS.writeFile('/part.scad', withDefinitions(partSource, [...definitions(defaultBaseParameters), '-D', `part_color="${colors[part]}"`]))
+    assert.equal(instance.callMain(['/part.scad', '--export-format', '3mf', '-o', '/part.3mf']), 0)
     assert.deepEqual(messages.filter(line => /WARNING|ERROR/.test(line)), [], `${part}: no warnings`)
     const model = readZipEntry(instance.FS.readFile('/part.3mf'), '3D/3dmodel.model').toString('utf8')
     // Every triangle points at the base material holding the part colour.

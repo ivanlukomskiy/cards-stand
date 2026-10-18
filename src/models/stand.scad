@@ -1,9 +1,13 @@
 // Parameters and sketch profiles are supplied by src/stand-model.ts.
 module stand_half() {
-    // The Stand top sketch's blue outline, extruded along -Z by wall thickness from Z = Stand side outer 3 Z.
+    // The Stand top sketch's blue outline minus its holes, extruded along -Z by wall thickness from Z = Stand side outer 3 Z.
     translate([0, 0, top_z - wall_thickness])
         linear_extrude(height = wall_thickness)
-            polygon(points = top_points);
+            difference() {
+                polygon(points = top_points);
+                for (hole = top_holes)
+                    polygon(points = hole);
+            }
     // The Stand side sketch's green outline in (Y,Z) minus its red circle, extruded toward O from X = outer 1 X.
     multmatrix([
         [0, 0, 1, side_x - wall_thickness],

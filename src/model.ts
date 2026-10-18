@@ -10,7 +10,13 @@ export interface BaseParameters extends CellSketchParameters {
   standHingeTolerance: number
   standTolerance: number
   baseTiltAngle: number
-  standProfileWidth: number
+  // Stand frame widths: vertical along Y (top and bottom bands), horizontal along X (side bands).
+  standProfileWidthVertical: number
+  standProfileWidthHorizontal: number
+  // Voronoi holes in the stand plate; a cell size of 0 leaves one rounded opening.
+  standPatternCellSize: number
+  standPatternRibWidth: number
+  standPatternSeed: number
   hingePinExtension: number
   hingeTopWidth: number
   hingeHeight: number
@@ -20,7 +26,7 @@ export interface BaseParameters extends CellSketchParameters {
 }
 
 export const defaultBaseParameters: BaseParameters = {
-  ...defaultSketchParameters, rows: 2, columns: 2, standAngle: 80, standHingeTolerance: 0.1, standTolerance: 0.5, baseTiltAngle: 30, standProfileWidth: 18, hingePinExtension: 2, hingeTopWidth: 22, hingeHeight: 58, boltTolerance: 0.24, boltLength: 10, hingeAngle: 45, baseHeight: 12,
+  ...defaultSketchParameters, rows: 2, columns: 2, standAngle: 80, standHingeTolerance: 0.1, standTolerance: 0.5, baseTiltAngle: 30, standProfileWidthVertical: 10, standProfileWidthHorizontal: 18, standPatternCellSize: 12, standPatternRibWidth: 2, standPatternSeed: 1, hingePinExtension: 2, hingeTopWidth: 22, hingeHeight: 58, boltTolerance: 0.24, boltLength: 10, hingeAngle: 45, baseHeight: 12,
 }
 
 export function validateBaseParameters(params: BaseParameters) {
@@ -52,6 +58,12 @@ export function validateBaseParameters(params: BaseParameters) {
   // The mid cut's corners are rounded by the wall thickness.
   if (params.cellMidCutWidth > 0 && params.cellMidCutWidth < 2 * params.wallThickness) {
     throw new Error('Cell mid cut width must be 0 or at least twice the wall thickness.')
+  }
+  if (params.standPatternCellSize > 0 && params.standPatternRibWidth <= 0) {
+    throw new Error('Stand pattern rib width must be greater than zero.')
+  }
+  if (!Number.isInteger(params.standPatternSeed)) {
+    throw new Error('Stand pattern seed must be a whole number.')
   }
   if (params.hingeAngle <= 0 || params.hingeAngle > 90) {
     throw new Error('Hinge angle must be greater than 0° and at most 90°.')

@@ -137,8 +137,24 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
               <input id="stand-angle" name="stand-angle" type="number" min="0.1" max="179.9" step="0.1" value="80" />
             </div>
             <div class="transform-field">
-              <label for="stand-profile-width">Stand profile width, <em>mm</em></label>
-              <input id="stand-profile-width" name="stand-profile-width" type="number" min="0" step="0.1" value="18" />
+              <label for="stand-profile-width-vertical">Stand profile width vertical, <em>mm</em></label>
+              <input id="stand-profile-width-vertical" data-tooltip="top and bottom of the stand frame" name="stand-profile-width-vertical" type="number" min="0" step="0.1" value="10" />
+            </div>
+            <div class="transform-field">
+              <label for="stand-profile-width-horizontal">Stand profile width horizontal, <em>mm</em></label>
+              <input id="stand-profile-width-horizontal" data-tooltip="sides of the stand frame" name="stand-profile-width-horizontal" type="number" min="0" step="0.1" value="18" />
+            </div>
+            <div class="transform-field">
+              <label for="stand-pattern-cell-size">Pattern cell size, <em>mm</em></label>
+              <input id="stand-pattern-cell-size" data-tooltip="0 for a single opening" name="stand-pattern-cell-size" type="number" min="0" step="0.5" value="12" />
+            </div>
+            <div class="transform-field">
+              <label for="stand-pattern-rib-width">Pattern rib width, <em>mm</em></label>
+              <input id="stand-pattern-rib-width" name="stand-pattern-rib-width" type="number" min="0" step="0.1" value="2" />
+            </div>
+            <div class="transform-field">
+              <label for="stand-pattern-seed">Pattern seed</label>
+              <input id="stand-pattern-seed" data-tooltip="change for a different pattern" name="stand-pattern-seed" type="number" min="0" step="1" value="1" />
             </div>
             <div class="transform-field">
               <label for="stand-hinge-tolerance">Stand hinge tolerance, <em>mm</em></label>
@@ -303,7 +319,11 @@ const parameterInputs = {
   standHingeTolerance: document.querySelector<HTMLInputElement>('#stand-hinge-tolerance')!,
   standTolerance: document.querySelector<HTMLInputElement>('#stand-tolerance')!,
   baseTiltAngle: document.querySelector<HTMLInputElement>('#base-tilt-angle')!,
-  standProfileWidth: document.querySelector<HTMLInputElement>('#stand-profile-width')!,
+  standProfileWidthVertical: document.querySelector<HTMLInputElement>('#stand-profile-width-vertical')!,
+  standProfileWidthHorizontal: document.querySelector<HTMLInputElement>('#stand-profile-width-horizontal')!,
+  standPatternCellSize: document.querySelector<HTMLInputElement>('#stand-pattern-cell-size')!,
+  standPatternRibWidth: document.querySelector<HTMLInputElement>('#stand-pattern-rib-width')!,
+  standPatternSeed: document.querySelector<HTMLInputElement>('#stand-pattern-seed')!,
   boltTolerance: document.querySelector<HTMLInputElement>('#bolt-tolerance')!,
   boltLength: document.querySelector<HTMLInputElement>('#bolt-length')!,
   baseHeight: document.querySelector<HTMLInputElement>('#base-height')!,

@@ -233,8 +233,9 @@ console.log('PASS: stand side circles, green arc ends at the outer 4 tangent, ou
     const halfWidth = (params.wallThickness * (params.columns + 1) + params.cellWidth * params.columns) / 2 - params.wallThickness
     assert.deepEqual([top.outer1, top.outer2], [{x: halfWidth, y: top.yTop1}, {x: halfWidth, y: -top.standLength}])
     assert.deepEqual([top.outer3, top.outer4], [{x: 0, y: -top.standLength}, {x: 0, y: top.yTop1}])
-    assert.deepEqual([top.inner1, top.inner2], [{x: 0, y: -params.standProfileWidth}, {x: halfWidth - params.standProfileWidth, y: -params.standProfileWidth}])
-    assert.deepEqual([top.inner3, top.inner4], [{x: halfWidth - params.standProfileWidth, y: top.outer3.y + params.standProfileWidth}, {x: 0, y: top.outer3.y + params.standProfileWidth}])
+    const vertical = params.standProfileWidthVertical, horizontal = params.standProfileWidthHorizontal
+    assert.deepEqual([top.inner1, top.inner2], [{x: 0, y: -vertical}, {x: halfWidth - horizontal, y: -vertical}])
+    assert.deepEqual([top.inner3, top.inner4], [{x: halfWidth - horizontal, y: top.outer3.y + vertical}, {x: 0, y: top.outer3.y + vertical}])
   }
   assert.throws(() => validateBaseParameters({...defaultBaseParameters, standAngle: 150, baseTiltAngle: 30}))
 }
@@ -245,7 +246,9 @@ console.log('PASS: stand top precalculated lengths, outer 1–4, and inner 1–4
   const params = defaultBaseParameters
   const top = standTopGeometry(params)
   const fillets = standTopFillets(params)
-  const r = params.standProfileWidth / 2
+  // The radius is half the smaller stand profile width, limited to half the opening's height and its half width.
+  const r = Math.min(params.standProfileWidthVertical / 2, params.standProfileWidthHorizontal / 2, (top.inner2.y - top.inner3.y) / 2, top.inner2.x)
+  near(fillets.inner3.radius, r)
   // Inner 3 and inner 2 are right-angle corners, so the arcs start and end one radius from each corner along the edges.
   assert.deepEqual(fillets.inner3.start, {x: top.inner3.x - r, y: top.inner3.y})
   near(fillets.inner3.end.x, top.inner3.x); near(fillets.inner3.end.y, top.inner3.y + r)
@@ -294,3 +297,49 @@ console.log('PASS: zip writer stores files with names, offsets, and CRC-32')
   near(hingeTravelX(defaultBaseParameters), travel * Math.abs(inner2.x - inner3.x) / Math.hypot(inner2.x - inner3.x, inner2.y - inner3.y))
 }
 console.log('PASS: hinge centre travel and its ΔX along inner 3 → inner 2')
+
+{
+  const { standTopHoles, standTopOpening } = await import('../src/stand-sketch.ts')
+  const insideConvex = (polygon, [x, y]) => polygon.every((p, i) => {
+    const q = polygon[(i + 1) % polygon.length]
+    return (q[0] - p[0]) * (y - p[1]) - (q[1] - p[1]) * (x - p[0]) >= -1e-6
+  })
+  const segmentDistance = ([px, py], [ax, ay], [bx, by]) => {
+    const dx = bx - ax, dy = by - ay, t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy || 1)))
+    return Math.hypot(px - ax - t * dx, py - ay - t * dy)
+  }
+  const polygonDistance = (a, b) => Math.min(...a.map(p => Math.min(...b.map((q, i) => segmentDistance(p, q, b[(i + 1) % b.length])))))
+  for (const changes of [{}, { standProfileWidthHorizontal: 8 }, { standProfileWidthVertical: 6, standProfileWidthHorizontal: 8, standPatternSeed: 7, standPatternRibWidth: 3 }]) {
+    const params = {...defaultBaseParameters, ...changes}
+    const opening = standTopOpening(params)
+    const holes = standTopHoles(params)
+    assert.ok(holes.length > 1)
+    // Deterministic for a seed, and different for another seed.
+    assert.deepEqual(standTopHoles(params), holes)
+    assert.notDeepEqual(standTopHoles({...params, standPatternSeed: params.standPatternSeed + 1}), holes)
+    // Holes stay inside the opening, so the frame stays solid.
+    for (const hole of holes) for (const point of hole) assert.ok(insideConvex(opening, point), 'Hole inside the opening')
+    // Symmetric about X = 0: every hole has a mirrored twin with the same area and centroid.
+    const shape = hole => {
+      let a = 0, x = 0, y = 0
+      hole.forEach((p, i) => {
+        const q = hole[(i + 1) % hole.length], cross = p[0] * q[1] - q[0] * p[1]
+        a += cross / 2; x += (p[0] + q[0]) * cross; y += (p[1] + q[1]) * cross
+      })
+      return { area: Math.abs(a), x: x / (6 * a), y: y / (6 * a) }
+    }
+    const shapes = holes.map(shape)
+    for (const { area, x, y } of shapes) {
+      assert.ok(shapes.some(twin => Math.abs(twin.area - area) < 1e-3 * area && Math.hypot(twin.x + x, twin.y - y) < 1e-3), 'Mirrored hole')
+    }
+    // Neighbouring holes keep at least the rib width between them.
+    for (let i = 0; i < holes.length; i++) for (let j = i + 1; j < holes.length; j++) {
+      assert.ok(polygonDistance(holes[i], holes[j]) > params.standPatternRibWidth - 1e-6, 'Rib width kept')
+    }
+  }
+  // A cell size of 0 leaves the single rounded opening.
+  assert.deepEqual(standTopHoles({...defaultBaseParameters, standPatternCellSize: 0}), [standTopOpening(defaultBaseParameters)])
+  assert.throws(() => validateBaseParameters({...defaultBaseParameters, standPatternRibWidth: 0}))
+  assert.throws(() => validateBaseParameters({...defaultBaseParameters, standPatternSeed: 1.5}))
+}
+console.log('PASS: stand Voronoi holes: seeded, inside the opening, mirrored about X = 0, and rib width apart')

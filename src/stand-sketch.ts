@@ -2,7 +2,8 @@ import { baseEndGeometry } from './base-end-geometry.ts'
 import { defaultBaseParameters, rowPitch } from './model.ts'
 import { cellOuterPoints } from './sketch.ts'
 import type { SketchPoint } from './sketch.ts'
-import { fillet, filletPath } from './fillet.ts'
+import { fillet, filletPath, filletPoints } from './fillet.ts'
+import { voronoiHoles } from './voronoi.ts'
 import type { BaseParameters } from './model.ts'
 
 // A sketch with dash-dot axes and optional content. `leftAxis` puts the first axis's positive direction to the left.
@@ -55,24 +56,47 @@ export function standTopGeometry(params: BaseParameters) {
     // Projections of outer 2 and outer 1 onto OY.
     outer3: { x: 0, y: -standLength },
     outer4: { x: 0, y: yTop1 },
-    // On OY, one stand profile width below OX.
-    inner1: { x: 0, y: -params.standProfileWidth },
-    // Outer 1 X moved left by the stand profile width, at the same Y as inner 1.
-    inner2: { x: halfWidth - params.standProfileWidth, y: -params.standProfileWidth },
-    // Inner 2 and inner 1 at one stand profile width above outer 3.
-    inner3: { x: halfWidth - params.standProfileWidth, y: -standLength + params.standProfileWidth },
-    inner4: { x: 0, y: -standLength + params.standProfileWidth },
+    // On OY, one vertical stand profile width below OX.
+    inner1: { x: 0, y: -params.standProfileWidthVertical },
+    // Outer 1 X moved left by the horizontal stand profile width, at the same Y as inner 1.
+    inner2: { x: halfWidth - params.standProfileWidthHorizontal, y: -params.standProfileWidthVertical },
+    // Inner 2 and inner 1 at one vertical stand profile width above outer 3.
+    inner3: { x: halfWidth - params.standProfileWidthHorizontal, y: -standLength + params.standProfileWidthVertical },
+    inner4: { x: 0, y: -standLength + params.standProfileWidthVertical },
   }
 }
 
-// Blue outline corners at inner 3 and inner 2, rounded by stand profile width / 2.
+// Blue outline corners at inner 3 and inner 2, rounded by half the smaller stand profile width, or less when the opening is too small for it.
 export function standTopFillets(params: BaseParameters) {
   const { inner1, inner2, inner3, inner4 } = standTopGeometry(params)
-  const radius = params.standProfileWidth / 2
+  const radius = Math.min(params.standProfileWidthVertical / 2, params.standProfileWidthHorizontal / 2, (inner2.y - inner3.y) / 2, inner2.x)
   return {
     inner3: fillet(inner4, inner3, inner2, radius),
     inner2: fillet(inner3, inner2, inner1, radius),
   }
+}
+
+// The rounded inner 1–4 opening across the full width (mirrored about X = 0), counter-clockwise.
+export function standTopOpening(params: BaseParameters): [number, number][] {
+  const { inner2, inner3 } = standTopFillets(params)
+  const right = [...filletPoints(inner3), ...filletPoints(inner2)] as [number, number][]
+  const left = right.map(([x, y]): [number, number] => [-x, y]).reverse()
+  return [...right, ...left]
+}
+
+// The holes cut through the stand plate: rounded Voronoi cells filling the opening, or the opening itself
+// when the pattern cell size is 0. Holes are full width; each mirrored half keeps its own side.
+export function standTopHoles(params: BaseParameters): [number, number][][] {
+  const { inner2, inner3 } = standTopGeometry(params)
+  if (inner2.x <= 0 || inner2.y - inner3.y <= 0) return []
+  const opening = standTopOpening(params)
+  if (params.standPatternCellSize <= 0) return [opening]
+  return voronoiHoles(opening, {
+    cellSize: params.standPatternCellSize,
+    ribWidth: params.standPatternRibWidth,
+    cornerRadius: params.standPatternRibWidth,
+    seed: params.standPatternSeed,
+  })
 }
 
 // The stand viewed from above, in the XOY plane: positive X right, positive Y up.
@@ -82,9 +106,12 @@ export function standTopSketch(params: BaseParameters = defaultBaseParameters) {
   const fillets = standTopFillets(params)
   return axesSketch(Math.max(outer1.x, yTop1, standLength), 'X', 'Y', false,
     'Stand top sketch with positive X pointing right and positive Y pointing up', unit => `
-      <path class="sketch-outline" d="M ${outer1.x} ${-outer1.y} ${[outer2, outer3, inner4].map(p => `L ${p.x} ${-p.y}`).join(' ')}
-        ${filletPath(fillets.inner3)} ${filletPath(fillets.inner2)}
-        ${[inner1, outer4].map(p => `L ${p.x} ${-p.y}`).join(' ')} Z" />
+      <defs><clipPath id="stand-top-half"><polygon points="${[outer1, outer2, outer3, outer4].map(p => `${p.x},${-p.y}`).join(' ')}" /></clipPath></defs>
+      <polygon class="sketch-outline" points="${[outer1, outer2, outer3, outer4].map(p => `${p.x},${-p.y}`).join(' ')}" />
+      <path class="sketch-helper-circle" d="M ${inner4.x} ${-inner4.y} ${filletPath(fillets.inner3)} ${filletPath(fillets.inner2)} L ${inner1.x} ${-inner1.y}" />
+      <g clip-path="url(#stand-top-half)">
+        ${standTopHoles(params).map(hole => `<polygon class="sketch-outline sketch-cut-outline" points="${hole.map(([x, y]) => `${x},${-y}`).join(' ')}" />`).join('')}
+      </g>
       ${[[outer1, 'Y top 1', -2], [outer2, '-stand length', 4], [outer3, '-stand length', 4], [outer4, 'Y top 1', -2]].map(([point, yFormula, labelOffset], index) => {
         const { x, y } = point as { x: number, y: number }
         return `
@@ -93,10 +120,10 @@ export function standTopSketch(params: BaseParameters = defaultBaseParameters) {
           <circle class="sketch-vertex-dot" cx="${x}" cy="${-y}" r="${0.7 * unit}" />
         </g>`
       }).join('')}
-      ${[[inner1, '0'], [inner2, `${xFormula} - stand profile width`], [inner3, `${xFormula} - stand profile width`], [inner4, '0']].map(([point, formula], index) => {
+      ${[[inner1, '0'], [inner2, `${xFormula} - stand profile width horizontal`], [inner3, `${xFormula} - stand profile width horizontal`], [inner4, '0']].map(([point, formula], index) => {
         const { x, y } = point as { x: number, y: number }
         return `
-        <g class="sketch-vertex sketch-inner-vertex" data-point-name="inner ${index + 1}" data-x="${x}" data-y="${y}" data-x-formula="${formula}" data-y-formula="${index < 2 ? '-stand profile width' : '-stand length + stand profile width'}"
+        <g class="sketch-vertex sketch-inner-vertex" data-point-name="inner ${index + 1}" data-x="${x}" data-y="${y}" data-x-formula="${formula}" data-y-formula="${index < 2 ? '-stand profile width vertical' : '-stand length + stand profile width vertical'}"
           data-label-x="${x}" data-label-y="${-y + 4 * unit}" data-label-anchor="middle" data-label-size="${3 * unit}">
           <circle class="sketch-vertex-dot" cx="${x}" cy="${-y}" r="${0.7 * unit}" />
         </g>`

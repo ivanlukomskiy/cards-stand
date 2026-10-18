@@ -1,18 +1,11 @@
 import { validateBaseParameters } from './model.ts'
 import type { BaseParameters } from './model.ts'
-import { standSideGeometry, standTopFillets, standTopGeometry } from './stand-sketch.ts'
-import { filletPoints } from './fillet.ts'
+import { standSideGeometry, standTopGeometry, standTopHoles } from './stand-sketch.ts'
 
-// The Stand top blue outline: outer 1 → outer 2 → outer 3 → inner 4 → inner 3 (rounded) → inner 2 (rounded) → inner 1 → outer 4.
+// The Stand top blue outline: the half plate outer 1 → outer 2 → outer 3 → outer 4; the holes are cut from it.
 export function standTopPoints(params: BaseParameters): number[][] {
   const top = standTopGeometry(params)
-  const fillets = standTopFillets(params)
-  return [
-    ...[top.outer1, top.outer2, top.outer3, top.inner4].map(({ x, y }) => [x, y]),
-    ...filletPoints(fillets.inner3),
-    ...filletPoints(fillets.inner2),
-    ...[top.inner1, top.outer4].map(({ x, y }) => [x, y]),
-  ]
+  return [top.outer1, top.outer2, top.outer3, top.outer4].map(({ x, y }) => [x, y])
 }
 
 // The Stand side green outline in (Y,Z): the arc from outer 1 over the top to outer 2 (64 segments per turn), then outer 3 and outer 4.
@@ -32,6 +25,7 @@ export function standDefinitions(params: BaseParameters): string[] {
   const definitions = {
     wall_thickness: params.wallThickness,
     top_points: standTopPoints(params),
+    top_holes: standTopHoles(params),
     side_points: standSidePoints(params),
     side_hole_radius: standSideGeometry(params).innerRadius,
     side_x: standTopGeometry(params).outer1.x,
