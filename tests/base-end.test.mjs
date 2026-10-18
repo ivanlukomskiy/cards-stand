@@ -73,16 +73,18 @@ console.log('PASS: mid cut 1 right of hinge centre 3 by its radius, at outer 2 Z
 
 for (const hingeAngle of [15,45,90]) {
   const {hingeCenter3, hingeRadius, midCut2, midCut3} = baseEndGeometry({...defaultBaseParameters, hingeAngle})
+  const lowered = hingeCenter3.z - defaultBaseParameters.hingeRestTolerance
   near(midCut2.y, hingeCenter3.y - hingeRadius)
-  near(midCut2.z, hingeCenter3.z)
+  near(midCut2.z, lowered)
   near(midCut3.y, hingeCenter3.y)
-  near(midCut3.z, hingeCenter3.z - hingeRadius)
+  near(midCut3.z, lowered - hingeRadius)
 }
-console.log('PASS: mid cuts 2 and 3 on the right and bottom of hinge circle 3')
+console.log('PASS: mid cuts 2 and 3 on the right and bottom of hinge circle 3 lowered by the hinge rest tolerance')
 
 for (const hingeAngle of [15,45,90]) {
   const {start, slope, midCut3, cutCorner} = baseEndGeometry({...defaultBaseParameters, hingeAngle})
-  near(midCut3.z, defaultBaseParameters.baseHeight - defaultBaseParameters.wallThickness - defaultBaseParameters.hingeThickness - defaultBaseParameters.hingeTolerance)
+  // Level with the semi raised profiles' top.
+  near(midCut3.z, defaultBaseParameters.baseHeight - defaultBaseParameters.wallThickness - defaultBaseParameters.hingeThickness - defaultBaseParameters.hingeTolerance - defaultBaseParameters.hingeRestTolerance)
   near(cutCorner.z, midCut3.z)
   near(cutCorner.y, start.y + cutCorner.z * slope)
 }
