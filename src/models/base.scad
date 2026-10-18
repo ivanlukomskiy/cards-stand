@@ -34,7 +34,7 @@ module cell(column) {
                     if (cell_mid_cut_width > 0)
                         polygon(points = cell_mid_cut_points);
                 }
-        // Semi raised: back strip between the rims, plus its mirror, lowered by the wall thickness, hinge thickness, and hinge tolerance.
+        // Semi raised: back strip between the rims, plus its mirror, lowered by the wall thickness, hinge thickness, hinge tolerance, and hinge rest tolerance.
         for (profile = semi_raised_profiles)
             angled_extrusion(semi_raised_height)
                 difference() {

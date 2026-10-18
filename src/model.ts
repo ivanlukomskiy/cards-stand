@@ -25,6 +25,7 @@ export interface BaseParameters extends CellSketchParameters {
   // Lloyd relaxation passes, which even out the cells.
   standPatternRelaxations: number
   hingePinExtension: number
+  hingeRestTolerance: number
   hingeTopWidth: number
   hingeHeight: number
   boltTolerance: number
@@ -33,7 +34,7 @@ export interface BaseParameters extends CellSketchParameters {
 }
 
 export const defaultBaseParameters: BaseParameters = {
-  ...defaultSketchParameters, rows: 5, columns: 3, standAngle: 80, standHingeTolerance: 0.1, standTolerance: 0.5, baseTiltAngle: 30, standProfileWidthVertical: 10, standProfileWidthHorizontal: 18, standThickness: 2, standPatternCellSize: 12, standPatternRibWidth: 2, standPatternSeed: 1, standPatternCornerRadius: 2, standPatternJitter: 1.6, standPatternRelaxations: 1, hingePinExtension: 2, hingeTopWidth: 22, hingeHeight: 58, boltTolerance: 0.24, boltLength: 10, hingeAngle: 45, baseHeight: 12,
+  ...defaultSketchParameters, rows: 5, columns: 3, standAngle: 80, standHingeTolerance: 0.1, standTolerance: 0.5, baseTiltAngle: 30, standProfileWidthVertical: 10, standProfileWidthHorizontal: 18, standThickness: 2, standPatternCellSize: 12, standPatternRibWidth: 2, standPatternSeed: 1, standPatternCornerRadius: 2, standPatternJitter: 1.6, standPatternRelaxations: 1, hingePinExtension: 2, hingeRestTolerance: 0.3, hingeTopWidth: 22, hingeHeight: 58, boltTolerance: 0.24, boltLength: 10, hingeAngle: 45, baseHeight: 12,
 }
 
 export const minStandPatternCellSize = 5
@@ -128,7 +129,7 @@ export function baseDefinitions(params: BaseParameters): string[] {
     full_raised_profiles: cellFullRaisedProfiles(params),
     semi_raised_profiles: cellSemiRaisedProfiles(params),
     base_height: params.baseHeight,
-    semi_raised_height: params.baseHeight - params.wallThickness - params.hingeThickness - params.hingeTolerance,
+    semi_raised_height: params.baseHeight - params.wallThickness - params.hingeThickness - params.hingeTolerance - params.hingeRestTolerance,
     cell_pad_end_points: cellPadEndPoints(params, hingeTravelX(params)).map(({ x, y }) => [x, y]),
     cell_mid_cut_points: params.cellMidCutWidth > 0 ? cellMidCutOutline(params) : [],
     cell_mid_cut_width: params.cellMidCutWidth,

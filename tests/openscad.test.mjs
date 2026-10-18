@@ -39,7 +39,7 @@ for (const changes of [
   const hingeSpanY = (params.hingeThickness + params.hingeTolerance) / Math.sin(params.hingeAngle * Math.PI / 180)
   const rowPitch = modelRowPitch(params)
   const colPitch = params.cellWidth + params.wallThickness
-  const raisedHeight = params.baseHeight - params.wallThickness - params.hingeThickness - params.hingeTolerance
+  const raisedHeight = params.baseHeight - params.wallThickness - params.hingeThickness - params.hingeTolerance - params.hingeRestTolerance
   near(min.x, -params.cellWidth / 2 - params.wallThickness)
   near(max.x, params.cellWidth / 2 + params.wallThickness + (params.columns - 1) * colPitch)
   near(min.y, -(params.rows - 1) * rowPitch - params.cellLength - params.wallThickness)

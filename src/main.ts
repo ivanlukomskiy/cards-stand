@@ -130,6 +130,10 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
               <label for="hinge-tolerance">Hinge tolerance, <em>mm</em></label>
               <input id="hinge-tolerance" data-tooltip="higher values means looser" name="hinge-tolerance" type="number" min="0" step="0.01" value="0.18" />
             </div>
+            <div class="transform-field">
+              <label for="hinge-rest-tolerance">Hinge rest tolerance, <em>mm</em></label>
+              <input id="hinge-rest-tolerance" data-tooltip="higher values means looser" name="hinge-rest-tolerance" type="number" min="0" step="0.01" value="0.3" />
+            </div>
           </div>
         </details>
         <details id="stand-parameters" class="sidebar-section">
@@ -363,6 +367,7 @@ const parameterInputs = {
   hingeProfileWidth: document.querySelector<HTMLInputElement>('#hinge-profile-width')!,
   hingePinExtension: document.querySelector<HTMLInputElement>('#hinge-pin-extension')!,
   hingeTolerance: document.querySelector<HTMLInputElement>('#hinge-tolerance')!,
+  hingeRestTolerance: document.querySelector<HTMLInputElement>('#hinge-rest-tolerance')!,
   hingeTopWidth: document.querySelector<HTMLInputElement>('#hinge-top-width')!,
   hingeHeight: document.querySelector<HTMLInputElement>('#hinge-height')!,
   rimWidth: document.querySelector<HTMLInputElement>('#rim-width')!,
