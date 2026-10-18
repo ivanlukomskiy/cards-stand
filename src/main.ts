@@ -3,12 +3,13 @@ import { setupSidebarTooltips } from './sidebar-tooltips'
 import { BasePreview } from './preview'
 import { cellSketch } from './sketch'
 import { baseEndSketch } from './base-end-sketch'
+import { baseEndGeometry } from './base-end-geometry'
 import { hingeTopSketch, hingeTravelX } from './hinge-top-sketch'
 import { hingeSideSketch } from './hinge-side-sketch'
 import { boltSketch } from './bolt-sketch'
 import { standSideSketch, standTopSketch } from './stand-sketch'
 import { baseDefinitions, defaultBaseParameters, validateBaseParameters } from './model'
-import { hingeDefinitions } from './hinge-model'
+import { hingeDefinitions, hingeOutlinePoints } from './hinge-model'
 import { boltDefinitions } from './bolt-model'
 import { standDefinitions } from './stand-model'
 import type { BaseParameters } from './model'
@@ -16,6 +17,11 @@ import type { ExportFormat, ModelName } from './openscad.worker'
 import { assemblyParts, assemblyPlacements } from './assembly'
 import { zip } from './zip'
 
+// The Cell sketch's hinge axis: the Cell side sketch's outer 1–hinge centre 2 distance projected on Y.
+function hingeAxisY(params: BaseParameters) {
+  const { start, hingeCenter2 } = baseEndGeometry(params)
+  return Math.abs(hingeCenter2.y - start.y)
+}
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <aside class="sidebar" aria-label="Model parameters">
     <div class="segmented-control" role="group" aria-label="View mode">
@@ -223,7 +229,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <main class="viewport" aria-label="Constructor preview">
     <section id="sketch-view" class="preview-view" aria-label="2D sketch preview">
       <div id="cell-sketch-panel" class="sketch-panel" role="tabpanel" aria-labelledby="cell-tab">
-        ${cellSketch(defaultBaseParameters, hingeTravelX(defaultBaseParameters))}
+        ${cellSketch(defaultBaseParameters, hingeTravelX(defaultBaseParameters), hingeAxisY(defaultBaseParameters), hingeOutlinePoints(defaultBaseParameters))}
       </div>
       <div id="base-end-sketch-panel" class="sketch-panel" role="tabpanel" aria-labelledby="base-end-tab" hidden>
         ${baseEndSketch()}
@@ -396,7 +402,7 @@ const readParameters = (): BaseParameters | null => {
   }
 }
 const renderSketches = (params: BaseParameters) => {
-  cellPanel.innerHTML = cellSketch(params, hingeTravelX(params))
+  cellPanel.innerHTML = cellSketch(params, hingeTravelX(params), hingeAxisY(params), hingeOutlinePoints(params))
   baseEndPanel.innerHTML = baseEndSketch(params)
   hingeTopPanel.innerHTML = hingeTopSketch(params)
   hingeSidePanel.innerHTML = hingeSideSketch(params)

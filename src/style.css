@@ -105,7 +105,7 @@ canvas { display: block; touch-action: none; }
 
 .sketch-helper { pointer-events: none; }
 .sketch-helper text { fill: var(--text-dim); font-family: system-ui, sans-serif; }
-.sketch-helper line { stroke: var(--text-dim); stroke-width: 1; stroke-dasharray: 6 4; vector-effect: non-scaling-stroke; }
+.sketch-helper line, .sketch-helper polygon { fill: none; stroke: var(--text-dim); stroke-width: 1; stroke-dasharray: 6 4; vector-effect: non-scaling-stroke; }
 
 .sketch-helper-circle { fill: none; stroke: var(--text-dim); stroke-width: 1; stroke-dasharray: 6 4; vector-effect: non-scaling-stroke; pointer-events: none; }
 

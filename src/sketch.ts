@@ -124,7 +124,9 @@ export function cellPadEndPoints(params: CellSketchParameters, hingeTravelX = 0)
   return [...right, ...left.reverse()]
 }
 
-export function cellSketch(params: CellSketchParameters = defaultSketchParameters, hingeTravelX = 0) {
+// hingeAxisY: the Y of the hinge axis, drawn as a horizontal helper line when given.
+// hingeOutline: the Hinge top sketch's blue outline, flipped across its X axis and moved so that axis lies on the hinge axis, drawn with its mirror across Y.
+export function cellSketch(params: CellSketchParameters = defaultSketchParameters, hingeTravelX = 0, hingeAxisY?: number, hingeOutline: number[][] = []) {
   const outerPoints = cellOuterPoints(params)
   const innerPoints = cellInnerPoints(params)
   const rimPoints = [...rimRightPoints(params), ...rimLeftPoints(params)]
@@ -134,10 +136,14 @@ export function cellSketch(params: CellSketchParameters = defaultSketchParameter
   const midCutFillets = cellMidCutFillets(params)
   const padEndPoints = cellPadEndPoints(params, hingeTravelX)
   const points = [...outerPoints, ...innerPoints, ...rimPoints, ...midPoints, ...midCutPoints, ...padEndPoints]
-  const minX = Math.min(...points.map(point => point.x), 0)
-  const maxX = Math.max(...points.map(point => point.x), 0)
-  const bottom = Math.min(...points.map(point => point.y))
-  const top = Math.max(...points.map(point => point.y))
+  const helperYs = hingeAxisY === undefined ? [] : [hingeAxisY]
+  const hingeRight = hingeAxisY === undefined ? [] : hingeOutline.map(([x, y]) => [x!, hingeAxisY - y!])
+  // Both halves start at outer 1 and end at inner 1 on X = 0, so joining them leaves no edge along the Y axis.
+  const hingeHelper = [...hingeRight, ...hingeRight.map(([x, y]) => [-x!, y!]).reverse().slice(1, -1)]
+  const minX = Math.min(...points.map(point => point.x), ...hingeHelper.map(([x]) => x!), 0)
+  const maxX = Math.max(...points.map(point => point.x), ...hingeHelper.map(([x]) => x!), 0)
+  const bottom = Math.min(...points.map(point => point.y), ...helperYs, ...hingeHelper.map(([, y]) => y!))
+  const top = Math.max(...points.map(point => point.y), ...helperYs, ...hingeHelper.map(([, y]) => y!))
   const unit = Math.max(maxX - minX, top - bottom) / 68
   const left = minX - 12 * unit
   const right = maxX + 12 * unit
@@ -152,6 +158,10 @@ export function cellSketch(params: CellSketchParameters = defaultSketchParameter
         <text x="${right - 2 * unit}" y="${-2 * unit}" text-anchor="end" style="font-size:${3 * unit}px">X</text>
         <text x="${2 * unit}" y="${-upper + 4 * unit}" style="font-size:${3 * unit}px">Y</text>
       </g>
+      ${helperYs.length ? `<g class="sketch-helper">
+        ${helperYs.map(y => `<line x1="${left + 2 * unit}" y1="${-y}" x2="${right - 2 * unit}" y2="${-y}" />`).join('')}
+        ${hingeHelper.length ? `<polygon points="${hingeHelper.map(([x, y]) => `${x},${-y!}`).join(' ')}" />` : ''}
+      </g>` : ''}
       <polygon class="sketch-outline" points="${outerPoints.map(p => `${p.x},${-p.y}`).join(' ')}" />
       <polygon class="sketch-outline sketch-inner-outline" points="${innerPoints.map(p => `${p.x},${-p.y}`).join(' ')}" />
       ${[rimRightPoints(params), rimLeftPoints(params)].map(([a, b]) => `<line class="sketch-outline sketch-rim-outline" x1="${a!.x}" y1="${-a!.y}" x2="${b!.x}" y2="${-b!.y}" />`).join('')}
