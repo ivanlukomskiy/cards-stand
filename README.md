@@ -32,6 +32,8 @@ npm run dev
 
 ## Why
 
+The stand was first designed for playing Food Chain Magnate, which has you arrange lots of small stacks of cards.
+
 This project is an experiment in designing a printable model by writing code with AI tools instead of using CAD software. Every dimension, sketch and part is described in conversation and turned into TypeScript and OpenSCAD, with tests that check the real geometry. Whether a design changes or a print shows a part is too tight, the fix is a change to the model's rules, and every part follows from them.
 
 ## License
