@@ -11,7 +11,12 @@ module angled_extrusion(z_distance) {
             children();
 }
 
-module cell() {
+// Pad end points (R 1, R 2, L 2, L 1) moved away from the Y axis by the wall thickness on sides shared with a neighbour.
+function column_pad_end_points(column) =
+    let(right = column < columns - 1 ? wall_thickness : 0, left = column > 0 ? wall_thickness : 0)
+    [for (i = [0 : 3]) [cell_pad_end_points[i][0] + (i < 2 ? right : -left), cell_pad_end_points[i][1]]];
+
+module cell(column) {
     union() {
         // Extrusion 1: outer rectangle floor minus the mid cut, with thickness measured along Z.
         angled_extrusion(wall_thickness)
@@ -25,7 +30,7 @@ module cell() {
             angled_extrusion(base_height)
                 difference() {
                     polygon(points = profile);
-                    polygon(points = cell_pad_end_points);
+                    polygon(points = column_pad_end_points(column));
                     if (cell_mid_cut_width > 0)
                         polygon(points = cell_mid_cut_points);
                 }
@@ -45,7 +50,7 @@ module base_solid() {
         for (row = [0 : rows - 1])
             for (column = [0 : columns - 1])
                 translate([column * column_pitch, -row * row_pitch, 0])
-                    cell();
+                    cell(column);
     }
 }
 
@@ -53,15 +58,15 @@ module base_solid() {
 hinge_cut_epsilon = 0.001;
 
 // outward: -1 when the side wall's outer face is at x_start, +1 when it is at x_start + hinge cut length.
-module hinge_capsule_cut(x_start, outward) {
-    // The sketch's (Y,Z) capsule is extruded along X by the hinge cut length, plus epsilon past the outer face.
+module hinge_capsule_cut(x_start, outward, length) {
+    // The sketch's (Y,Z) capsule is extruded along X by the given length, plus epsilon past the outer face.
     multmatrix([
         [0, 0, 1, x_start - (outward < 0 ? hinge_cut_epsilon : 0)],
         [1, 0, 0, 0],
         [0, 1, 0, 0],
         [0, 0, 0, 1]
     ])
-        linear_extrude(height = hinge_cut_length + hinge_cut_epsilon)
+        linear_extrude(height = length + hinge_cut_epsilon)
             hull() {
                 for (centre = hinge_centres)
                     translate(centre)
@@ -69,13 +74,16 @@ module hinge_capsule_cut(x_start, outward) {
             }
 }
 
-// At both sides of every cell, cut inward from the outer face of the side wall.
+// At both sides of every cell, cut inward from the outer face of the side wall;
+// cuts at walls shared with a neighbour are shorter by the wall thickness.
 module cell_hinge_cuts() {
     for (row = [0 : rows - 1])
         translate([0, -row * row_pitch, 0])
             for (column = [0 : columns - 1]) {
-                hinge_capsule_cut(column * column_pitch - cell_width / 2 - wall_thickness, -1);
-                hinge_capsule_cut(column * column_pitch + cell_width / 2 + wall_thickness - hinge_cut_length, 1);
+                left_length = hinge_cut_length - (column > 0 ? wall_thickness : 0);
+                right_length = hinge_cut_length - (column < columns - 1 ? wall_thickness : 0);
+                hinge_capsule_cut(column * column_pitch - cell_width / 2 - wall_thickness, -1, left_length);
+                hinge_capsule_cut(column * column_pitch + cell_width / 2 + wall_thickness - right_length, 1, right_length);
             }
 }
 

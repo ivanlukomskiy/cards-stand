@@ -126,17 +126,22 @@ for (const columns of [1, 3]) {
     const hits = new Raycaster(new Vector3(-1000,y,z),new Vector3(1,0,0)).intersectObject(mesh)
     const xs = hits.map(hit=>hit.point.x).filter((x,i,all)=>i===0 || Math.abs(x-all[i-1])>1e-5)
     // Each cell keeps two pads between the side grooves and the central pad end opening.
-    const expected = Array.from({length: columns}, (_, column) => [
-      column*colPitch - params.cellWidth/2 - params.wallThickness + cutLength,
-      column*colPitch - cellPadEndPoints(params, travelX)[0].x,
-      column*colPitch + cellPadEndPoints(params, travelX)[0].x,
-      column*colPitch + params.cellWidth/2 + params.wallThickness - cutLength,
-    ]).flat()
+    // Sides shared with a neighbour: cuts shorter and pad ends wider by the wall thickness.
+    const expected = Array.from({length: columns}, (_, column) => {
+      const left = column > 0 ? params.wallThickness : 0
+      const right = column < columns - 1 ? params.wallThickness : 0
+      return [
+        column*colPitch - params.cellWidth/2 - params.wallThickness + cutLength - left,
+        column*colPitch - cellPadEndPoints(params, travelX)[0].x - left,
+        column*colPitch + cellPadEndPoints(params, travelX)[0].x + right,
+        column*colPitch + params.cellWidth/2 + params.wallThickness - cutLength + right,
+      ]
+    }).flat()
     assert.ok(xs.length === expected.length && xs.every((x, i) => Math.abs(x - expected[i]) < 1e-4), `Row ${row}: hinge cuts must reach the cut length from each cell side: ${xs} != ${expected}`)
   }
   material.dispose()
   geometry.dispose()
-  console.log(`PASS: ${columns} columns, two rows: hinge capsules cut by wall thickness * 2 + hinge profile width + hinge tolerance + hinge travel ΔX from each cell side`)
+  console.log(`PASS: ${columns} columns, two rows: hinge capsules cut by wall thickness * 2 + hinge profile width + hinge tolerance + hinge travel ΔX from each cell side, less the wall thickness at shared walls`)
 }
 
 // The base end spans the full model width and is fused to row 0's outer 1–outer 2 face.
