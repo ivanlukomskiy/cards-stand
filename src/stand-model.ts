@@ -17,11 +17,12 @@ export function standTopPoints(params: BaseParameters): number[][] {
 
 // The Stand side green outline in (Y,Z): the arc from outer 1 over the top to outer 2 (64 segments per turn), then outer 3 and outer 4.
 export function standSidePoints(params: BaseParameters): number[][] {
-  const { outerRadius, outer1Angle, outer3, outer4 } = standSideGeometry(params)
-  // Outer 1, then the 64-per-turn grid angles above it up to outer 2 (π), so the top stays at the full radius.
+  const { outerRadius, outer1Angle, outer2Angle, outer3, outer4 } = standSideGeometry(params)
+  // Outer 1, the 64-per-turn grid angles between it and outer 2, then outer 2, so the top stays at the full radius.
   const step = 2 * Math.PI / 64
   const angles = [outer1Angle]
-  for (let k = Math.floor(outer1Angle / step + 1e-9) + 1; k * step <= Math.PI + 1e-9; k++) angles.push(k * step)
+  for (let k = Math.floor(outer1Angle / step + 1e-9) + 1; k * step < outer2Angle - 1e-9; k++) angles.push(k * step)
+  angles.push(outer2Angle)
   const arc = angles.map(angle => [outerRadius * Math.cos(angle), outerRadius * Math.sin(angle)])
   return [...arc, [outer3.y, outer3.z], [outer4.y, outer4.z]]
 }

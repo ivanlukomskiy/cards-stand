@@ -111,6 +111,10 @@ export function standSideGeometry(params: BaseParameters) {
   const outerRadius = (params.baseHeight - params.standHingeTolerance) / 2
   // Outer 4: outer 3 dropped side, at the Stand top outer 4 Y (Y top 1).
   const outer4 = { y: standTopGeometry(params).yTop1, z: -drop }
+  // Outer 2–outer 3 rises toward +Y at the hinge angle from outer 3–outer 4 and touches the green circle on its -Y side.
+  const hingeAngle = params.hingeAngle * Math.PI / 180
+  const outer2Angle = Math.PI / 2 + hingeAngle
+  const outer3 = { y: -(outerRadius + drop * Math.cos(hingeAngle)) / Math.sin(hingeAngle), z: -drop }
   // Outer 1: where the line from outer 4 touches the green circle, on its upper side.
   const distance = Math.hypot(outer4.y, outer4.z)
   const outer1Angle = Math.atan2(outer4.z, outer4.y) + Math.acos(outerRadius / distance)
@@ -120,31 +124,31 @@ export function standSideGeometry(params: BaseParameters) {
     innerRadius: (params.baseHeight - 2 * params.wallThickness) / 2,
     // The green arc runs from outer 1 over the top to outer 2.
     outer1Angle,
+    outer2Angle,
     outer1: { y: outerRadius * Math.cos(outer1Angle), z: outerRadius * Math.sin(outer1Angle) },
-    outer2: { y: -outerRadius, z: 0 },
-    // Outer 2 moved down by the yellow arc's radius.
-    outer3: { y: -outerRadius, z: -drop },
+    outer2: { y: outerRadius * Math.cos(outer2Angle), z: outerRadius * Math.sin(outer2Angle) },
+    outer3,
     outer4,
     // Outer 3 and outer 4 moved down by the wall thickness.
-    outer5: { y: -outerRadius, z: -drop - params.wallThickness },
+    outer5: { y: outer3.y, z: -drop - params.wallThickness },
     outer6: { y: outer4.y, z: -drop - params.wallThickness },
   }
 }
 
 // The stand viewed from +X, in the YOZ plane: positive Y left and positive Z up, matching the Cell side sketch.
 export function standSideSketch(params: BaseParameters = defaultBaseParameters) {
-  const { outerRadius, innerRadius, outer1Angle, outer1, outer2, outer3, outer4, outer5, outer6 } = standSideGeometry(params)
-  const largeArc = Math.PI - outer1Angle > Math.PI ? 1 : 0
+  const { outerRadius, innerRadius, outer1Angle, outer2Angle, outer1, outer2, outer3, outer4, outer5, outer6 } = standSideGeometry(params)
+  const largeArc = outer2Angle - outer1Angle > Math.PI ? 1 : 0
   const radiusY = '(base height - stand hinge tolerance) / 2'
   const yFormulas = [
     [`tangent from outer 4 to the green circle`, `tangent from outer 4 to the green circle`],
-    [`-${radiusY}`, '0'],
-    [`-${radiusY}`, '-(base height / 2 + stand tolerance)'],
+    [`-${radiusY} * sin(hinge angle)`, `${radiusY} * cos(hinge angle)`],
+    [`-(${radiusY} + (base height / 2 + stand tolerance) * cos(hinge angle)) / sin(hinge angle)`, '-(base height / 2 + stand tolerance)'],
     ['Stand top Y top 1', '-(base height / 2 + stand tolerance)'],
-    [`-${radiusY}`, '-(base height / 2 + stand tolerance) - wall thickness'],
+    [`-(${radiusY} + (base height / 2 + stand tolerance) * cos(hinge angle)) / sin(hinge angle)`, '-(base height / 2 + stand tolerance) - wall thickness'],
     ['Stand top Y top 1', '-(base height / 2 + stand tolerance) - wall thickness'],
   ]
-  return axesSketch(Math.max(outerRadius, outer4.y, -outer5.z, 1e-3), 'Y', 'Z', true,
+  return axesSketch(Math.max(outerRadius, outer4.y, -outer3.y, -outer5.z, 1e-3), 'Y', 'Z', true,
     'Stand side sketch with positive Y pointing left and positive Z pointing up', unit => `
       ${outerRadius > 0 ? `<path class="sketch-outline sketch-hinge-outline" d="M ${-outer1.y} ${-outer1.z} A ${outerRadius} ${outerRadius} 0 ${largeArc} 1 ${-outer2.y} ${-outer2.z} L ${-outer3.y} ${-outer3.z} L ${-outer4.y} ${-outer4.z} Z" />` : ''}
       <polygon class="sketch-outline sketch-cut-outline" points="${[outer3, outer5, outer6, outer4].map(p => `${-p.y},${-p.z}`).join(' ')}" />

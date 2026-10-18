@@ -192,20 +192,28 @@ console.log('PASS: bolt circles')
   const stand = standSideGeometry(params)
   near(stand.outerRadius, (params.baseHeight - 0.3) / 2)
   near(stand.innerRadius * 2, params.baseHeight - 2 * params.wallThickness)
-  assert.deepEqual(stand.outer2, {y: -stand.outerRadius, z: 0})
   // Outer 3 drops outer 2 by the Cell side yellow arc's radius; outer 4 sits at that Z and the Stand top outer 4 Y.
   const { standTopGeometry } = await import('../src/stand-sketch.ts')
   const yTop1 = standTopGeometry(params).yTop1
   const drop = baseEndGeometry(params).arcRadius
   near(drop, params.baseHeight / 2 + params.standTolerance)
-  assert.deepEqual([stand.outer3, stand.outer4], [{y: -stand.outerRadius, z: -drop}, {y: yTop1, z: -drop}])
-  assert.deepEqual([stand.outer5, stand.outer6], [{y: -stand.outerRadius, z: -drop - params.wallThickness}, {y: yTop1, z: -drop - params.wallThickness}])
+  near(stand.outer3.z, -drop)
+  assert.deepEqual(stand.outer4, {y: yTop1, z: -drop})
+  assert.deepEqual([stand.outer5, stand.outer6], [{y: stand.outer3.y, z: -drop - params.wallThickness}, {y: yTop1, z: -drop - params.wallThickness}])
+  // At outer 3, the lines to outer 4 and outer 2 meet at the hinge angle; outer 3 lies to the right (-Y) of outer 2.
+  const toOuter4 = Math.atan2(stand.outer4.z - stand.outer3.z, stand.outer4.y - stand.outer3.y)
+  const toOuter2 = Math.atan2(stand.outer2.z - stand.outer3.z, stand.outer2.y - stand.outer3.y)
+  near((toOuter2 - toOuter4) * 180 / Math.PI, params.hingeAngle)
+  assert.ok(stand.outer3.y < stand.outer2.y)
+  // Outer 2 is on the green circle, and outer 3–outer 2 is tangent there.
+  near(Math.hypot(stand.outer2.y, stand.outer2.z), stand.outerRadius)
+  near(stand.outer2.y * (stand.outer3.y - stand.outer2.y) + stand.outer2.z * (stand.outer3.z - stand.outer2.z), 0)
   // Outer 1 is on the green circle, and outer 4–outer 1 is tangent there, touching its upper side.
   near(Math.hypot(stand.outer1.y, stand.outer1.z), stand.outerRadius)
   near(stand.outer1.y * (stand.outer4.y - stand.outer1.y) + stand.outer1.z * (stand.outer4.z - stand.outer1.z), 0)
   assert.ok(stand.outer1.z > stand.outer4.z)
 }
-console.log('PASS: stand side circles, green arc ends at the outer 4 tangent, and dropped outer 3–6')
+console.log('PASS: stand side circles, green arc ends at the outer 4 tangent, outer 3–outer 2 tangent at the hinge angle, and dropped outer 3–6')
 
 {
   const { standTopGeometry } = await import('../src/stand-sketch.ts')

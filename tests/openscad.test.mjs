@@ -351,7 +351,7 @@ for (const changes of [{ rows: 1, columns: 1, hingeAngle: 45 }, { rows: 3, colum
     const side = standSideGeometry(params)
     near(min.x, -top.outer1.x)
     near(max.x, top.outer1.x)
-    near(min.y, Math.min(-top.standLength, side.outer2.y))
+    near(min.y, Math.min(-top.standLength, side.outer3.y))
     near(max.y, Math.max(top.yTop1, side.outer1.y))
     near(min.z, side.outer3.z - params.wallThickness)
     near(max.z, side.outerRadius)
