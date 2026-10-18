@@ -4,7 +4,7 @@
 
 <h1 align="center">cards stand</h1>
 
-<p align="center">Parametric cards stand generation for board games</p>
+<p align="center">Parametric foldable cards stand generation for board games</p>
 
 <p align="center"><a href="https://ivanlukomskiy.github.io/cards-stand/">Open the generator</a></p>
 
@@ -17,7 +17,7 @@ The stand is a grid of cells that hold cards, with a hinged divider in each row 
 - **Stand**: the folding back support, with a rounded Voronoi pattern cut through its plate.
 - **Bolt**: two pins that hold the stand in the base.
 
-Each part is described by 2D sketches computed in TypeScript (shown in the Sketches view, with every point's formula on hover). The sketches are extruded and combined by OpenSCAD, running in the browser as WebAssembly, and the resulting meshes are shown with Three.js. The Assembly view puts the parts together, with the stand and hinges folded or extended. Export downloads every part as STL or as 3MF with the assembly colours, ready to slice and print.
+Each part is described by 2D sketches computed in TypeScript (shown in the Sketches view, with every point's formula on hover). The sketches are extruded and combined by OpenSCAD, running in the browser as WebAssembly, and the resulting meshes are shown with Three.js. The Assembly view puts the parts together, with the stand and hinges folded or extended. Export downloads every part as STL or as 3MF, ready to slice and print.
 
 ![The assembly preview with default parameters](docs/screenshot.png)
 
@@ -34,7 +34,7 @@ npm run dev
 
 The stand was first designed for playing Food Chain Magnate, which has you arrange lots of small stacks of cards.
 
-This project is an experiment in designing a printable model by writing code with AI tools instead of using CAD software. Every dimension, sketch and part is described in conversation and turned into TypeScript and OpenSCAD, with tests that check the real geometry. Whether a design changes or a print shows a part is too tight, the fix is a change to the model's rules, and every part follows from them.
+This project is an experiment in designing a printable model by writing code with AI tools instead of using CAD software.
 
 ## License
 
