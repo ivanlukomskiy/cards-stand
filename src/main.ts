@@ -138,7 +138,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
             </div>
             <div class="transform-field">
               <label for="stand-thickness">Stand thickness, <em>mm</em></label>
-              <input id="stand-thickness" data-tooltip="plate and side walls" name="stand-thickness" type="number" min="0.1" step="0.1" value="1.6" />
+              <input id="stand-thickness" data-tooltip="plate and side walls" name="stand-thickness" type="number" min="0.1" step="0.1" value="3" />
             </div>
             <div class="transform-field">
               <label for="stand-profile-width-vertical">Stand profile width vertical, <em>mm</em></label>
