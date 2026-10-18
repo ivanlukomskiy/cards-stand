@@ -49,15 +49,19 @@ module base_solid() {
     }
 }
 
-module hinge_capsule_cut(x_start) {
-    // The sketch's (Y,Z) capsule is extruded along X by the hinge cut length.
+// Overshoot past the side wall's outer face, so the cut does not share that face (avoids coincident-face artifacts).
+hinge_cut_epsilon = 0.001;
+
+// outward: -1 when the side wall's outer face is at x_start, +1 when it is at x_start + hinge cut length.
+module hinge_capsule_cut(x_start, outward) {
+    // The sketch's (Y,Z) capsule is extruded along X by the hinge cut length, plus epsilon past the outer face.
     multmatrix([
-        [0, 0, 1, x_start],
+        [0, 0, 1, x_start - (outward < 0 ? hinge_cut_epsilon : 0)],
         [1, 0, 0, 0],
         [0, 1, 0, 0],
         [0, 0, 0, 1]
     ])
-        linear_extrude(height = hinge_cut_length)
+        linear_extrude(height = hinge_cut_length + hinge_cut_epsilon)
             hull() {
                 for (centre = hinge_centres)
                     translate(centre)
@@ -70,8 +74,8 @@ module cell_hinge_cuts() {
     for (row = [0 : rows - 1])
         translate([0, -row * row_pitch, 0])
             for (column = [0 : columns - 1]) {
-                hinge_capsule_cut(column * column_pitch - cell_width / 2 - wall_thickness);
-                hinge_capsule_cut(column * column_pitch + cell_width / 2 + wall_thickness - hinge_cut_length);
+                hinge_capsule_cut(column * column_pitch - cell_width / 2 - wall_thickness, -1);
+                hinge_capsule_cut(column * column_pitch + cell_width / 2 + wall_thickness - hinge_cut_length, 1);
             }
 }
 
