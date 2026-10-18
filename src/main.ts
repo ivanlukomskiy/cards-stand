@@ -60,11 +60,11 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           <div class="sidebar-section-content">
             <div class="transform-field">
               <label for="cells-rows">Cells rows</label>
-              <input id="cells-rows" name="cells-rows" type="number" min="1" step="1" value="2" />
+              <input id="cells-rows" name="cells-rows" type="number" min="1" step="1" value="5" />
             </div>
             <div class="transform-field">
               <label for="cell-columns">Cells columns</label>
-              <input id="cell-columns" name="cell-columns" type="number" min="1" step="1" value="2" />
+              <input id="cell-columns" name="cell-columns" type="number" min="1" step="1" value="3" />
             </div>
             <div class="transform-field">
               <label for="base-tilt-angle">Base tilt angle, <em>°</em></label>
