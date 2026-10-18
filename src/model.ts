@@ -17,6 +17,11 @@ export interface BaseParameters extends CellSketchParameters {
   standPatternCellSize: number
   standPatternRibWidth: number
   standPatternSeed: number
+  standPatternCornerRadius: number
+  // How far seeds stray from a regular grid, as a fraction of the cell size.
+  standPatternJitter: number
+  // Lloyd relaxation passes, which even out the cells.
+  standPatternRelaxations: number
   hingePinExtension: number
   hingeTopWidth: number
   hingeHeight: number
@@ -26,7 +31,7 @@ export interface BaseParameters extends CellSketchParameters {
 }
 
 export const defaultBaseParameters: BaseParameters = {
-  ...defaultSketchParameters, rows: 2, columns: 2, standAngle: 80, standHingeTolerance: 0.1, standTolerance: 0.5, baseTiltAngle: 30, standProfileWidthVertical: 10, standProfileWidthHorizontal: 18, standPatternCellSize: 12, standPatternRibWidth: 2, standPatternSeed: 1, hingePinExtension: 2, hingeTopWidth: 22, hingeHeight: 58, boltTolerance: 0.24, boltLength: 10, hingeAngle: 45, baseHeight: 12,
+  ...defaultSketchParameters, rows: 2, columns: 2, standAngle: 80, standHingeTolerance: 0.1, standTolerance: 0.5, baseTiltAngle: 30, standProfileWidthVertical: 10, standProfileWidthHorizontal: 18, standPatternCellSize: 12, standPatternRibWidth: 2, standPatternSeed: 1, standPatternCornerRadius: 2, standPatternJitter: 1.6, standPatternRelaxations: 1, hingePinExtension: 2, hingeTopWidth: 22, hingeHeight: 58, boltTolerance: 0.24, boltLength: 10, hingeAngle: 45, baseHeight: 12,
 }
 
 export function validateBaseParameters(params: BaseParameters) {
@@ -62,8 +67,8 @@ export function validateBaseParameters(params: BaseParameters) {
   if (params.standPatternCellSize > 0 && params.standPatternRibWidth <= 0) {
     throw new Error('Stand pattern rib width must be greater than zero.')
   }
-  if (!Number.isInteger(params.standPatternSeed)) {
-    throw new Error('Stand pattern seed must be a whole number.')
+  if (!Number.isInteger(params.standPatternSeed) || !Number.isInteger(params.standPatternRelaxations)) {
+    throw new Error('Stand pattern seed and relaxations must be whole numbers.')
   }
   if (params.hingeAngle <= 0 || params.hingeAngle > 90) {
     throw new Error('Hinge angle must be greater than 0° and at most 90°.')

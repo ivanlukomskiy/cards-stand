@@ -94,8 +94,10 @@ export function standTopHoles(params: BaseParameters): [number, number][][] {
   return voronoiHoles(opening, {
     cellSize: params.standPatternCellSize,
     ribWidth: params.standPatternRibWidth,
-    cornerRadius: params.standPatternRibWidth,
+    cornerRadius: params.standPatternCornerRadius,
     seed: params.standPatternSeed,
+    jitter: params.standPatternJitter,
+    relaxations: params.standPatternRelaxations,
   })
 }
 

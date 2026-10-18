@@ -145,24 +145,41 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
               <input id="stand-profile-width-horizontal" data-tooltip="sides of the stand frame" name="stand-profile-width-horizontal" type="number" min="0" step="0.1" value="18" />
             </div>
             <div class="transform-field">
-              <label for="stand-pattern-cell-size">Pattern cell size, <em>mm</em></label>
-              <input id="stand-pattern-cell-size" data-tooltip="0 for a single opening" name="stand-pattern-cell-size" type="number" min="0" step="0.5" value="12" />
-            </div>
-            <div class="transform-field">
-              <label for="stand-pattern-rib-width">Pattern rib width, <em>mm</em></label>
-              <input id="stand-pattern-rib-width" name="stand-pattern-rib-width" type="number" min="0" step="0.1" value="2" />
-            </div>
-            <div class="transform-field">
-              <label for="stand-pattern-seed">Pattern seed</label>
-              <input id="stand-pattern-seed" data-tooltip="change for a different pattern" name="stand-pattern-seed" type="number" min="0" step="1" value="1" />
-            </div>
-            <div class="transform-field">
               <label for="stand-hinge-tolerance">Stand hinge tolerance, <em>mm</em></label>
               <input id="stand-hinge-tolerance" data-tooltip="higher values means looser" name="stand-hinge-tolerance" type="number" min="0" step="0.01" value="0.1" />
             </div>
             <div class="transform-field">
               <label for="stand-tolerance">Stand tolerance, <em>mm</em></label>
               <input id="stand-tolerance" data-tooltip="higher values means looser" name="stand-tolerance" type="number" min="0" step="0.01" value="0.5" />
+            </div>
+          </div>
+        </details>
+        <details id="stand-pattern-parameters" class="sidebar-section">
+          <summary>Stand pattern</summary>
+          <div class="sidebar-section-content">
+            <div class="transform-field">
+              <label for="stand-pattern-cell-size">Cell size, <em>mm</em></label>
+              <input id="stand-pattern-cell-size" data-tooltip="0 for a single opening" name="stand-pattern-cell-size" type="number" min="0" step="0.5" value="12" />
+            </div>
+            <div class="transform-field">
+              <label for="stand-pattern-rib-width">Rib width, <em>mm</em></label>
+              <input id="stand-pattern-rib-width" data-tooltip="solid between holes" name="stand-pattern-rib-width" type="number" min="0" step="0.1" value="2" />
+            </div>
+            <div class="transform-field">
+              <label for="stand-pattern-corner-radius">Corner radius, <em>mm</em></label>
+              <input id="stand-pattern-corner-radius" data-tooltip="rounding of the holes" name="stand-pattern-corner-radius" type="number" min="0" step="0.1" value="2" />
+            </div>
+            <div class="transform-field">
+              <label for="stand-pattern-jitter">Jitter</label>
+              <input id="stand-pattern-jitter" data-tooltip="higher values means more chaotic" name="stand-pattern-jitter" type="number" min="0" step="0.1" value="1.6" />
+            </div>
+            <div class="transform-field">
+              <label for="stand-pattern-relaxations">Relaxations</label>
+              <input id="stand-pattern-relaxations" data-tooltip="higher values means more regular" name="stand-pattern-relaxations" type="number" min="0" step="1" value="1" />
+            </div>
+            <div class="transform-field">
+              <label for="stand-pattern-seed">Seed</label>
+              <input id="stand-pattern-seed" data-tooltip="change for a different pattern" name="stand-pattern-seed" type="number" min="0" step="1" value="1" />
             </div>
           </div>
         </details>
@@ -324,6 +341,9 @@ const parameterInputs = {
   standPatternCellSize: document.querySelector<HTMLInputElement>('#stand-pattern-cell-size')!,
   standPatternRibWidth: document.querySelector<HTMLInputElement>('#stand-pattern-rib-width')!,
   standPatternSeed: document.querySelector<HTMLInputElement>('#stand-pattern-seed')!,
+  standPatternCornerRadius: document.querySelector<HTMLInputElement>('#stand-pattern-corner-radius')!,
+  standPatternJitter: document.querySelector<HTMLInputElement>('#stand-pattern-jitter')!,
+  standPatternRelaxations: document.querySelector<HTMLInputElement>('#stand-pattern-relaxations')!,
   boltTolerance: document.querySelector<HTMLInputElement>('#bolt-tolerance')!,
   boltLength: document.querySelector<HTMLInputElement>('#bolt-length')!,
   baseHeight: document.querySelector<HTMLInputElement>('#base-height')!,

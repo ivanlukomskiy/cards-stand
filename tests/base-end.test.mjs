@@ -341,5 +341,10 @@ console.log('PASS: hinge centre travel and its ΔX along inner 3 → inner 2')
   assert.deepEqual(standTopHoles({...defaultBaseParameters, standPatternCellSize: 0}), [standTopOpening(defaultBaseParameters)])
   assert.throws(() => validateBaseParameters({...defaultBaseParameters, standPatternRibWidth: 0}))
   assert.throws(() => validateBaseParameters({...defaultBaseParameters, standPatternSeed: 1.5}))
+  assert.throws(() => validateBaseParameters({...defaultBaseParameters, standPatternRelaxations: 0.5}))
+  // Jitter, relaxations and corner radius each change the pattern.
+  for (const change of [{ standPatternJitter: 0.5 }, { standPatternRelaxations: 3 }, { standPatternCornerRadius: 1 }]) {
+    assert.notDeepEqual(standTopHoles({...defaultBaseParameters, ...change}), standTopHoles(defaultBaseParameters))
+  }
 }
 console.log('PASS: stand Voronoi holes: seeded, inside the opening, mirrored about X = 0, and rib width apart')
