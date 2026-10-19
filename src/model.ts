@@ -34,7 +34,7 @@ export interface BaseParameters extends CellSketchParameters {
 }
 
 export const defaultBaseParameters: BaseParameters = {
-  ...defaultSketchParameters, rows: 5, columns: 3, standAngle: 80, standHingeTolerance: 0.1, standTolerance: 0.5, baseTiltAngle: 30, standProfileWidthVertical: 10, standProfileWidthHorizontal: 18, standThickness: 2, standPatternCellSize: 12, standPatternRibWidth: 2, standPatternSeed: 1, standPatternCornerRadius: 2, standPatternJitter: 1.6, standPatternRelaxations: 1, hingePinExtension: 2, hingeRestTolerance: 0.6, hingeTopWidth: 22, hingeHeight: 58, boltTolerance: 0.24, boltLength: 10, hingeAngle: 45, baseHeight: 12,
+  ...defaultSketchParameters, rows: 5, columns: 3, standAngle: 80, standHingeTolerance: 0.1, standTolerance: 0.5, baseTiltAngle: 30, standProfileWidthVertical: 10, standProfileWidthHorizontal: 18, standThickness: 2, standPatternCellSize: 12, standPatternRibWidth: 2, standPatternSeed: 1, standPatternCornerRadius: 2, standPatternJitter: 1.6, standPatternRelaxations: 1, hingePinExtension: 2, hingeRestTolerance: 0.75, hingeTopWidth: 22, hingeHeight: 58, boltTolerance: 0.24, boltLength: 10, hingeAngle: 45, baseHeight: 12,
 }
 
 export const minStandPatternCellSize = 5

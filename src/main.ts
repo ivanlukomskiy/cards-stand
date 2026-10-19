@@ -101,7 +101,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
             </div>
             <div class="transform-field">
               <label for="rim-width">Rim width, <em>mm</em></label>
-              <input id="rim-width" name="rim-width" type="number" min="0" step="0.1" value="7" />
+              <input id="rim-width" name="rim-width" type="number" min="0" step="0.1" value="6" />
             </div>
           </div>
         </details>
@@ -134,11 +134,11 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
             </div>
             <div class="transform-field">
               <label for="hinge-tolerance">Hinge tolerance, <em>mm</em></label>
-              <input id="hinge-tolerance" data-tooltip="higher values means looser" name="hinge-tolerance" type="number" min="0" step="0.01" value="0.12" />
+              <input id="hinge-tolerance" data-tooltip="higher values means looser" name="hinge-tolerance" type="number" min="0" step="0.01" value="0.15" />
             </div>
             <div class="transform-field">
               <label for="hinge-rest-tolerance">Hinge rest tolerance, <em>mm</em></label>
-              <input id="hinge-rest-tolerance" data-tooltip="higher values means looser" name="hinge-rest-tolerance" type="number" min="0" step="0.01" value="0.6" />
+              <input id="hinge-rest-tolerance" data-tooltip="higher values means looser" name="hinge-rest-tolerance" type="number" min="0" step="0.01" value="0.75" />
             </div>
           </div>
         </details>

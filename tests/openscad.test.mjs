@@ -87,7 +87,7 @@ assert.throws(() => baseDefinitions({ ...defaultBaseParameters, rows: 1.5 }))
 assert.throws(() => baseDefinitions({ ...defaultBaseParameters, columns: 0 }))
 assert.throws(() => baseDefinitions({ ...defaultBaseParameters, cellMidCutWidth: defaultBaseParameters.wallThickness }))
 // Fixed dimensions keep these coordinate fixtures independent of UI defaults.
-const coordinateFixture = {...defaultBaseParameters, wallThickness: 2, hingeTolerance: 0.25}
+const coordinateFixture = {...defaultBaseParameters, wallThickness: 2, hingeTolerance: 0.25, rimWidth: 7}
 const topY = 2 + 3.25 / Math.sin(Math.PI / 4)
 assert.deepEqual(cellMidPoints(coordinateFixture).map(({ name, x, y }) => [name, x, y]), [
   ['cell outer mid 1', 0, topY], ['cell outer mid 2', 0, -26],
@@ -118,7 +118,7 @@ console.log('PASS: projected Y tolerance at cell outer 1')
 // Check real cut meshes by probing the capsule centreline across all columns.
 for (const columns of [1, 3]) {
   const params = {...coordinateFixture, rows: 2, columns}
-  const {hingeCenter, hingeCenter2} = baseEndGeometry(params)
+  const {hingeCenter, midCut3} = baseEndGeometry(params)
   const instance = await OpenSCAD({noInitialRun:true, wasmBinary, print:()=>{}, printErr:()=>{}})
   instance.FS.writeFile('/base.scad', source)
   assert.equal(instance.callMain(['/base.scad', ...baseDefinitions(params), '--export-format', 'binstl', '-o', '/base.stl']), 0)
@@ -131,7 +131,8 @@ for (const columns of [1, 3]) {
   const travelX = hingeTravelX(params)
   const cutLength = params.wallThickness*2 + params.hingeProfileWidth + params.hingeTolerance + travelX
   for (let row=0;row<params.rows;row++) {
-    const z = (hingeCenter.z + hingeCenter2.z)/2 + 0.123
+    // Below the purple cut's lower line, which removes everything but the outer side walls above it.
+    const z = (hingeCenter.z + midCut3.z)/2 + 0.123
     const y = hingeCenter.y + (z-hingeCenter.z)/Math.tan(params.hingeAngle*Math.PI/180) - row*rowPitch
     const hits = new Raycaster(new Vector3(-1000,y,z),new Vector3(1,0,0)).intersectObject(mesh)
     const xs = hits.map(hit=>hit.point.x).filter((x,i,all)=>i===0 || Math.abs(x-all[i-1])>1e-5)

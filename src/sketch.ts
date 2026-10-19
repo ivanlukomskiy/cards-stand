@@ -28,8 +28,8 @@ export const defaultSketchParameters: CellSketchParameters = {
   wallThickness: 1.6,
   hingeThickness: 3,
   hingeProfileWidth: 7,
-  hingeTolerance: 0.12,
-  rimWidth: 7,
+  hingeTolerance: 0.15,
+  rimWidth: 6,
 }
 
 // Sketch coordinates use millimeters, with Y increasing upward.
